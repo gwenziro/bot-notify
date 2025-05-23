@@ -1,0 +1,51 @@
+/* Custom styles for WhatsApp Bot Notify */
+
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.container {
+    flex: 1;
+}
+
+.footer {
+    margin-top: auto;
+}
+
+.jumbotron {
+    padding: 2rem 1rem;
+    margin-bottom: 2rem;
+    background-color: #e9ecef;
+    border-radius: .3rem;
+}
+
+/* Status indicator colors */
+.status-connected {
+    color: #28a745;
+}
+
+.status-connecting {
+    color: #ffc107;
+}
+
+.status-disconnected, .status-logged_out {
+    color: #dc3545;
+}
+
+/* QR Code container */
+#qrcode-container {
+    background-color: #f8f9fa;
+    padding: 20px;
+    border-radius: 5px;
+    min-height: 300px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+#qrcode-img {
+    max-width: 300px;
+    margin: 0 auto;
+}

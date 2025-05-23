@@ -1,0 +1,86 @@
+{{template "layouts/main" .}}
+
+{{define "embed"}}
+<h1>Status Koneksi WhatsApp</h1>
+
+<div class="card mt-4">
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <h5 class="card-title">Informasi Koneksi</h5>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Status:</span>
+                        <span class="badge {{if eq .Status "connected"}}bg-success{{else if eq .Status "connecting"}}bg-warning{{else}}bg-danger{{end}}">
+                            {{.Status}}
+                        </span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Terhubung:</span>
+                        <span>{{if .IsConnected}}Ya{{else}}Tidak{{end}}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Aktivitas Terakhir:</span>
+                        <span>{{.LastActivity}}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Terhubung Sejak:</span>
+                        <span>{{.ConnectedSince}}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Percobaan Koneksi:</span>
+                        <span>{{.Retries}}</span>
+                    </li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <h5 class="card-title">Tindakan</h5>
+                <div class="d-grid gap-2">
+                    <button id="btn-reconnect" class="btn btn-primary">Hubungkan Ulang</button>
+                    <button id="btn-disconnect" class="btn btn-danger">Putuskan Koneksi</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('btn-reconnect').addEventListener('click', function() {
+    if (confirm('Yakin ingin menghubungkan ulang WhatsApp?')) {
+        fetch('/api/reconnect', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.pesan);
+            location.reload();
+        })
+        .catch(error => {
+            alert('Terjadi kesalahan: ' + error);
+        });
+    }
+});
+
+document.getElementById('btn-disconnect').addEventListener('click', function() {
+    if (confirm('Yakin ingin memutuskan koneksi WhatsApp?')) {
+        fetch('/api/disconnect', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.pesan);
+            location.reload();
+        })
+        .catch(error => {
+            alert('Terjadi kesalahan: ' + error);
+        });
+    }
+});
+</script>
+{{end}}

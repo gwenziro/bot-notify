@@ -15,6 +15,7 @@ type APIHandler struct {
 	connHandler   *handler.ConnectionHandler
 	msgHandler    *handler.MessageHandler
 	groupHandler  *handler.GroupHandler
+	qrHandler     *handler.QRCodeHandler
 	authMw        fiber.Handler
 }
 
@@ -28,12 +29,14 @@ func NewHandler(cfg *config.Config, whatsClient *client.Client) *APIHandler {
 	connHandler := handler.NewConnectionHandler(whatsClient)
 	msgHandler := handler.NewMessageHandler(whatsClient)
 	groupHandler := handler.NewGroupHandler(whatsClient)
+	qrHandler := handler.NewQRCodeHandler(whatsClient)
 
 	return &APIHandler{
 		statusHandler: statusHandler,
 		connHandler:   connHandler,
 		msgHandler:    msgHandler,
 		groupHandler:  groupHandler,
+		qrHandler:     qrHandler,
 		authMw:        authMiddleware.Validate,
 	}
 }

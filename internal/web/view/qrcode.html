@@ -1,0 +1,74 @@
+{{template "layouts/main" .}}
+
+{{define "embed"}}
+<h1>Scan QR Code</h1>
+
+<div class="card mt-4">
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6 text-center">
+                <h5 class="card-title">QR Code WhatsApp</h5>
+                <div id="qrcode-container" class="mt-3 mb-3">
+                    <div class="alert alert-info">
+                        Memuat QR Code... Jika QR Code tidak muncul, mungkin Anda sudah terhubung.
+                    </div>
+                    <img id="qrcode-img" src="/api/qr/image" class="img-fluid d-none" alt="QR Code">
+                </div>
+                <p>Scan QR code ini dengan aplikasi WhatsApp di ponsel Anda untuk menghubungkan.</p>
+            </div>
+            <div class="col-md-6">
+                <h5 class="card-title">Petunjuk</h5>
+                <ol class="list-group list-group-numbered">
+                    <li class="list-group-item">Buka aplikasi WhatsApp di ponsel Anda</li>
+                    <li class="list-group-item">Ketuk Menu (tiga titik) atau Pengaturan</li>
+                    <li class="list-group-item">Pilih WhatsApp Web atau Perangkat Tertaut</li>
+                    <li class="list-group-item">Ketuk Tambahkan Perangkat</li>
+                    <li class="list-group-item">Arahkan kamera ke QR code ini</li>
+                </ol>
+                <div class="d-grid gap-2 mt-3">
+                    <button id="btn-refresh-qr" class="btn btn-primary">Refresh QR Code</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const qrImg = document.getElementById('qrcode-img');
+    
+    // Fungsi untuk memeriksa dan menampilkan QR code
+    function checkAndDisplayQR() {
+        fetch('/api/qr/status')
+            .then(response => response.json())
+            .then(data => {
+                if (data.available) {
+                    qrImg.classList.remove('d-none');
+                    qrImg.src = '/api/qr/image?' + new Date().getTime(); // Mencegah cache
+                } else {
+                    qrImg.classList.add('d-none');
+                }
+            })
+            .catch(error => {
+                console.error('Error checking QR status:', error);
+            });
+    }
+    
+    // Periksa QR code saat halaman dimuat
+    checkAndDisplayQR();
+    
+    // Refresh QR code secara periodik
+    const qrInterval = setInterval(checkAndDisplayQR, 10000); // Setiap 10 detik
+    
+    // Event listener untuk tombol refresh
+    document.getElementById('btn-refresh-qr').addEventListener('click', function() {
+        qrImg.src = '/api/qr/image?' + new Date().getTime();
+    });
+    
+    // Bersihkan interval saat meninggalkan halaman
+    window.addEventListener('beforeunload', function() {
+        clearInterval(qrInterval);
+    });
+});
+</script>
+{{end}}

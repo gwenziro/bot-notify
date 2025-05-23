@@ -136,3 +136,8 @@ func (m *Manager) ClearSessions() error {
 
 	return nil
 }
+
+// GetQRHandler mengembalikan QR handler untuk digunakan eksternal
+func (m *Manager) GetQRHandler() *QRHandler {
+	return m.qrHandler
+}

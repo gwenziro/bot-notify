@@ -13,6 +13,7 @@ import (
 	"github.com/gwenziro/bot-notify/internal/service/whatsapp/client"
 	"github.com/gwenziro/bot-notify/internal/storage"
 	"github.com/gwenziro/bot-notify/internal/utils"
+	"github.com/gwenziro/bot-notify/internal/web"
 )
 
 func main() {
@@ -60,9 +61,16 @@ func main() {
 		utils.Fatal("Gagal inisialisasi server", utils.Fields{"error": err.Error()})
 	}
 
-	// Setup dan register API handler
+	// Setup API handler
 	apiHandler := api.NewHandler(cfg, whatsClient)
 	apiHandler.RegisterRoutes(fiberApp.App)
+
+	// Setup Web handler
+	webHandler := web.NewWebHandler(cfg, whatsClient)
+	if err := webHandler.Setup(fiberApp.App); err != nil {
+		utils.Error("Gagal setup web handler", utils.Fields{"error": err.Error()})
+	}
+	webHandler.SetupRoutes(fiberApp.App)
 
 	// Jalankan server di background
 	listenAddr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)

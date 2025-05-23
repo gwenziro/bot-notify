@@ -1,0 +1,45 @@
+{{template "layouts/main" .}}
+
+{{define "embed"}}
+<div class="jumbotron">
+    <h1 class="display-4">Selamat Datang di WhatsApp Bot Notify</h1>
+    <p class="lead">{{.Description}}</p>
+    <hr class="my-4">
+    <p>Aplikasi untuk mengirim notifikasi WhatsApp melalui API atau antarmuka web.</p>
+    
+    <div class="mt-4 d-flex gap-2">
+        <a href="/status" class="btn btn-primary">Cek Status</a>
+        <a href="/qr" class="btn btn-secondary">Scan QR Code</a>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Status Koneksi</h5>
+                <p class="card-text">Pantau status koneksi WhatsApp Anda.</p>
+                <a href="/status" class="btn btn-sm btn-outline-primary">Lihat Status</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">QR Code</h5>
+                <p class="card-text">Scan QR code untuk menghubungkan WhatsApp.</p>
+                <a href="/qr" class="btn btn-sm btn-outline-primary">Lihat QR</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Kirim Pesan</h5>
+                <p class="card-text">Kirim pesan WhatsApp melalui antarmuka web.</p>
+                <a href="#" class="btn btn-sm btn-outline-primary disabled">Segera Hadir</a>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}

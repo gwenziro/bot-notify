@@ -4,7 +4,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-// RegisterRoutes mendaftarkan semua rute API ke Fiber app
+// RegisterRoutes mendaftarkan semua endpoint API ke Fiber app
 func (h *APIHandler) RegisterRoutes(app *fiber.App) {
 	// API health check tanpa autentikasi
 	app.Get("/ping", h.statusHandler.TestConnection)
@@ -27,4 +27,8 @@ func (h *APIHandler) RegisterRoutes(app *fiber.App) {
 
 	// Groups API
 	api.Get("/groups", h.groupHandler.ListGroups)
+
+	// QR Code API
+	api.Get("/qr/status", h.qrHandler.GetStatus)
+	api.Get("/qr/image", h.qrHandler.GetImage)
 }
