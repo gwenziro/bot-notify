@@ -5,7 +5,7 @@ import (
 )
 
 // RegisterRoutes mendaftarkan semua endpoint API ke Fiber app
-func (h *APIHandler) RegisterRoutes(app *fiber.App) {
+func (h *APIHandler) RegisterEndpoints(app *fiber.App) {
 	// API health check tanpa autentikasi
 	app.Get("/ping", h.statusHandler.TestConnection)
 

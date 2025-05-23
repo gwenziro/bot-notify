@@ -25,6 +25,11 @@ func NewHomeController(cfg *config.Config, whatsClient *client.Client, logger ut
 
 // HomePage menampilkan halaman utama
 func (c *HomeController) HomePage(ctx *fiber.Ctx) error {
+	// Log path file template untuk debugging
+	c.logger.WithFields(utils.Fields{
+		"template": "index",
+	}).Debug("Rendering template")
+
 	return ctx.Render("index", fiber.Map{
 		"Title":       "WhatsApp Bot Notify",
 		"Description": "Aplikasi notifikasi WhatsApp",

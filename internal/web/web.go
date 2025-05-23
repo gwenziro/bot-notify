@@ -3,7 +3,6 @@ package web
 import (
 	"path/filepath"
 
-	"github.com/gofiber/fiber/v2"
 	"github.com/gwenziro/bot-notify/internal/config"
 	"github.com/gwenziro/bot-notify/internal/service/whatsapp/client"
 	"github.com/gwenziro/bot-notify/internal/utils"
@@ -17,6 +16,7 @@ type WebHandler struct {
 	logger     utils.LogrusEntry
 	viewsPath  string
 	staticPath string
+
 	// Controller untuk berbagai halaman
 	homeController   *controller.HomeController
 	statusController *controller.StatusController
@@ -36,7 +36,6 @@ func NewWebHandler(cfg *config.Config, whatsClient *client.Client) *WebHandler {
 	statusController := controller.NewStatusController(cfg, whatsClient, logger)
 	qrCodeController := controller.NewQRCodeController(cfg, whatsClient, logger)
 
-	// Buat instance WebHandler
 	return &WebHandler{
 		config:           cfg,
 		whatsApp:         whatsClient,
@@ -47,26 +46,4 @@ func NewWebHandler(cfg *config.Config, whatsClient *client.Client) *WebHandler {
 		statusController: statusController,
 		qrCodeController: qrCodeController,
 	}
-}
-
-// Setup menginisialisasi middleware dan engine template
-func (h *WebHandler) Setup(app *fiber.App) error {
-	// Pastikan direktori views dan static ada
-	if err := utils.EnsureDirectoryExists(h.viewsPath); err != nil {
-		return err
-	}
-	if err := utils.EnsureDirectoryExists(h.staticPath); err != nil {
-		return err
-	}
-
-	// Serve static files
-	app.Static("/static", h.staticPath)
-
-	// Log info
-	h.logger.Info("Web handler dikonfigurasi", utils.Fields{
-		"views_path":  h.viewsPath,
-		"static_path": h.staticPath,
-	})
-
-	return nil
 }

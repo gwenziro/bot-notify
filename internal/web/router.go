@@ -5,7 +5,7 @@ import (
 )
 
 // SetupRoutes mendaftarkan semua rute web ke Fiber app
-func (h *WebHandler) SetupRoutes(app *fiber.App) {
+func (h *WebHandler) RegisterRoutes(app *fiber.App) {
 	// Serve static files
 	app.Static("/static", h.staticPath)
 

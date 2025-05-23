@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -55,22 +56,24 @@ func main() {
 	whatsClient.SessionManager.SetClient(whatsClient)
 	whatsClient.SessionManager.SetupQRCodeListener()
 
-	// Inisialisasi server Fiber
-	fiberApp, err := server.NewFiberApp(cfg)
+	// Inisialisasi handler
+	webHandler := web.NewWebHandler(cfg, whatsClient)
+	apiHandler := api.NewAPIHandler(cfg, whatsClient)
+
+	// Buat server dengan template engine yang diaktifkan
+	viewsPath := filepath.Join(utils.ProjectRoot, "internal", "web", "view")
+	serverOpts := server.ServerOptions{
+		Config:               cfg,
+		EnableTemplateEngine: true,
+		ViewsPath:            viewsPath,
+		WebHandler:           webHandler,
+		APIHandler:           apiHandler,
+	}
+
+	srv, err := server.NewServer(serverOpts)
 	if err != nil {
 		utils.Fatal("Gagal inisialisasi server", utils.Fields{"error": err.Error()})
 	}
-
-	// Setup API handler
-	apiHandler := api.NewHandler(cfg, whatsClient)
-	apiHandler.RegisterRoutes(fiberApp.App)
-
-	// Setup Web handler
-	webHandler := web.NewWebHandler(cfg, whatsClient)
-	if err := webHandler.Setup(fiberApp.App); err != nil {
-		utils.Error("Gagal setup web handler", utils.Fields{"error": err.Error()})
-	}
-	webHandler.SetupRoutes(fiberApp.App)
 
 	// Jalankan server di background
 	listenAddr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
@@ -80,7 +83,7 @@ func main() {
 			"port":    cfg.Server.Port,
 			"pid":     os.Getpid(),
 		})
-		if err := fiberApp.App.Listen(listenAddr); err != nil {
+		if err := srv.App.Listen(listenAddr); err != nil {
 			utils.Error("Error saat menjalankan server", utils.Fields{"error": err.Error()})
 		}
 	}()
@@ -110,7 +113,8 @@ func main() {
 		shutdownTimeout = 10 * time.Second
 	}
 
-	if err := fiberApp.App.ShutdownWithTimeout(shutdownTimeout); err != nil {
+	// Untuk shutdown handler, ganti fiberApp.App dengan fiberApp:
+	if err := srv.App.ShutdownWithTimeout(shutdownTimeout); err != nil {
 		utils.Error("Error saat shutdown server", utils.Fields{"error": err.Error()})
 	} else {
 		utils.Info("Server berhasil dimatikan")

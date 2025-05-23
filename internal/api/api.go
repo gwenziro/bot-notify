@@ -19,8 +19,8 @@ type APIHandler struct {
 	authMw        fiber.Handler
 }
 
-// NewHandler membuat instance baru API Handler
-func NewHandler(cfg *config.Config, whatsClient *client.Client) *APIHandler {
+// NewAPIHandler membuat instance baru API Handler
+func NewAPIHandler(cfg *config.Config, whatsClient *client.Client) *APIHandler {
 	// Inisialisasi auth middleware
 	authMiddleware := middleware.NewAuthMiddleware(cfg.Auth.AccessToken)
 
