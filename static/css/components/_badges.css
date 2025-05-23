@@ -1,0 +1,53 @@
+/*
+ * BADGES & STATUS INDICATORS
+ * Komponen untuk label dan status
+ */
+
+.badge {
+  padding: 0.5rem 1rem;
+  border-radius: var(--border-radius-full);
+  background: rgba(var(--color-primary-rgb, 10, 147, 159), 0.1);
+  border: 1px solid rgba(var(--color-primary-rgb, 10, 147, 159), 0.2);
+  color: var(--theme-text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.badge i {
+  font-size: 0.8rem;
+  color: var(--accent-light);
+}
+
+.badge:hover {
+  background: rgba(var(--color-primary-rgb, 10, 147, 159), 0.15);
+  border-color: rgba(var(--color-primary-rgb, 10, 147, 159), 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Badge colors */
+.badge-primary { background-color: var(--color-primary); color: white; }
+.badge-secondary { background-color: var(--color-secondary); color: white; }
+.badge-success { background-color: var(--color-success); color: white; }
+.badge-warning { background-color: var(--color-warning); color: white; }
+.badge-danger { background-color: var(--color-danger); color: white; }
+.badge-info { background-color: var(--color-info); color: white; }
+
+/* Status indicators */
+.status-indicator {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.status-indicator.online { background-color: var(--color-success); }
+.status-indicator.offline { background-color: var(--color-danger); }
+.status-indicator.connecting { background-color: var(--color-warning); }

@@ -1,0 +1,64 @@
+/*
+ * CARDS & PANELS
+ * Komponen untuk menampilkan konten dalam container
+ */
+
+.card {
+  background-color: var(--theme-surface);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  transition: transform var(--transition-normal) ease, box-shadow var(--transition-normal) ease;
+  margin-bottom: var(--space-4);
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+}
+
+.card-header {
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--theme-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-title {
+  margin: 0;
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+}
+
+.card-subtitle {
+  margin: 0;
+  font-size: var(--font-size-md);
+  color: var(--theme-text-secondary);
+}
+
+.card-body {
+  padding: var(--space-4);
+}
+
+.card-footer {
+  padding: var(--space-4);
+  border-top: 1px solid var(--theme-border);
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* Glassmorphism panels */
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  border-radius: var(--border-radius-lg);
+}
+
+.glass-panel.dark {
+  background: var(--glass-bg-dark);
+  border-color: var(--glass-border-dark);
+  color: var(--landing-text-primary);
+}

@@ -1,23 +1,31 @@
 <footer class="dashboard-footer">
-    <div class="glass-panel">
+    <div class="glass-panel dark">
         <div class="footer-content">
             <div class="footer-left">
-                <p>&copy; 2025 Bot Notify. Hak Cipta Dilindungi.</p>
+                <p class="copyright">&copy; {{currentYear}} Bot Notify. Hak Cipta Dilindungi.</p>
             </div>
             
             <div class="footer-center">
-                <div class="footer-links">
-                    <a href="/privacy">Privasi</a>
-                    <a href="/terms">Ketentuan</a>
-                    <a href="/contact">Kontak</a>
-                </div>
+                <nav class="footer-nav">
+                    <a href="/privacy" class="footer-link">Kebijakan Privasi</a>
+                    <span class="separator">•</span>
+                    <a href="/terms" class="footer-link">Syarat Penggunaan</a>
+                    <span class="separator">•</span>
+                    <a href="/contact" class="footer-link">Kontak</a>
+                </nav>
             </div>
             
             <div class="footer-right">
                 <div class="system-info">
-                    <span id="server-time">00:00:00</span>
+                    <div class="server-time">
+                        <i class="far fa-clock"></i>
+                        <span id="server-time">00:00:00</span>
+                    </div>
                     <span class="separator">•</span>
-                    <span id="server-status" class="status-text online">Server: Online</span>
+                    <div class="server-status">
+                        <i class="fas fa-server"></i>
+                        <span id="server-status" class="status-text online">Server: Online</span>
+                    </div>
                 </div>
             </div>
         </div>

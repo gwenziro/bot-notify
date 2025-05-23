@@ -3,23 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{.Title}} - WhatsApp Bot Notify</title>
+    <title>{{.Title}} - Bot Notify</title>
     <link rel="stylesheet" href="/static/css/main.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <link rel="icon" type="image/png" sizes="48x48" href="https://img.icons8.com/fluency/48/message-bot.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
 </head>
-<body>
+<body class="dark-theme-container login-body">
+    <!-- Gradient Background -->
+    <div class="gradient-bg"></div>
+    
+    <!-- Subtle Grid Overlay -->
+    <div class="grid-overlay"></div>
+    
+    <!-- Back to Home Link -->
+    <a href="/" class="back-to-home">
+        <i class="fas fa-arrow-left"></i>
+        <span>Kembali ke Beranda</span>
+    </a>
+    
     <div class="login-container">
-        <div class="login-card glass-panel">
+        <div class="login-card">
+            <!-- Header bagian atas dengan logo -->
             <div class="login-header">
-                <img src="/static/images/logo.png" alt="Bot Notify" class="login-logo">
-                <h1 class="login-title">WhatsApp Bot Notify</h1>
+                <img src="https://img.icons8.com/3d-fluency/94/bot.png" alt="Bot Notify" class="login-logo">
+                <h1 class="login-title">Bot Notify</h1>
             </div>
             
-            <div class="login-body">
+            <!-- Content berisi form login -->
+            <div class="login-content">
                 <h2>Login ke Dashboard</h2>
                 <p class="text-muted">Masukkan token akses untuk melanjutkan</p>
-                
+
                 {{if .Error}}
                 <div class="alert alert-danger">
                     <i class="fas fa-exclamation-circle"></i>
@@ -39,14 +54,13 @@
                                 <i class="fas fa-eye"></i>
                             </button>
                         </div>
-                        <small class="text-muted">Default token: {{.AccessToken}}</small>
                     </div>
                     
-                    <div class="form-group">
+                    <div class="remember-me">
                         <label class="checkbox-container">
                             <input type="checkbox" name="remember_me" id="remember_me">
                             <span class="checkmark"></span>
-                            Ingat saya
+                            Ingat saya selama 30 hari
                         </label>
                     </div>
                     
@@ -58,28 +72,14 @@
                 </form>
             </div>
             
+            <!-- Footer bagian bawah card -->
             <div class="login-footer">
                 <p>&copy; {{currentYear}} Bot Notify</p>
             </div>
         </div>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const togglePasswordButton = document.querySelector('.toggle-password');
-            const passwordInput = document.querySelector('#token');
-            
-            // Toggle password visibility
-            togglePasswordButton?.addEventListener('click', function() {
-                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-                passwordInput.setAttribute('type', type);
-                
-                // Toggle icon
-                const icon = togglePasswordButton.querySelector('i');
-                icon.classList.toggle('fa-eye');
-                icon.classList.toggle('fa-eye-slash');
-            });
-        });
-    </script>
+    <!-- Gunakan file JS eksternal untuk login page -->
+    <script src="/static/js/pages/login.js"></script>
 </body>
 </html>

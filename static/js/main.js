@@ -8,9 +8,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Common initialization for all pages
     initCommon();
-    
-    // Initialize page-specific functionality
-    initPageSpecific();
 });
 
 // Initialize common functionality for all pages
@@ -36,30 +33,6 @@ function initTooltips() {
             new bootstrap.Tooltip(tooltip);
         }
     });
-}
-
-// Initialize page-specific functionality
-function initPageSpecific() {
-    const path = window.location.pathname;
-    
-    // Detect current page
-    if (path === '/dashboard' || path === '/dashboard/') {
-        // Already loaded via dashboard.js
-        console.log('Dashboard page detected');
-    } 
-    else if (path === '/connectivity' || path === '/qr') {
-        // Already loaded via connectivity.js
-        console.log('Connectivity page detected');
-    }
-    else if (path === '/settings') {
-        // Already loaded via settings.js
-        console.log('Settings page detected');
-    }
-    else if (path === '/status') {
-        // Status page needs periodic status updates
-        console.log('Status page detected');
-        initStatusPage();
-    }
 }
 
 // Initialize status page functionality

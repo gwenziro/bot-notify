@@ -1,37 +1,113 @@
 /* CSS Variables: Design System */
 :root {
-  /* Color Palette - Main Colors */
-  --color-primary: #124559;
-  --color-primary-light: #1d6a8b;
-  --color-primary-dark: #0b2c38;
+  /* 
+   * COLOR SYSTEM
+   * Menggunakan skema warna teal/turquoise sebagai primary dan navy sebagai secondary
+   */
   
-  --color-secondary: #0ecc8d;
-  --color-secondary-light: #31e5aa;
-  --color-secondary-dark: #0b9c6c;
+  /* Primary Colors - Teal/Turquoise */
+  --color-primary: #0a939f; /* Base color - 500 */
+  --color-primary-50: #e6f7f9;
+  --color-primary-100: #c0eaef;
+  --color-primary-200: #8dd7de;
+  --color-primary-300: #5bc4ce;
+  --color-primary-400: #37b6c1;
+  --color-primary-500: #0a939f;
+  --color-primary-600: #08838e;
+  --color-primary-700: #06717a;
+  --color-primary-800: #045e66;
+  --color-primary-900: #034a52;
   
-  /* Color Palette - Neutral Colors */
+  /* Secondary Colors - Navy Blue */
+  --color-secondary: #112b3f; /* Base color - 800 */
+  --color-secondary-50: #e6eaef;
+  --color-secondary-100: #c0cbd6;
+  --color-secondary-200: #97a8bb;
+  --color-secondary-300: #6e859f;
+  --color-secondary-400: #506b8a;
+  --color-secondary-500: #325175;
+  --color-secondary-600: #234064;
+  --color-secondary-700: #1a3053;
+  --color-secondary-800: #112b3f;
+  --color-secondary-900: #07172b;
+  
+  /* Shortcuts untuk primary dan secondary */
+  --color-primary-light: var(--color-primary-300);
+  --color-primary-dark: var(--color-primary-700);
+  --color-secondary-light: var(--color-secondary-600);
+  --color-secondary-dark: var(--color-secondary-900);
+  
+  /* Status Colors */
+  --color-success: #0ecc8d;
+  --color-success-light: #3ddfa4;
+  --color-success-dark: #0aa876;
+  
+  --color-warning: #f6ad55;
+  --color-warning-light: #fbc47d;
+  --color-warning-dark: #e59229;
+  
+  --color-danger: #e53e3e;
+  --color-danger-light: #f56565;
+  --color-danger-dark: #c53030;
+  
+  --color-info: #3182ce;
+  --color-info-light: #4299e1;
+  --color-info-dark: #2b6cb0;
+
+  /* Neutral Colors */
+  --color-white: #ffffff;
+  --color-black: #000000;
   --color-background: #f0f4f8;
-  --color-surface: #ffffff;
+  --color-surface: var(--color-white);
   --color-text-primary: #2d3748;
   --color-text-secondary: #718096;
   --color-border: #e2e8f0;
   
-  /* Color Palette - Status Colors */
-  --color-success: #0ecc8d;
-  --color-warning: #f6ad55;
-  --color-danger: #e53e3e;
-  --color-info: #3182ce;
-
+  /* 
+   * THEMABLE VARIABLES
+   * Digunakan untuk tema light/dark dan landing 
+   */
+  
+  /* Common Theme Variables */
+  --theme-bg-primary: var(--color-background);
+  --theme-bg-secondary: var(--color-white);
+  --theme-surface: var(--color-surface);
+  --theme-text-primary: var(--color-text-primary);
+  --theme-text-secondary: var(--color-text-secondary);
+  --theme-border: var(--color-border);
+  
+  /* Accent Variables */
+  --accent-color: var(--color-primary);
+  --accent-light: var(--color-primary-light);
+  --accent-dark: var(--color-primary-dark);
+  --accent-glow: rgba(10, 147, 159, 0.5);
+  --accent-button: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  
+  /* Landing Page Dark Theme */
+  --landing-bg-primary: #0a1522;
+  --landing-bg-secondary: #112233;
+  --landing-surface: rgba(26, 45, 66, 0.6);
+  --landing-text-primary: rgba(255, 255, 255, 0.95);
+  --landing-text-secondary: rgba(255, 255, 255, 0.7);
+  --landing-text-muted: rgba(255, 255, 255, 0.45);
+  
   /* Glassmorphism */
   --glass-bg: rgba(255, 255, 255, 0.7);
-  --glass-bg-dark: rgba(18, 69, 89, 0.6);
+  --glass-bg-dark: rgba(16, 25, 36, 0.7);
   --glass-border: rgba(255, 255, 255, 0.2);
+  --glass-border-dark: rgba(255, 255, 255, 0.08);
+  --glass-highlight: rgba(255, 255, 255, 0.1);
+  --glass-highlight-dark: rgba(255, 255, 255, 0.05);
   --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
   --glass-blur: 10px;
   
-  /* Typography */
-  --font-family-base: 'Nunito', 'Segoe UI', sans-serif;
-  --font-family-heading: 'Poppins', 'Segoe UI', sans-serif;
+  /* 
+   * TYPOGRAPHY
+   */
+  --font-family-base: 'Inter', 'Segoe UI', sans-serif;
+  --font-family-heading: 'Inter', 'Segoe UI', sans-serif;
+  --font-family-mono: 'Fira Code', monospace;
+  
   --font-size-xs: 0.75rem;   /* 12px */
   --font-size-sm: 0.875rem;  /* 14px */
   --font-size-md: 1rem;      /* 16px */
@@ -43,7 +119,9 @@
   --font-size-5xl: 3rem;     /* 48px */
   --font-size-6xl: 3.75rem;  /* 60px */
   
-  /* Spacing */
+  /* 
+   * SPACING
+   */
   --space-1: 0.25rem;  /* 4px */
   --space-2: 0.5rem;   /* 8px */
   --space-3: 0.75rem;  /* 12px */
@@ -57,26 +135,43 @@
   --space-20: 6rem;    /* 96px */
   --space-24: 8rem;    /* 128px */
   --space-32: 10rem;   /* 160px */
+  --space-40: 12rem;   /* 192px */
+  --space-48: 14rem;   /* 224px */
 
-  /* Borders */
+  /* 
+   * BORDERS & RADIUS
+   */
   --border-radius-sm: 0.25rem;   /* 4px */
   --border-radius-md: 0.5rem;    /* 8px */
   --border-radius-lg: 0.75rem;   /* 12px */
   --border-radius-xl: 1rem;      /* 16px */
-  --border-radius-full: 9999px;  /* 100% */
+  --border-radius-2xl: 1.5rem;   /* 24px */
+  --border-radius-full: 9999px;
   
-  /* Shadows */
+  /* 
+   * SHADOWS
+   */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
   
-  /* Transitions */
+  /* Shadows with color */
+  --shadow-primary: 0 8px 20px rgba(var(--color-primary-rgb, 10, 147, 159), 0.25);
+  --shadow-primary-lg: 0 12px 24px rgba(var(--color-primary-rgb, 10, 147, 159), 0.35);
+  
+  /* 
+   * TRANSITIONS
+   */
   --transition-fast: 150ms;
   --transition-normal: 300ms;
   --transition-slow: 500ms;
   
-  /* Z-index layers */
+  /* 
+   * Z-INDEX LAYERS
+   */
   --z-index-dropdown: 1000;
   --z-index-sticky: 1020;
   --z-index-fixed: 1030;
@@ -84,16 +179,30 @@
   --z-index-modal: 1050;
   --z-index-popover: 1060;
   --z-index-tooltip: 1070;
+  
+  /* 
+   * CONTAINER WIDTHS
+   */
+  --container-sm: 640px;
+  --container-md: 768px;
+  --container-lg: 1024px;
+  --container-xl: 1280px;
 }
 
-/* Dark mode colors - for future implementation */
+/* Dark mode */
 .dark-mode {
-  --color-background: #1a202c;
-  --color-surface: #2d3748;
-  --color-text-primary: #f7fafc;
-  --color-text-secondary: #e2e8f0;
-  --color-border: #4a5568;
+  --theme-bg-primary: #1a202c;
+  --theme-bg-secondary: #2d3748;
+  --theme-surface: #2d3748;
+  --theme-text-primary: #f7fafc;
+  --theme-text-secondary: #e2e8f0;
+  --theme-border: #4a5568;
   
   --glass-bg: rgba(45, 55, 72, 0.7);
-  --glass-bg-dark: rgba(26, 32, 44, 0.8);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  
+  /* Accent adjustments for better contrast in dark mode */
+  --accent-light: var(--color-primary-200);
+  --accent-dark: var(--color-primary-600);
+  --accent-button: linear-gradient(135deg, var(--color-primary-400), var(--color-primary-600));
 }

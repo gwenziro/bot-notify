@@ -1,0 +1,62 @@
+/* 
+ * CODE DISPLAY
+ * Komponen untuk menampilkan kode dan snippets
+ */
+
+.code-preview {
+  width: 100%;
+  background: var(--glass-bg-dark);
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--glass-border-dark);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: all 0.5s ease;
+  will-change: transform, box-shadow;
+}
+
+.code-preview:hover {
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(14, 154, 167, 0.1);
+  transform: translateY(-5px);
+}
+
+.code-header {
+  display: flex;
+  align-items: center;
+  padding: 0.85rem 1.25rem;
+  background-color: rgba(16, 25, 36, 0.8);
+  border-bottom: 1px solid var(--glass-border-dark);
+}
+
+.code-dot {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  margin-right: 0.5rem;
+}
+
+.code-dot:nth-child(1) { background-color: #ff5f56; }
+.code-dot:nth-child(2) { background-color: #ffbd2e; }
+.code-dot:nth-child(3) { background-color: #27c93f; }
+
+.code-title {
+  font-size: 0.85rem;
+  color: var(--landing-text-secondary);
+  margin-left: 0.75rem;
+  font-family: var(--font-family-mono);
+}
+
+.code-content {
+  margin: 0;
+  padding: 1.75rem;
+  line-height: 1.6;
+  font-family: var(--font-family-mono);
+  font-size: 0.85rem;
+  overflow-x: auto;
+  color: #e2e8f0;
+}
+
+.code-content .code-comment { color: #6e7a8a; }
+.code-content .code-string { color: #f59e0b; }
+.code-content .code-property { color: var(--accent-light); }

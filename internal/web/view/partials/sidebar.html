@@ -1,75 +1,112 @@
-<aside class="dashboard-sidebar">
-    <div class="glass-panel sidebar-content">
+<aside class="dashboard-sidebar" id="sidebar">
+    <div class="glass-panel dark sidebar-content">
         <div class="sidebar-header">
             <div class="app-info">
-                <img src="/static/images/logo.png" alt="Bot Notify" class="app-logo">
+                <img src="https://img.icons8.com/3d-fluency/94/bot.png" alt="Bot Notify" class="app-logo">
                 <div class="app-details">
                     <h2 class="app-name">Bot Notify</h2>
                     <p class="app-version">v1.0.0</p>
                 </div>
             </div>
+            <button class="btn-icon btn-collapse" id="sidebar-collapse" title="Collapse Sidebar">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+        </div>
+
+        <div class="sidebar-search">
+            <div class="search-input-group">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" placeholder="Cari..." class="search-input" id="sidebar-search">
+                <button class="search-clear" id="clear-search">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
         </div>
 
         <nav class="sidebar-nav">
-            <ul class="nav-list">
-                <li class="nav-item">
-                    <a href="/dashboard" class="nav-link active">
-                        <i class="fas fa-tachometer-alt"></i>
-                        <span>Dashboard</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="/connectivity" class="nav-link">
-                        <i class="fas fa-wifi"></i>
-                        <span>Konektivitas</span>
-                        <div class="status-badge" id="connectivity-status"></div>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="/messages" class="nav-link">
-                        <i class="fas fa-comment-alt"></i>
-                        <span>Pesan</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="/groups" class="nav-link">
-                        <i class="fas fa-users"></i>
-                        <span>Grup</span>
-                    </a>
-                </li>
-                <li class="nav-separator"></li>
-                <li class="nav-item">
-                    <a href="/settings" class="nav-link">
-                        <i class="fas fa-cog"></i>
-                        <span>Pengaturan</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="/help" class="nav-link">
-                        <i class="fas fa-question-circle"></i>
-                        <span>Bantuan</span>
-                    </a>
-                </li>
-            </ul>
+            <div class="nav-section">
+                <h3 class="nav-section-title">Menu Utama</h3>
+                <ul class="nav-list">
+                    <li class="nav-item">
+                        <a href="/dashboard" class="nav-link" data-page="dashboard">
+                            <i class="fas fa-tachometer-alt nav-icon"></i>
+                            <span class="nav-text">Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/connectivity" class="nav-link" data-page="connectivity">
+                            <i class="fas fa-wifi nav-icon"></i>
+                            <span class="nav-text">Konektivitas</span>
+                            <div class="status-badge" id="connectivity-status"></div>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/messages" class="nav-link" data-page="messages">
+                            <i class="fas fa-comment-alt nav-icon"></i>
+                            <span class="nav-text">Pesan</span>
+                            <span class="nav-badge" id="messages-count">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown-nav">
+                        <a href="#" class="nav-link" data-toggle="collapse" data-target="#groupsSubmenu">
+                            <i class="fas fa-users nav-icon"></i>
+                            <span class="nav-text">Grup</span>
+                            <i class="fas fa-chevron-right collapse-icon"></i>
+                        </a>
+                        <ul class="nav-submenu collapse" id="groupsSubmenu">
+                            <li class="nav-item">
+                                <a href="/groups" class="nav-link" data-page="groups">
+                                    <i class="fas fa-list-ul nav-icon"></i>
+                                    <span class="nav-text">Lihat Semua</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="/groups/manage" class="nav-link" data-page="manage-groups">
+                                    <i class="fas fa-cog nav-icon"></i>
+                                    <span class="nav-text">Kelola Grup</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="nav-section">
+                <h3 class="nav-section-title">Pengaturan</h3>
+                <ul class="nav-list">
+                    <li class="nav-item">
+                        <a href="/settings" class="nav-link" data-page="settings">
+                            <i class="fas fa-cog nav-icon"></i>
+                            <span class="nav-text">Pengaturan</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/api-docs" class="nav-link" data-page="api-docs">
+                            <i class="fas fa-code nav-icon"></i>
+                            <span class="nav-text">API Docs</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/help" class="nav-link" data-page="help">
+                            <i class="fas fa-question-circle nav-icon"></i>
+                            <span class="nav-text">Bantuan</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
         </nav>
 
         <div class="sidebar-footer">
-            <div class="user-info">
-                <div class="connection-info">
-                    <div class="connection-status">
-                        <div class="status-indicator" id="sidebar-status-indicator"></div>
-                        <span id="sidebar-connection-text">WhatsApp Terhubung</span>
-                    </div>
+            <div class="connection-info">
+                <div class="status-indicator" id="sidebar-status-indicator"></div>
+                <div class="connection-details">
+                    <span id="sidebar-connection-text">WhatsApp</span>
+                    <span id="sidebar-connection-status">Terhubung</span>
                 </div>
             </div>
-            <div class="sidebar-actions">
-                <a href="/logout" class="btn-logout" title="Keluar">
-                    <i class="fas fa-sign-out-alt"></i>
-                </a>
-                <button class="btn-collapse" id="sidebar-collapse" title="Ciutkan">
-                    <i class="fas fa-chevron-left"></i>
-                </button>
-            </div>
+            <a href="/logout" class="btn-logout" title="Logout">
+                <i class="fas fa-sign-out-alt"></i>
+            </a>
         </div>
     </div>
 </aside>

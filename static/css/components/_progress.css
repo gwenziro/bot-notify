@@ -1,0 +1,23 @@
+/* 
+ * PROGRESS BARS
+ * Komponen untuk menampilkan progress
+ */
+
+.progress {
+  height: 8px;
+  background-color: var(--theme-border);
+  border-radius: var(--border-radius-full);
+  overflow: hidden;
+  margin: var(--space-2) 0;
+}
+
+.progress-bar {
+  height: 100%;
+  background-color: var(--color-primary);
+  border-radius: var(--border-radius-full);
+  transition: width var(--transition-normal) ease;
+}
+
+.progress-bar.success { background-color: var(--color-success); }
+.progress-bar.warning { background-color: var(--color-warning); }
+.progress-bar.danger { background-color: var(--color-danger); }

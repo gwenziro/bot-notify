@@ -1,0 +1,102 @@
+/*
+ * ALERTS & NOTIFICATIONS
+ * Komponen untuk feedback dan notifikasi
+ */
+
+/* Alert styling */
+.alert {
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
+  border-radius: var(--border-radius-md);
+  border-left: 4px solid transparent;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.alert-success {
+  background-color: rgba(14, 204, 141, 0.1);
+  color: var(--color-success);
+  border-left-color: var(--color-success);
+}
+
+.alert-warning {
+  background-color: rgba(246, 173, 85, 0.1);
+  color: var(--color-warning);
+  border-left-color: var(--color-warning);
+}
+
+.alert-danger {
+  background-color: rgba(229, 62, 62, 0.1);
+  color: var(--color-danger);
+  border-left-color: var(--color-danger);
+}
+
+.alert-info {
+  background-color: rgba(49, 130, 206, 0.1);
+  color: var(--color-info);
+  border-left-color: var(--color-info);
+}
+
+.alert i {
+  color: var(--color-danger);
+}
+
+/* Notification boxes */
+.notification {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: var(--theme-surface);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--theme-border);
+  box-shadow: var(--shadow-md);
+}
+
+.notification-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--border-radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.notification-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.notification-title {
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  color: var(--theme-text-primary);
+}
+
+.notification-text {
+  font-size: var(--font-size-xs);
+  color: var(--theme-text-secondary);
+}
+
+/* Floating notification */
+.floating-notification {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: rgba(26, 45, 66, 0.75);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--glass-border-dark);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.floating-notification .notification-icon {
+  background: linear-gradient(135deg, #25D366, #128C7E);
+  color: white;
+  box-shadow: 0 8px 15px rgba(37, 211, 102, 0.3);
+}

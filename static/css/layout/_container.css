@@ -1,0 +1,103 @@
+/*
+ * CONTAINER STYLES
+ * Mendefinisikan container untuk membatasi lebar konten
+ */
+
+.container {
+  width: 100%;
+  margin-right: auto;
+  margin-left: auto;
+  padding-right: var(--space-4);
+  padding-left: var(--space-4);
+  box-sizing: border-box;
+}
+
+.container-fluid {
+  width: 100%;
+  margin-right: auto;
+  margin-left: auto;
+  padding-right: var(--space-4);
+  padding-left: var(--space-4);
+  box-sizing: border-box;
+}
+
+.container-sm {
+  max-width: var(--container-sm);
+}
+
+.container-md {
+  max-width: var(--container-md);
+}
+
+.container-lg {
+  max-width: var(--container-lg);
+}
+
+.container-xl {
+  max-width: var(--container-xl);
+}
+
+/* Responsive container */
+@media (min-width: 640px) {
+  .container {
+    max-width: var(--container-sm);
+  }
+}
+
+@media (min-width: 768px) {
+  .container {
+    max-width: var(--container-md);
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    max-width: var(--container-lg);
+  }
+}
+
+@media (min-width: 1280px) {
+  .container {
+    max-width: var(--container-xl);
+  }
+}
+
+/* Content wrappers */
+.content-wrapper {
+  padding: var(--space-4);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.content-wrapper-sm {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.content-wrapper-md {
+  max-width: 768px;
+  margin: 0 auto;
+}
+
+.content-wrapper-lg {
+  max-width: 1024px;
+  margin: 0 auto;
+}
+
+.content-wrapper-xl {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+/* Section containers */
+.section-container {
+  padding: var(--space-8) 0;
+}
+
+.section-container-sm {
+  padding: var(--space-4) 0;
+}
+
+.section-container-lg {
+  padding: var(--space-16) 0;
+}

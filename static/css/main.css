@@ -1,22 +1,37 @@
-/* Main CSS file - imports all modular CSS files */
+/*
+ * MAIN CSS ENTRY POINT
+ * File ini mengimpor semua file css lainnya dengan urutan yang tepat
+ */
 
-/* Base CSS */
-@import url('base/_variables.css');
-@import url('base/_reset.css');
-@import url('base/_base.css');
+/* Base styles */
+@import 'base/_reset.css';        /* CSS Reset */
+@import 'base/_variables.css';    /* CSS Variables dan Design System */
+@import 'base/_typography.css';   /* Base Typography */
+@import 'base/_utilities.css';    /* Utility Classes */
 
-/* Page CSS */
-@import url('pages/_dashboard.css');
-@import url('pages/_login.css');
-@import url('pages/_settings.css'); /* Add settings page CSS */
+/* Layout styles */
+@import 'layout/_background.css';  /* File baru untuk background */
+@import 'layout/_grid.css';       /* Grid System */
+@import 'layout/_container.css';  /* Container Styles */
+@import 'layout/_spacing.css';    /* Margin and Padding Utilities */
 
-/* Component CSS */
-@import url('components/_components.css');
+/* Componenent styles */
+@import 'components/_alerts.css';    /* Alert Components */
+@import 'components/_buttons.css';   /* Button Components */
+@import 'components/_cards.css';     /* Card Components */
+@import 'components/_badges.css';   /* Badge Components */
+@import 'components/_forms.css';    /* Form Components */
+@import 'components/_navigation.css'; /* Navigation Components */
+@import 'components/_progress.css';  /* Progress Components */
+@import 'components/_code.css';      /* Code Components */
 
-/* Import specific page/feature styles */
 
-/* Import Font Awesome for icons */
-@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css');
+/* Page-specific styles */
+@import 'pages/_landing.css';      /* Landing Page Styles */
+@import 'pages/_login.css';        /* Login Page Styles */
+@import 'pages/_dashboard.css';     /* Dashboard Page Styles */
 
-/* Import Google Fonts - Nunito & Poppins */
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap');
+
+/* Responsive styles */
+
+/* Themes */

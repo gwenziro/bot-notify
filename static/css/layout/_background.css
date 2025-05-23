@@ -1,0 +1,69 @@
+/*
+ * BACKGROUND STYLES
+ * Komponen background yang digunakan untuk landing page dan login page
+ */
+
+/* Dark theme background container */
+.dark-theme-container {
+  /* Menggunakan variabel landing theme */
+  --theme-bg-primary: var(--landing-bg-primary);
+  --theme-bg-secondary: var(--landing-bg-secondary);
+  --theme-surface: var(--landing-surface);
+  --theme-text-primary: var(--landing-text-primary);
+  --theme-text-secondary: var(--landing-text-secondary);
+  --theme-text-muted: var(--landing-text-muted);
+  --glass-bg: var(--glass-bg-dark);
+  --glass-border: var(--glass-border-dark);
+  --glass-highlight: var(--glass-highlight-dark);
+  
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100vh;
+  overflow-x: hidden;
+  background-color: var(--theme-bg-primary);
+  color: var(--theme-text-primary);
+  font-family: var(--font-family-base);
+  position: relative;
+}
+
+/* Gradient Background */
+.gradient-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -3;
+  background: radial-gradient(circle at top right, #112d3e, var(--theme-bg-primary) 70%),
+              radial-gradient(circle at bottom left, #0e3c5a, transparent 60%);
+}
+
+/* Subtle Grid Overlay */
+.grid-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -2;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Glass background for elements */
+.glass-bg {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  border-radius: var(--border-radius-lg);
+}
+
+.glass-bg.dark {
+  background: var(--glass-bg-dark);
+  border-color: var(--glass-border-dark);
+}
