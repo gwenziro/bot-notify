@@ -1,0 +1,12 @@
+{{template "layouts/main" .}}
+
+{{define "content"}}
+<div class="alert alert-danger">
+    <h3>Error {{.Code}}</h3>
+    <p>{{.Message}}</p>
+    
+    <div class="mt-3">
+        <a href="/" class="btn btn-primary">Kembali ke Beranda</a>
+    </div>
+</div>
+{{end}}

@@ -7,7 +7,7 @@ import (
 	"github.com/gwenziro/bot-notify/internal/utils"
 )
 
-// StatusController menangani halaman status koneksi
+// StatusController menangani halaman status
 type StatusController struct {
 	config   *config.Config
 	whatsApp *client.Client
@@ -23,16 +23,20 @@ func NewStatusController(cfg *config.Config, whatsClient *client.Client, logger 
 	}
 }
 
-// StatusPage menampilkan status koneksi WhatsApp
+// StatusPage menampilkan halaman status koneksi
 func (c *StatusController) StatusPage(ctx *fiber.Ctx) error {
-	state := c.whatsApp.GetConnectionState()
+	c.logger.Debug("Rendering halaman status")
 
-	return ctx.Render("status", fiber.Map{
-		"Title":          "Status Koneksi",
-		"Status":         state.Status,
-		"IsConnected":    state.IsConnected,
-		"LastActivity":   state.LastActivity.Format("02 Jan 2006 15:04:05"),
-		"ConnectedSince": state.Timestamp.Format("02 Jan 2006 15:04:05"),
-		"Retries":        state.ConnectionRetries,
+	// Dapatkan status koneksi WhatsApp
+	connectionState := c.whatsApp.GetConnectionState()
+
+	return ctx.Render("dashboard/status", fiber.Map{
+		"Title":        "Status Koneksi",
+		"Description":  "Halaman untuk memantau status koneksi WhatsApp.",
+		"Status":       string(connectionState.Status),
+		"IsConnected":  connectionState.IsConnected,
+		"LastActivity": connectionState.LastActivity,
+		"Retries":      connectionState.ConnectionRetries,
+		"DeviceInfo":   c.whatsApp.GetDeviceInfo(),
 	})
 }

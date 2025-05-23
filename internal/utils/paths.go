@@ -77,3 +77,21 @@ func EnsureProjectStructure() error {
 
 	return nil
 }
+
+// FileExists memeriksa apakah file ada
+func FileExists(path string) bool {
+	info, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	return !info.IsDir()
+}
+
+// DirectoryExists memeriksa apakah direktori ada
+func DirectoryExists(path string) bool {
+	info, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	return info.IsDir()
+}

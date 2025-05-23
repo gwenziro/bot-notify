@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}} - WhatsApp Bot Notify</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="icon" type="image/png" sizes="48x48" href="https://img.icons8.com/fluency/48/message-bot.png">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card glass-panel">
+            <div class="login-header">
+                <img src="/static/images/logo.png" alt="Bot Notify" class="login-logo">
+                <h1 class="login-title">WhatsApp Bot Notify</h1>
+            </div>
+            
+            <div class="login-body">
+                <h2>Login ke Dashboard</h2>
+                <p class="text-muted">Masukkan token akses untuk melanjutkan</p>
+                
+                {{if .Error}}
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle"></i>
+                    {{.Error}}
+                </div>
+                {{end}}
+                
+                <form action="/auth/login" method="POST" class="login-form">
+                    <input type="hidden" name="redirect" value="{{.RedirectTo}}">
+                    
+                    <div class="form-group">
+                        <label for="token">Access Token</label>
+                        <div class="token-input-group">
+                            <input type="password" id="token" name="token" class="form-control" 
+                                   placeholder="Masukkan token akses" required>
+                            <button type="button" class="toggle-password" tabindex="-1">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <small class="text-muted">Default token: {{.AccessToken}}</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="checkbox-container">
+                            <input type="checkbox" name="remember_me" id="remember_me">
+                            <span class="checkmark"></span>
+                            Ingat saya
+                        </label>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary btn-block login-btn">
+                            <i class="fas fa-sign-in-alt"></i> Login
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="login-footer">
+                <p>&copy; {{currentYear}} Bot Notify</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const togglePasswordButton = document.querySelector('.toggle-password');
+            const passwordInput = document.querySelector('#token');
+            
+            // Toggle password visibility
+            togglePasswordButton?.addEventListener('click', function() {
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+                
+                // Toggle icon
+                const icon = togglePasswordButton.querySelector('i');
+                icon.classList.toggle('fa-eye');
+                icon.classList.toggle('fa-eye-slash');
+            });
+        });
+    </script>
+</body>
+</html>

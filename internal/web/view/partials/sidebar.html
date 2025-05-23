@@ -1,0 +1,75 @@
+<aside class="dashboard-sidebar">
+    <div class="glass-panel sidebar-content">
+        <div class="sidebar-header">
+            <div class="app-info">
+                <img src="/static/images/logo.png" alt="Bot Notify" class="app-logo">
+                <div class="app-details">
+                    <h2 class="app-name">Bot Notify</h2>
+                    <p class="app-version">v1.0.0</p>
+                </div>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <ul class="nav-list">
+                <li class="nav-item">
+                    <a href="/dashboard" class="nav-link active">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/connectivity" class="nav-link">
+                        <i class="fas fa-wifi"></i>
+                        <span>Konektivitas</span>
+                        <div class="status-badge" id="connectivity-status"></div>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/messages" class="nav-link">
+                        <i class="fas fa-comment-alt"></i>
+                        <span>Pesan</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/groups" class="nav-link">
+                        <i class="fas fa-users"></i>
+                        <span>Grup</span>
+                    </a>
+                </li>
+                <li class="nav-separator"></li>
+                <li class="nav-item">
+                    <a href="/settings" class="nav-link">
+                        <i class="fas fa-cog"></i>
+                        <span>Pengaturan</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/help" class="nav-link">
+                        <i class="fas fa-question-circle"></i>
+                        <span>Bantuan</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="connection-info">
+                    <div class="connection-status">
+                        <div class="status-indicator" id="sidebar-status-indicator"></div>
+                        <span id="sidebar-connection-text">WhatsApp Terhubung</span>
+                    </div>
+                </div>
+            </div>
+            <div class="sidebar-actions">
+                <a href="/logout" class="btn-logout" title="Keluar">
+                    <i class="fas fa-sign-out-alt"></i>
+                </a>
+                <button class="btn-collapse" id="sidebar-collapse" title="Ciutkan">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</aside>

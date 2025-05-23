@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}} - WhatsApp Bot Notify</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="icon" type="image/png" sizes="48x48" href="https://img.icons8.com/fluency/48/message-bot.png">
+    
+    <!-- Utility scripts -->
+    <script src="/static/js/utils/api.js"></script>
+    <script src="/static/js/utils/ui.js"></script>
+    <script src="/static/js/utils/datetime.js"></script>
+    
+    <!-- Component scripts -->
+    <script src="/static/js/components/sidebar.js"></script>
+    <script src="/static/js/components/status.js"></script>
+    
+    <!-- Main script -->
+    <script src="/static/js/main.js"></script>
+</head>
+<body>
+    {{template "partials/header" .}}
+    
+    <div class="dashboard-wrapper">
+        {{template "partials/sidebar" .}}
+        
+        <main class="dashboard-main">
+            {{template "content" .}}
+        </main>
+    </div>
+    
+    {{template "partials/footer" .}}
+    
+    <!-- Page-specific scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    
+    <!-- Include the appropriate page script based on the current path -->
+    <script>
+        (function() {
+            const path = window.location.pathname;
+            let scriptSrc = '';
+            
+            if (path === '/dashboard' || path === '/dashboard/') {
+                scriptSrc = '/static/js/pages/dashboard.js';
+            } 
+            else if (path === '/connectivity' || path === '/connectivity/') {
+                scriptSrc = '/static/js/pages/connectivity.js';
+            }
+            else if (path === '/settings') {
+                scriptSrc = '/static/js/pages/settings.js';
+            }
+            
+            if (scriptSrc) {
+                const script = document.createElement('script');
+                script.src = scriptSrc;
+                document.body.appendChild(script);
+            }
+        })();
+    </script>
+</body>
+</html>

@@ -1,45 +1,91 @@
-{{template "layouts/main" .}}
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}} - WhatsApp Bot Notify</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="icon" type="image/png" sizes="48x48" href="https://img.icons8.com/fluency/48/message-bot.png">
+</head>
+<body>
+    <header class="landing-header">
+        <div class="container">
+            <div class="brand">
+                <img src="/static/images/logo.png" alt="Bot Notify" class="brand-logo">
+                <h1 class="brand-name">Bot Notify</h1>
+            </div>
+            <nav class="main-nav">
+                <a href="/status" class="nav-link">Status</a>
+                <a href="/about" class="nav-link">Tentang</a>
+                <a href="/login" class="btn btn-primary">Login</a>
+            </nav>
+        </div>
+    </header>
 
-{{define "content"}}
-<div class="jumbotron">
-    <h1 class="display-4">Selamat Datang di WhatsApp Bot Notify</h1>
-    <p class="lead">{{.Description}}</p>
-    <hr class="my-4">
-    <p>Aplikasi untuk mengirim notifikasi WhatsApp melalui API atau antarmuka web.</p>
-    
-    <div class="mt-4 d-flex gap-2">
-        <a href="/status" class="btn btn-primary">Cek Status</a>
-        <a href="/qr" class="btn btn-secondary">Scan QR Code</a>
-    </div>
-</div>
+    <main>
+        <section class="hero">
+            <div class="container">
+                <div class="jumbotron">
+                    <h1 class="display-4">Selamat Datang di WhatsApp Bot Notify</h1>
+                    <p class="lead">{{.Description}}</p>
+                    <hr class="my-4">
+                    <p>Aplikasi untuk mengirim notifikasi WhatsApp melalui API atau antarmuka web.</p>
+                    
+                    <div class="mt-4 d-flex gap-2">
+                        <a href="/status" class="btn btn-primary">Cek Status</a>
+                        <a href="/login" class="btn btn-secondary">Login ke Dashboard</a>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-<div class="row mt-5">
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Status Koneksi</h5>
-                <p class="card-text">Pantau status koneksi WhatsApp Anda.</p>
-                <a href="/status" class="btn btn-sm btn-outline-primary">Lihat Status</a>
+        <section class="features">
+            <div class="container">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Status Koneksi</h5>
+                                <p class="card-text">Pantau status koneksi WhatsApp Anda.</p>
+                                <a href="/status" class="btn btn-sm btn-outline-primary">Lihat Status</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Dashboard</h5>
+                                <p class="card-text">Manajemen WhatsApp lengkap di dashboard.</p>
+                                <a href="/login" class="btn btn-sm btn-outline-primary">Login</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Kirim Pesan</h5>
+                                <p class="card-text">Kirim pesan WhatsApp melalui antarmuka web.</p>
+                                <a href="/login" class="btn btn-sm btn-outline-primary">Login untuk Akses</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="landing-footer">
+        <div class="container">
+            <p>&copy; {{currentYear}} Bot Notify. Hak Cipta Dilindungi.</p>
+            <div class="footer-links">
+                <a href="/privacy">Privasi</a>
+                <a href="/terms">Ketentuan</a>
+                <a href="/contact">Kontak</a>
             </div>
         </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">QR Code</h5>
-                <p class="card-text">Scan QR code untuk menghubungkan WhatsApp.</p>
-                <a href="/qr" class="btn btn-sm btn-outline-primary">Lihat QR</a>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Kirim Pesan</h5>
-                <p class="card-text">Kirim pesan WhatsApp melalui antarmuka web.</p>
-                <a href="#" class="btn btn-sm btn-outline-primary disabled">Segera Hadir</a>
-            </div>
-        </div>
-    </div>
-</div>
-{{end}}
+    </footer>
+
+    <script src="/static/js/main.js"></script>
+</body>
+</html>

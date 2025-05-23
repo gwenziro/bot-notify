@@ -1,0 +1,141 @@
+{{template "layouts/main" .}}
+
+{{define "content"}}
+<div class="container">
+    <h1 class="mt-4">Scan QR Code</h1>
+    
+    <div class="card glass-card mt-4">
+        <div class="card-body">
+            <div id="qrcode-container" class="text-center">
+                {{if .IsConnected}}
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle fa-2x mb-3"></i>
+                        <h4>WhatsApp Sudah Terhubung!</h4>
+                        <p>Anda telah berhasil terhubung dengan WhatsApp. Tidak perlu scan QR code lagi.</p>
+                        <div class="mt-3">
+                            <a href="/status" class="btn btn-primary">Lihat Status</a>
+                            <button id="logout-btn" class="btn btn-danger">Logout</button>
+                        </div>
+                    </div>
+                {{else if .QRCodeAvailable}}
+                    <h4 class="mb-3">Scan QR Code ini dengan WhatsApp di ponsel Anda</h4>
+                    <div class="mb-3">
+                        <img id="qrcode-img" src="data:image/png;base64,{{.QRCodeImage}}" alt="QR Code" class="img-fluid">
+                    </div>
+                    <p class="text-muted">
+                        QR code dibuat pada {{formatDate .QRCodeTime}}
+                        <span id="time-remaining">(akan diperbarui dalam {{.RefreshInterval}} detik)</span>
+                    </p>
+                    <div class="mt-3">
+                        <button id="refresh-btn" class="btn btn-primary">
+                            <i class="fas fa-sync-alt"></i> Refresh QR Code
+                        </button>
+                    </div>
+                {{else}}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                        <h4>QR Code Tidak Tersedia</h4>
+                        <p>Server sedang mencoba membuat QR code baru. Silakan tunggu beberapa saat atau klik tombol refresh.</p>
+                        <div class="mt-3">
+                            <button id="reconnect-btn" class="btn btn-primary">Hubungkan WhatsApp</button>
+                            <button id="refresh-btn" class="btn btn-secondary">Refresh</button>
+                        </div>
+                    </div>
+                {{end}}
+            </div>
+        </div>
+    </div>
+    
+    <div class="card glass-card mt-4">
+        <div class="card-header">
+            <h5>Panduan Koneksi</h5>
+        </div>
+        <div class="card-body">
+            <ol>
+                <li>Buka WhatsApp di ponsel Anda</li>
+                <li>Ketuk Menu (⋮) atau Pengaturan</li>
+                <li>Ketuk WhatsApp Web/Desktop</li>
+                <li>Ketuk "Tautkan Perangkat"</li>
+                <li>Scan QR code di atas</li>
+            </ol>
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i>
+                Pastikan fitur Multi-Device Beta diaktifkan di WhatsApp Anda.
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Countdown timer for refresh
+        const timeRemainingEl = document.getElementById('time-remaining');
+        if (timeRemainingEl) {
+            let secondsLeft = parseInt("{{.RefreshInterval}}", 10);
+            const countdownInterval = setInterval(() => {
+                secondsLeft--;
+                if (secondsLeft <= 0) {
+                    clearInterval(countdownInterval);
+                    window.location.reload();
+                } else {
+                    timeRemainingEl.textContent = `(akan diperbarui dalam ${secondsLeft} detik)`;
+                }
+            }, 1000);
+        }
+        
+        // Refresh button
+        const refreshBtn = document.getElementById('refresh-btn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', function() {
+                window.location.reload();
+            });
+        }
+        
+        // Logout button
+        document.getElementById('logout-btn')?.addEventListener('click', function() {
+            if (confirm('Apakah Anda yakin ingin logout dari WhatsApp?')) {
+                fetch('/api/disconnect', {
+                    method: 'POST',
+                    headers: {
+                        'X-Access-Token': localStorage.getItem('access_token') || ''
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.sukses) {
+                        alert('WhatsApp berhasil logout');
+                        window.location.reload();
+                    } else {
+                        alert('Gagal logout: ' + data.pesan);
+                    }
+                })
+                .catch(error => {
+                    alert('Error: ' + error.message);
+                });
+            }
+        });
+        
+        // Reconnect button
+        document.getElementById('reconnect-btn')?.addEventListener('click', function() {
+            fetch('/api/connect', {
+                method: 'POST',
+                headers: {
+                    'X-Access-Token': localStorage.getItem('access_token') || ''
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.sukses) {
+                    alert('Permintaan koneksi berhasil dikirim');
+                    setTimeout(() => window.location.reload(), 2000);
+                } else {
+                    alert('Gagal menghubungkan: ' + data.pesan);
+                }
+            })
+            .catch(error => {
+                alert('Error: ' + error.message);
+            });
+        });
+    });
+</script>
+{{end}}

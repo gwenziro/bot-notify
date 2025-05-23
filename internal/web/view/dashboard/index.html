@@ -1,0 +1,212 @@
+{{template "layouts/dashboard" .}}
+
+{{define "content"}}
+<div class="page-header">
+    <h1 class="page-title">Dashboard</h1>
+    <p class="page-description">Ringkasan sistem dan status WhatsApp Bot Notify.</p>
+</div>
+
+<!-- Stats Overview Section -->
+<section class="stats-overview mb-5">
+    <div class="dashboard-grid">
+        <!-- WhatsApp Connection Status -->
+        <div class="col-3 col-md-6 col-sm-6">
+            <div class="stat-card-sm">
+                <div class="stat-icon">
+                    <i class="fas fa-wifi"></i>
+                </div>
+                <div class="stat-content">
+                    <h3 class="stat-title">Status WhatsApp</h3>
+                    <p class="stat-value" id="whatsapp-status">
+                        <span class="status-indicator" id="status-indicator"></span>
+                        <span id="status-text">Memuat...</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Total Messages -->
+        <div class="col-3 col-md-6 col-sm-6">
+            <div class="stat-card-sm">
+                <div class="stat-icon">
+                    <i class="fas fa-comment-alt"></i>
+                </div>
+                <div class="stat-content">
+                    <h3 class="stat-title">Total Pesan</h3>
+                    <p class="stat-value" id="total-messages">0</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Uptime -->
+        <div class="col-3 col-md-6 col-sm-6">
+            <div class="stat-card-sm">
+                <div class="stat-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-content">
+                    <h3 class="stat-title">Uptime</h3>
+                    <p class="stat-value" id="uptime">0:00:00</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Available Groups -->
+        <div class="col-3 col-md-6 col-sm-6">
+            <div class="stat-card-sm">
+                <div class="stat-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-content">
+                    <h3 class="stat-title">Grup Tersedia</h3>
+                    <p class="stat-value" id="group-count">0</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Main Dashboard Content in 2 Columns -->
+<div class="dashboard-grid">
+    <!-- Left Column -->
+    <div class="col-8 col-md-12">
+        <!-- System Status Card -->
+        <div class="card glass-card mb-4">
+            <div class="card-header">
+                <h2 class="card-title">Status Sistem</h2>
+                <button class="btn btn-sm btn-outline" id="refresh-status">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+            <div class="card-body">
+                <!-- System Resources Section -->
+                <div class="mb-4">
+                    <h3 class="mb-3">Penggunaan Sumber Daya</h3>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>CPU</span>
+                            <span id="cpu-usage">0%</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar" id="cpu-bar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Memory</span>
+                            <span id="memory-usage">0 MB / 0 MB</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar" id="memory-bar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Disk</span>
+                            <span id="disk-usage">0 MB / 0 MB</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar" id="disk-bar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Connection Info -->
+                <div>
+                    <h3 class="mb-3">Informasi Koneksi</h3>
+                    <table class="system-info-table">
+                        <tr>
+                            <td>Status</td>
+                            <td id="connection-status">Memuat...</td>
+                        </tr>
+                        <tr>
+                            <td>Waktu Terhubung</td>
+                            <td id="connection-time">-</td>
+                        </tr>
+                        <tr>
+                            <td>Terakhir Aktif</td>
+                            <td id="last-activity">-</td>
+                        </tr>
+                        <tr>
+                            <td>Percobaan Koneksi</td>
+                            <td id="connection-attempts">0</td>
+                        </tr>
+                        <tr>
+                            <td>ID Perangkat</td>
+                            <td id="device-id">-</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Message Stats Chart Card -->
+        <div class="card glass-card">
+            <div class="card-header">
+                <h2 class="card-title">Statistik Pesan</h2>
+                <div class="d-flex gap-2">
+                    <select class="form-select" id="chart-period">
+                        <option value="day">Hari Ini</option>
+                        <option value="week">7 Hari Terakhir</option>
+                        <option value="month">30 Hari Terakhir</option>
+                    </select>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="messages-chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Right Column -->
+    <div class="col-4 col-md-12">
+        <!-- Quick Actions Card -->
+        <div class="card glass-card mb-4">
+            <div class="card-header">
+                <h2 class="card-title">Aksi Cepat</h2>
+            </div>
+            <div class="card-body">
+                <div class="d-flex flex-column gap-2">
+                    <button class="btn btn-primary" id="reconnect-btn">
+                        <i class="fas fa-sync"></i> Hubungkan Ulang WhatsApp
+                    </button>
+                    <button class="btn btn-outline" id="scan-qr-btn">
+                        <i class="fas fa-qrcode"></i> Scan QR Code
+                    </button>
+                    <button class="btn btn-outline" id="check-groups-btn">
+                        <i class="fas fa-users"></i> Cek Grup Tersedia
+                    </button>
+                    <button class="btn btn-danger" id="disconnect-btn">
+                        <i class="fas fa-power-off"></i> Putuskan WhatsApp
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Activity Card -->
+        <div class="card glass-card">
+            <div class="card-header">
+                <h2 class="card-title">Aktivitas Terkini</h2>
+                <button class="btn btn-sm btn-outline" id="clear-activity">
+                    <i class="fas fa-trash"></i> Bersihkan
+                </button>
+            </div>
+            <div class="card-body">
+                <ul class="activity-feed" id="activity-feed">
+                    <li class="activity-item">
+                        <div class="activity-icon">
+                            <i class="fas fa-power-off"></i>
+                        </div>
+                        <div class="activity-content">
+                            <p class="activity-title">Sistem dimulai</p>
+                            <span class="activity-time" id="system-start-time">-</span>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}

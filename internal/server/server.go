@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"time"
@@ -40,10 +41,12 @@ type Server struct {
 
 // NewServer membuat instance baru server dengan opsi yang diberikan
 func NewServer(opts ServerOptions) (*Server, error) {
-	// Siapkan konfigurasi dasar fiber
+	// Siapkan konfigurasi dasar fiber dengan timeout yang lebih ketat
 	fiberConfig := fiber.Config{
-		ReadTimeout:  opts.Config.Server.ReadTimeout,
-		WriteTimeout: opts.Config.Server.WriteTimeout,
+		ReadTimeout:           opts.Config.Server.ReadTimeout,
+		WriteTimeout:          opts.Config.Server.WriteTimeout,
+		IdleTimeout:           30 * time.Second, // Tambahkan idle timeout
+		DisableStartupMessage: false,            // Aktifkan pesan startup
 	}
 
 	// Setup template engine jika diaktifkan
@@ -59,13 +62,33 @@ func NewServer(opts ServerOptions) (*Server, error) {
 			return nil, err
 		}
 
-		// Setup template engine
+		// Setup template engine dengan debug info
+		utils.Info("Mengonfigurasi template engine", utils.Fields{
+			"views_path":  opts.ViewsPath,
+			"layouts_dir": layoutDir,
+		})
+
 		engine := html.New(opts.ViewsPath, ".html")
 
-		// Tambahkan fungsi-fungsi helper untuk template
+		// Konfigurasi engine agar bekerja dengan layout
+		engine.AddFunc("yield", func() string {
+			return "{{content}}"
+		})
+
 		engine.AddFunc("formatDate", func(t time.Time) string {
 			return t.Format("02 Jan 2006 15:04:05")
 		})
+
+		// Tambahkan fungsi currentYear untuk penggunaan di template
+		engine.AddFunc("currentYear", func() string {
+			return time.Now().Format("2006")
+		})
+
+		// Reload templates untuk development
+		engine.Reload(true)
+
+		// Debug mode untuk lebih banyak informasi error
+		engine.Debug(true)
 
 		// Set engine ke konfigurasi fiber
 		fiberConfig.Views = engine
@@ -97,12 +120,28 @@ func NewServer(opts ServerOptions) (*Server, error) {
 
 	// Setup session store
 	sessionStore := session.New(session.Config{
-		Expiration: 24 * time.Hour,
-		KeyLookup:  "cookie:" + opts.Config.Auth.CookieName,
+		Expiration:     24 * time.Hour,
+		KeyLookup:      "cookie:" + opts.Config.Auth.CookieName,
+		CookieSameSite: "Strict",
+		CookieSecure:   opts.Config.Server.BaseURL != "http://localhost:8080",
+		CookieHTTPOnly: true,
 	})
 
-	// Daftarkan routes jika handler tersedia
+	// Tambahkan middleware untuk mencegah request hanging
+	app.Use(func(c *fiber.Ctx) error {
+		// Set timeout konteks untuk mencegah request tergantung terlalu lama
+		ctx, cancel := context.WithTimeout(c.Context(), 30*time.Second)
+		defer cancel()
+
+		c.SetUserContext(ctx)
+		return c.Next()
+	})
+
+	// Pass session store to WebHandler if it exists
 	if opts.WebHandler != nil {
+		// Set session store to WebHandler
+		opts.WebHandler.SetSessionStore(sessionStore)
+
 		if opts.EnableTemplateEngine {
 			// Serve static files jika template engine diaktifkan
 			staticPath := filepath.Join(utils.ProjectRoot, "static")
@@ -121,9 +160,12 @@ func NewServer(opts ServerOptions) (*Server, error) {
 		opts.APIHandler.RegisterEndpoints(app)
 	}
 
-	utils.Info("Server berhasil diinisialisasi", utils.Fields{
+	utils.Info("Server berhasil diinisialisasi dengan timeout handling", utils.Fields{
 		"template_engine": opts.EnableTemplateEngine,
 		"views_path":      opts.ViewsPath,
+		"read_timeout":    opts.Config.Server.ReadTimeout,
+		"write_timeout":   opts.Config.Server.WriteTimeout,
+		"idle_timeout":    30 * time.Second,
 	})
 
 	return &Server{
@@ -164,7 +206,17 @@ func createWebErrorHandler() func(*fiber.Ctx, error) error {
 			code = e.Code
 		}
 
-		// Log error
+		// Jangan log error timeout untuk path tertentu
+		if code == fiber.StatusRequestTimeout && (c.Path() == "/" || c.Path() == "/favicon.ico") {
+			// Skip logging untuk timeout pada path yang sering di-poll
+			return c.Status(code).JSON(fiber.Map{
+				"success": false,
+				"error":   "Request timeout",
+				"code":    code,
+			})
+		}
+
+		// Log error lainnya seperti biasa
 		utils.Error("Web error", utils.Fields{
 			"error": err.Error(),
 			"code":  code,

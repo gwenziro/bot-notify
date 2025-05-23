@@ -1,0 +1,208 @@
+/* Login page styles */
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: var(--space-6);
+  background: linear-gradient(135deg, rgba(18, 69, 89, 0.6), rgba(14, 204, 141, 0.3));
+}
+
+.login-card {
+  width: 100%;
+  max-width: 450px;
+  padding: 0;
+  overflow: hidden;
+  border-radius: var(--border-radius-xl);
+  box-shadow: var(--shadow-xl);
+}
+
+.login-header {
+  background-color: var(--color-primary);
+  color: white;
+  padding: var(--space-5);
+  text-align: center;
+  border-radius: var(--border-radius-xl) var(--border-radius-xl) 0 0;
+}
+
+.login-logo {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto var(--space-3);
+  border-radius: 50%;
+  background-color: white;
+  padding: var(--space-2);
+  box-shadow: var(--shadow-md);
+}
+
+.login-title {
+  margin: 0;
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+}
+
+.login-body {
+  padding: var(--space-5);
+  background-color: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+}
+
+.login-body h2 {
+  margin-top: 0;
+  text-align: center;
+  color: var(--color-primary-dark);
+  margin-bottom: var(--space-2);
+}
+
+.login-body .text-muted {
+  text-align: center;
+  margin-bottom: var(--space-4);
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.form-group {
+  margin-bottom: var(--space-4);
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-weight: 500;
+  color: var(--color-primary-dark);
+}
+
+.form-control {
+  width: 100%;
+  padding: var(--space-3);
+  font-size: var(--font-size-md);
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--color-border);
+  background-color: rgba(255, 255, 255, 0.8);
+  transition: all var(--transition-fast) ease;
+}
+
+.form-control:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.2);
+  outline: none;
+}
+
+.token-input-group {
+  position: relative;
+}
+
+.token-input-group input {
+  padding-right: 40px; /* Space for the toggle button */
+}
+
+.toggle-password {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: 40px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+}
+
+.toggle-password:hover {
+  color: var(--color-primary);
+}
+
+/* Checkbox styling */
+.checkbox-container {
+  display: block;
+  position: relative;
+  padding-left: 30px;
+  cursor: pointer;
+  user-select: none;
+  font-weight: normal;
+}
+
+.checkbox-container input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+.checkmark {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 20px;
+  width: 20px;
+  background-color: rgba(255, 255, 255, 0.8);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-sm);
+}
+
+.checkbox-container:hover input ~ .checkmark {
+  border-color: var(--color-primary-light);
+}
+
+.checkbox-container input:checked ~ .checkmark {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.checkmark:after {
+  content: "";
+  position: absolute;
+  display: none;
+}
+
+.checkbox-container input:checked ~ .checkmark:after {
+  display: block;
+}
+
+.checkbox-container .checkmark:after {
+  left: 7px;
+  top: 3px;
+  width: 5px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.form-actions {
+  margin-top: var(--space-4);
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.login-btn {
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--font-size-lg);
+}
+
+.login-footer {
+  padding: var(--space-3) var(--space-5);
+  background-color: rgba(0, 0, 0, 0.03);
+  text-align: center;
+  border-top: 1px solid var(--glass-border);
+}
+
+.login-footer p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+/* Add to main.css to import login styles */
+@import url('login.css');

@@ -1,0 +1,46 @@
+<header class="dashboard-header">
+    <div class="glass-panel">
+        <div class="header-left">
+            <button id="sidebar-toggle" class="sidebar-toggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="brand">
+                <img src="/static/images/logo.png" alt="Bot Notify" class="brand-logo">
+                <h1 class="brand-name">Bot Notify</h1>
+            </div>
+        </div>
+        
+        <div class="header-center">
+            <h2 class="page-title" id="current-page-title">Dashboard</h2>
+        </div>
+        
+        <div class="header-right">
+            <div class="connection-status">
+                <span class="status-indicator" id="whatsapp-status-indicator"></span>
+                <span class="status-text" id="whatsapp-status-text">Menghubungkan...</span>
+            </div>
+            
+            <div class="header-actions">
+                <button class="btn-icon" id="refresh-btn" title="Refresh">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+                <button class="btn-icon" id="notifications-btn" title="Notifikasi">
+                    <i class="fas fa-bell"></i>
+                    <span class="badge" id="notifications-count">0</span>
+                </button>
+                <div class="user-profile">
+                    <img src="/static/images/avatar.png" alt="User" class="avatar">
+                    <span class="username">Admin</span>
+                    <div class="user-dropdown">
+                        <a href="/settings" class="dropdown-item">
+                            <i class="fas fa-cog"></i> Pengaturan
+                        </a>
+                        <a href="/logout" class="dropdown-item">
+                            <i class="fas fa-sign-out-alt"></i> Keluar
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>

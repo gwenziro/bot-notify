@@ -56,12 +56,23 @@ func main() {
 	whatsClient.SessionManager.SetClient(whatsClient)
 	whatsClient.SessionManager.SetupQRCodeListener()
 
-	// Inisialisasi handler
-	webHandler := web.NewWebHandler(cfg, whatsClient)
+	// Setup handlers
+	webHandler := web.NewWebHandler(cfg, whatsClient, nil)
 	apiHandler := api.NewAPIHandler(cfg, whatsClient)
 
 	// Buat server dengan template engine yang diaktifkan
 	viewsPath := filepath.Join(utils.ProjectRoot, "internal", "web", "view")
+
+	// Tambahkan nilai timeout yang lebih besar di konfigurasi
+	cfg.Server.ReadTimeout = 60 * time.Second
+	cfg.Server.WriteTimeout = 60 * time.Second
+
+	// Log tambahan untuk memantau loading template
+	utils.Info("Memulai inisialisasi web server dengan template", utils.Fields{
+		"views_path": viewsPath,
+		"exists":     utils.FileExists(viewsPath),
+	})
+
 	serverOpts := server.ServerOptions{
 		Config:               cfg,
 		EnableTemplateEngine: true,

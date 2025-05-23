@@ -1,0 +1,319 @@
+{{template "layouts/dashboard" .}}
+
+{{define "content"}}
+<div class="page-header">
+    <h1 class="page-title">Pengaturan</h1>
+    <p class="page-description">Konfigurasi dan pengaturan sistem WhatsApp Bot Notify.</p>
+</div>
+
+<!-- Success Alerts -->
+<div class="alert alert-success" id="update-success" style="display:none;">
+    <i class="fas fa-check-circle"></i>
+    Pengaturan berhasil diperbarui
+</div>
+
+<div class="alert alert-success" id="token-update-success" style="display:none;">
+    <i class="fas fa-check-circle"></i>
+    Token API berhasil diperbarui
+</div>
+
+<!-- Tabs untuk kategori pengaturan -->
+<div class="settings-tabs">
+    <nav class="settings-nav">
+        <div class="nav nav-tabs" role="tablist">
+            <button class="nav-link active" id="general-tab" data-bs-toggle="tab" data-bs-target="#general" type="button" role="tab">
+                <i class="fas fa-cog"></i> Umum
+            </button>
+            <button class="nav-link" id="connection-tab" data-bs-toggle="tab" data-bs-target="#connection" type="button" role="tab">
+                <i class="fas fa-wifi"></i> Koneksi
+            </button>
+            <button class="nav-link" id="security-tab" data-bs-toggle="tab" data-bs-target="#security" type="button" role="tab">
+                <i class="fas fa-shield-alt"></i> Keamanan
+            </button>
+            <button class="nav-link" id="advanced-tab" data-bs-toggle="tab" data-bs-target="#advanced" type="button" role="tab">
+                <i class="fas fa-tools"></i> Lanjutan
+            </button>
+        </div>
+    </nav>
+    
+    <div class="tab-content">
+        <!-- Tab Pengaturan Umum -->
+        <div class="tab-pane fade show active" id="general" role="tabpanel">
+            <div class="card glass-card">
+                <div class="card-header">
+                    <h3 class="card-title">Pengaturan Server</h3>
+                </div>
+                <div class="card-body">
+                    <form id="general-settings-form" action="/settings/update" method="POST">
+                        <div class="form-group">
+                            <label for="server-host">Host Server</label>
+                            <input type="text" id="server-host" name="server_host" class="form-control" value="{{.Config.ServerHost}}">
+                            <small class="form-text text-muted">Alamat host untuk menjalankan server</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="server-port">Port Server</label>
+                            <input type="number" id="server-port" name="server_port" class="form-control" value="{{.Config.ServerPort}}">
+                            <small class="form-text text-muted">Port yang digunakan server</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="base-url">URL Dasar</label>
+                            <input type="text" id="base-url" name="base_url" class="form-control" value="{{.Config.ServerBaseURL}}">
+                            <small class="form-text text-muted">URL dasar untuk akses aplikasi</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="logging-level">Level Log</label>
+                            <select id="logging-level" name="logging_level" class="form-select">
+                                <option value="debug" {{if eq .Config.LoggingLevel "debug"}}selected{{end}}>Debug</option>
+                                <option value="info" {{if eq .Config.LoggingLevel "info"}}selected{{end}}>Info</option>
+                                <option value="warn" {{if eq .Config.LoggingLevel "warn"}}selected{{end}}>Warning</option>
+                                <option value="error" {{if eq .Config.LoggingLevel "error"}}selected{{end}}>Error</option>
+                            </select>
+                            <small class="form-text text-muted">Level detail log sistem</small>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Simpan Pengaturan
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tab Pengaturan Koneksi WhatsApp -->
+        <div class="tab-pane fade" id="connection" role="tabpanel">
+            <div class="card glass-card">
+                <div class="card-header">
+                    <h3 class="card-title">Pengaturan Koneksi WhatsApp</h3>
+                </div>
+                <div class="card-body">
+                    <form id="connection-settings-form" action="/settings/update" method="POST">
+                        <div class="form-group">
+                            <label for="max-retry">Maksimum Percobaan Koneksi</label>
+                            <input type="number" id="max-retry" name="max_retry" class="form-control" value="{{.Config.MaxRetry}}">
+                            <small class="form-text text-muted">Jumlah maksimum percobaan koneksi ulang</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="retry-delay">Jeda Antar Percobaan (detik)</label>
+                            <input type="number" id="retry-delay" name="retry_delay" class="form-control" value="{{.Config.RetryDelay}}">
+                            <small class="form-text text-muted">Jeda antara percobaan koneksi dalam detik</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="idle-timeout">Timeout Idle (menit)</label>
+                            <input type="number" id="idle-timeout" name="idle_timeout" class="form-control" value="{{.Config.IdleTimeout}}">
+                            <small class="form-text text-muted">Waktu maksimum idle sebelum koneksi ditutup</small>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Simpan Pengaturan
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="card glass-card mt-4">
+                <div class="card-header">
+                    <h3 class="card-title">Status Koneksi</h3>
+                </div>
+                <div class="card-body">
+                    <div class="connection-status-info">
+                        <p>
+                            <strong>Status:</strong>
+                            <span class="status-badge {{.ConnectionInfo.status}}">{{.ConnectionInfo.status}}</span>
+                        </p>
+                        <p>
+                            <strong>Terhubung:</strong>
+                            {{if .ConnectionInfo.connected}}
+                                <span class="text-success"><i class="fas fa-check-circle"></i> Ya</span>
+                            {{else}}
+                                <span class="text-danger"><i class="fas fa-times-circle"></i> Tidak</span>
+                            {{end}}
+                        </p>
+                        <p>
+                            <strong>Login:</strong>
+                            {{if .ConnectionInfo.logged_in}}
+                                <span class="text-success"><i class="fas fa-check-circle"></i> Ya</span>
+                            {{else}}
+                                <span class="text-danger"><i class="fas fa-times-circle"></i> Tidak</span>
+                            {{end}}
+                        </p>
+                        <p>
+                            <strong>Percobaan Koneksi:</strong> {{.ConnectionInfo.retry_count}}
+                        </p>
+                    </div>
+                    
+                    <div class="action-buttons mt-3">
+                        <button id="test-connection-btn" class="btn btn-outline">
+                            <i class="fas fa-vial"></i> Tes Koneksi
+                        </button>
+                        <button id="reconnect-btn" class="btn btn-primary">
+                            <i class="fas fa-sync"></i> Hubungkan Ulang
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tab Keamanan -->
+        <div class="tab-pane fade" id="security" role="tabpanel">
+            <div class="card glass-card">
+                <div class="card-header">
+                    <h3 class="card-title">Token API</h3>
+                </div>
+                <div class="card-body">
+                    <p>Token API digunakan untuk autentikasi terhadap endpoint API. Jangan bagikan token ini dengan siapapun.</p>
+                    
+                    <div class="token-display">
+                        <div class="form-group">
+                            <label for="api-token">Token API Saat Ini</label>
+                            <div class="input-group">
+                                <input type="password" id="api-token" class="form-control" value="{{.Config.AccessToken}}" readonly>
+                                <button type="button" class="btn btn-outline" id="toggle-token-btn">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline" id="copy-token-btn">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <form action="/settings/token/update" method="POST" class="mt-4">
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <strong>Peringatan!</strong> Memperbarui token akan membuat semua token lama tidak valid.
+                            Pastikan Anda memperbarui token pada semua sistem yang menggunakan API ini.
+                        </div>
+                        <button type="submit" class="btn btn-danger" id="regenerate-token-btn">
+                            <i class="fas fa-sync-alt"></i> Perbarui Token API
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="card glass-card mt-4">
+                <div class="card-header">
+                    <h3 class="card-title">Pengaturan Sesi</h3>
+                </div>
+                <div class="card-body">
+                    <form id="session-settings-form" action="/settings/update" method="POST">
+                        <div class="form-group">
+                            <label for="token-expiry">Masa Berlaku Token (jam)</label>
+                            <input type="number" id="token-expiry" name="token_expiry" class="form-control" value="{{.Config.TokenExpiry}}">
+                            <small class="form-text text-muted">Masa berlaku token akses dalam jam</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="cookie-max-age">Masa Berlaku Cookie (hari)</label>
+                            <input type="number" id="cookie-max-age" name="cookie_max_age" class="form-control" value="{{.Config.CookieMaxAge}}">
+                            <small class="form-text text-muted">Masa berlaku cookie "Remember Me" dalam hari</small>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Simpan Pengaturan
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tab Lanjutan -->
+        <div class="tab-pane fade" id="advanced" role="tabpanel">
+            <div class="card glass-card">
+                <div class="card-header">
+                    <h3 class="card-title">Direktori Penyimpanan</h3>
+                </div>
+                <div class="card-body">
+                    <div class="paths-info">
+                        <div class="path-item">
+                            <strong>WhatsApp Store:</strong>
+                            <span class="path">{{.Paths.StoreDir}}</span>
+                        </div>
+                        <div class="path-item">
+                            <strong>QR Code:</strong>
+                            <span class="path">{{.Paths.QrCodeDir}}</span>
+                        </div>
+                        <div class="path-item">
+                            <strong>Sesi:</strong>
+                            <span class="path">{{.Paths.SessionDir}}</span>
+                        </div>
+                        <div class="path-item">
+                            <strong>Storage:</strong>
+                            <span class="path">{{.Paths.StoragePath}}</span>
+                        </div>
+                        <div class="path-item">
+                            <strong>Log File:</strong>
+                            <span class="path">{{.Paths.LogFile}}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card glass-card mt-4">
+                <div class="card-header">
+                    <h3 class="card-title">Pengaturan Storage</h3>
+                </div>
+                <div class="card-body">
+                    <form id="storage-settings-form" action="/settings/update" method="POST">
+                        <div class="form-group">
+                            <label for="storage-type">Tipe Storage</label>
+                            <select id="storage-type" name="storage_type" class="form-select">
+                                <option value="badger" {{if eq .Config.StorageType "badger"}}selected{{end}}>BadgerDB</option>
+                                <option value="sqlite" {{if eq .Config.StorageType "sqlite"}}selected{{end}}>SQLite</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <div class="form-check">
+                                <input type="checkbox" id="in-memory" name="in_memory" class="form-check-input" {{if .Config.StorageInMemory}}checked{{end}}>
+                                <label for="in-memory" class="form-check-label">Mode In-Memory</label>
+                            </div>
+                            <small class="form-text text-muted">Mode in-memory meningkatkan performa tetapi data akan hilang saat aplikasi restart</small>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Simpan Pengaturan
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="card glass-card mt-4">
+                <div class="card-header danger-zone">
+                    <h3 class="card-title">Zona Berbahaya</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Peringatan!</strong> Tindakan di bawah ini bersifat permanen dan tidak dapat dibatalkan.
+                    </div>
+                    
+                    <div class="danger-actions">
+                        <button id="clear-sessions-btn" class="btn btn-danger">
+                            <i class="fas fa-trash"></i> Hapus Semua Sesi WhatsApp
+                        </button>
+                        <button id="clear-storage-btn" class="btn btn-danger">
+                            <i class="fas fa-trash"></i> Hapus Storage Data
+                        </button>
+                        <button id="reset-config-btn" class="btn btn-danger">
+                            <i class="fas fa-undo"></i> Reset Konfigurasi ke Default
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}
