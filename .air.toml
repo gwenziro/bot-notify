@@ -1,0 +1,42 @@
+# Air configuration file for WhatsApp Bot
+
+root = "."
+tmp_dir = "tmp"
+
+[build]
+# Binary file yielded from `go build`
+bin = "./tmp/main.exe"
+# Command to build the project
+cmd = "go build -o ./tmp/main.exe ./cmd/main.go"
+# List of file extensions to watch for changes
+include_ext = ["go", "html", "css", "js", "yaml", "yml"]
+# Files to exclude from watching
+exclude_dir = ["tmp", "vendor", "data", "logs"]
+# Auto-delete temporary directory on exit
+clean_on_exit = true
+# Send interrupt signal to application before rebuilding
+send_interrupt = true
+# Delay after sending interrupt signal
+kill_delay = "0.5s"
+# Set this true if you want to exit when delayed shut down is timeout.
+stop_on_error = true
+
+[log]
+# Show log time
+time = true
+# Show colors in log output
+colors = true
+
+[color]
+# Build success
+main = "green"
+# Build error
+watcher = "magenta"
+# Output build log
+build = "yellow"
+# App runner log
+runner = "cyan"
+
+[screen]
+clear_on_rebuild = true
+keep_scroll = true

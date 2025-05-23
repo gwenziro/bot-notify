@@ -1,0 +1,42 @@
+# WhatsApp Bot Configuration
+
+# Server Configuration
+server:
+  host: "127.0.0.1"   # Server bind address
+  port: 8080          # Server port
+  read_timeout: "30s"  # HTTP read timeout
+  write_timeout: "30s" # HTTP write timeout
+  shutdown_timeout: "10s" # Graceful shutdown timeout
+  base_url: "http://localhost:8080" # Base URL for the application
+
+# WhatsApp Configuration
+whatsapp:
+  store_dir: "./data/whatsapp"  # Directory for WhatsApp session data
+  qr_code_dir: "./data/qrcodes" # Directory for QR code images
+  max_retry: 5                  # Maximum reconnection attempts
+  retry_delay: "5s"             # Delay between reconnection attempts
+  idle_timeout: "30m"           # Timeout for idle connections
+
+# Authentication Configuration
+auth:
+  token_secret: "change-this-to-a-secure-random-string"  # Secret for token encryption
+  access_token: "change-this-to-your-api-access-token"   # API access token
+  token_expiry: "24h"           # Token expiry time
+  session_dir: "./data/sessions" # Directory for session data
+  cookie_name: "whatsmeow_session" # Session cookie name
+  cookie_max_age: 86400         # Session cookie max age in seconds (24 hours)
+
+# Storage Configuration
+storage:
+  type: "badger"                # Storage backend type
+  path: "./data/storage"        # Storage path
+  in_memory: false              # Use in-memory storage (for testing)
+
+# Logging Configuration
+logging:
+  level: "info"                 # Log level (debug, info, warn, error)
+  file: "./logs/app.log"        # Log file path
+  max_size: 10                  # Max size in MB before rotating
+  max_backups: 3                # Max number of old log files to retain
+  max_age: 28                   # Max age in days to retain old log files
+  compress: true                # Compress rotated log files

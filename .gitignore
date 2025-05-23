@@ -1,0 +1,84 @@
+# Compiled Go binaries and executables
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+/bot-notify
+/bin/
+
+# Go specific
+*.test
+*.out
+go.work
+
+# IDE/Editor specific folders and files
+.idea/
+.vscode/
+*.swp
+*.swo
+*.sublime-workspace
+*.sublime-project
+.DS_Store
+
+# WhatsApp related files
+/data/
+/data/whatsapp/
+/data/qrcodes/
+/data/storage/
+/data/sessions/
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+latest-qr.png
+latest-qr.txt
+qr-timestamp.txt
+store.db
+
+# Config files (may contain sensitive tokens)
+/config/config.yaml
+/config/*.local.yaml
+
+# Log files
+/logs/
+*.log
+
+# Temporary files
+/tmp/
+*.tmp
+*.bak
+
+# Build output
+/dist/
+/build/
+
+# Dependency directories (if you're using vendoring locally)
+/vendor/
+
+# Environment files
+.env
+.env.local
+*.env
+
+# Certificate files
+*.pem
+*.cert
+*.key
+
+# Documentation build directories
+/docs/_build/
+/site/
+
+# Coverage reports
+coverage.txt
+profile.out
+
+# Badger database files
+/data/storage/data/KEYREGISTRY
+/data/storage/data/LOCK
+/data/storage/data/MANIFEST
+
+# Specific to this project
+/config/config.development.yaml
+/config/config.production.yaml
