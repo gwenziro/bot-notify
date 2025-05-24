@@ -1,0 +1,143 @@
+{{template "layouts/dashboard" .}}
+
+{{define "content"}}
+<div class="dashboard-wrapper">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1 class="page-title">Log Sistem</h1>
+        <p class="page-description">Pantau aktivitas sistem dan pesan WhatsApp</p>
+    </div>
+
+    <!-- Log Controls -->
+    <div class="dashboard-card mb-5">
+        <div class="card-header">
+            <h2 class="card-title">
+                <i class="fas fa-filter"></i>
+                Filter Log
+            </h2>
+            <div class="card-actions">
+                <button id="export-csv" class="btn btn-sm btn-outline">
+                    <i class="fas fa-file-csv"></i>
+                    Export CSV
+                </button>
+                <button id="export-json" class="btn btn-sm btn-outline ml-2">
+                    <i class="fas fa-file-code"></i>
+                    Export JSON
+                </button>
+                <button id="refresh-logs" class="btn btn-sm btn-outline ml-2">
+                    <i class="fas fa-sync-alt"></i>
+                    Refresh
+                </button>
+                <button id="clear-logs" class="btn btn-sm btn-danger ml-2">
+                    <i class="fas fa-trash"></i>
+                    Bersihkan
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="log-filters">
+                <div class="filter-group">
+                    <label for="log-level">Level</label>
+                    <select id="log-level" class="form-select">
+                        <option value="all">Semua</option>
+                        <option value="info">Info</option>
+                        <option value="warning">Warning</option>
+                        <option value="error">Error</option>
+                        <option value="debug">Debug</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="log-source">Sumber</label>
+                    <select id="log-source" class="form-select">
+                        <option value="all">Semua</option>
+                        <option value="system">Sistem</option>
+                        <option value="whatsapp">WhatsApp</option>
+                        <option value="api">API</option>
+                        <option value="web">Web</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Tanggal</label>
+                    <div class="date-range">
+                        <input type="date" id="log-date-from" class="form-control" placeholder="Dari">
+                        <input type="date" id="log-date-to" class="form-control" placeholder="Sampai">
+                    </div>
+                </div>
+                <div class="filter-group">
+                    <label for="log-search">Cari</label>
+                    <div class="search-input-group">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" id="log-search" class="form-control" placeholder="Cari dalam log...">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Log Display -->
+    <div class="dashboard-card">
+        <div class="card-header">
+            <h2 class="card-title">
+                <i class="fas fa-clipboard-list"></i>
+                Entri Log
+            </h2>
+            <div class="log-stats">
+                <span id="log-count">0</span> entri ditemukan
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="log-container" id="logs-table">
+                <table class="log-table">
+                    <thead>
+                        <tr>
+                            <th>Waktu</th>
+                            <th>Level</th>
+                            <th>Sumber</th>
+                            <th>Pesan</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="log-entries">
+                        <!-- Log entries will be populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer">
+            <div class="pagination">
+                <button class="btn btn-sm btn-outline" id="prev-page" disabled>
+                    <i class="fas fa-chevron-left"></i> Sebelumnya
+                </button>
+                <span class="pagination-info">Halaman <span id="current-page">1</span> dari <span id="total-pages">1</span></span>
+                <button class="btn btn-sm btn-outline" id="next-page" disabled>
+                    Selanjutnya <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Log Detail Modal -->
+    <div class="modal" id="log-detail-modal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class="modal-title">Detail Log</h3>
+                    <button class="btn-icon modal-close" aria-label="Close">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <!-- Modal content will be populated by JavaScript -->
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline modal-close">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}
+
+{{define "scripts"}}
+<script src="/static/js/pages/logs.js"></script>
+{{end}}

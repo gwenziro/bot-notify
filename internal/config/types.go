@@ -23,6 +23,7 @@ type ServerConfig struct {
 	WriteTimeout    time.Duration `yaml:"write_timeout"`
 	ShutdownTimeout time.Duration `yaml:"shutdown_timeout"`
 	BaseURL         string        `yaml:"base_url"`
+	Debug           bool          `yaml:"debug"` // Tambahkan field Debug
 }
 
 // WhatsAppConfig berisi konfigurasi untuk layanan WhatsApp
@@ -36,12 +37,17 @@ type WhatsAppConfig struct {
 
 // AuthConfig berisi konfigurasi untuk autentikasi
 type AuthConfig struct {
-	TokenSecret  string        `yaml:"token_secret"`
-	AccessToken  string        `yaml:"access_token"`
-	TokenExpiry  time.Duration `yaml:"token_expiry"`
-	SessionDir   string        `yaml:"session_dir"`
-	CookieName   string        `yaml:"cookie_name"`
-	CookieMaxAge int           `yaml:"cookie_max_age"`
+	TokenSecret       string        `yaml:"token_secret"`
+	AccessToken       string        `yaml:"access_token"`
+	HashedAccessToken string        `yaml:"hashed_access_token"` // Menyimpan hash token untuk keamanan
+	TokenExpiry       time.Duration `yaml:"token_expiry"`
+	SessionDir        string        `yaml:"session_dir"`
+	CookieName        string        `yaml:"cookie_name"`
+	CookieMaxAge      int           `yaml:"cookie_max_age"`
+	MaxLoginAttempts  int           `yaml:"max_login_attempts"` // Batas percobaan login
+	BlockDuration     time.Duration `yaml:"block_duration"`     // Durasi blokir IP
+	SessionTimeout    time.Duration `yaml:"session_timeout"`    // Timeout sesi tidak aktif
+	SecureCookies     bool          `yaml:"secure_cookies"`     // Atur cookie secure
 }
 
 // StorageConfig berisi konfigurasi untuk penyimpanan data

@@ -8,7 +8,7 @@ import (
 // RegisterRoutes mendaftarkan semua rute web ke Fiber app
 func (h *WebHandler) RegisterRoutes(app *fiber.App) {
 	// Initialize auth middleware
-	authMiddleware := middleware.NewAuthMiddleware(h.config, h.sessionStore)
+	authMiddleware := middleware.NewAuthMiddleware(h.config, h.sessionStore, h.storage)
 
 	// Serve static files
 	app.Static("/static", h.staticPath)
@@ -31,6 +31,11 @@ func (h *WebHandler) RegisterRoutes(app *fiber.App) {
 	connectivity := app.Group("/connectivity")
 	connectivity.Use(authMiddleware.RequireAuth())
 	connectivity.Get("/", h.connectivityController.ConnectivityPage)
+
+	// Protected routes - Logs
+	logs := app.Group("/logs")
+	logs.Use(authMiddleware.RequireAuth())
+	logs.Get("/", h.logsController.LogsPage)
 
 	// Protected routes - Settings
 	settings := app.Group("/settings")

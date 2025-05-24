@@ -31,4 +31,9 @@ func (h *APIHandler) RegisterEndpoints(app *fiber.App) {
 	// QR Code API
 	api.Get("/qr/status", h.qrHandler.GetStatus)
 	api.Get("/qr/image", h.qrHandler.GetImage)
+
+	// Logs API
+	api.Get("/logs", h.logsHandler.GetLogs)
+	api.Post("/logs/clear", h.logsHandler.ClearLogs)
+	api.Get("/logs/export", h.logsHandler.ExportLogs)
 }

@@ -31,6 +31,8 @@
   overflow: hidden;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   opacity: 0; /* Untuk animasi initial */
+  transform: translateY(20px);
+  transition: opacity 0.5s ease, transform 0.5s ease, box-shadow 0.3s ease;
 }
 
 .login-card:hover {
@@ -105,11 +107,30 @@
   transition: all 0.3s ease;
 }
 
-.token-input-group input:focus {
-  outline: none;
-  border-color: var(--accent-color);
-  background-color: rgba(255, 255, 255, 0.1);
-  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb, 10, 147, 159), 0.2);
+/* Sembunyikan ikon password bawaan browser dengan lebih agresif */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none !important;
+}
+
+/* Chrome, Safari specific selectors */
+input[type="password"]::-webkit-contacts-auto-fill-button,
+input[type="password"]::-webkit-credentials-auto-fill-button,
+input[type="password"]::-webkit-inner-spin-button,
+input[type="password"]::-webkit-search-cancel-button,
+input[type="password"]::-webkit-search-results-button,
+input[type="password"]::-webkit-search-results-decoration {
+  visibility: hidden !important;
+  display: none !important;
+  pointer-events: none !important;
+  position: absolute !important;
+  right: 0 !important;
+  opacity: 0 !important;
+}
+
+/* Input element-specific reset for Chrome/Edge */
+.token-input-group input::-webkit-textfield-decoration-container {
+  visibility: hidden !important;
 }
 
 .token-input-group .toggle-password {
@@ -123,17 +144,28 @@
   cursor: pointer;
   padding: var(--space-1);
   transition: color 0.2s ease;
+  z-index: 2; /* Memastikan tombol di atas lapisan lain */
 }
 
 .token-input-group .toggle-password:hover {
   color: var(--theme-text-primary);
 }
 
-.login-form small {
-  display: block;
-  margin-top: var(--space-2);
-  font-size: var(--font-size-xs);
-  color: var(--theme-text-secondary);
+/* Tambahkan animasi shake untuk feedback error */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+.shake {
+  animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+/* Styling untuk error state */
+.token-input-group input.error {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 1px rgba(var(--color-danger-rgb, 229, 62, 62), 0.2);
 }
 
 /* Back to home link */

@@ -1,126 +1,163 @@
 /**
  * Login Page JavaScript
- * Manages login page functionality
+ * Mengelola fungsionalitas halaman login
  */
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize login page
-    initLoginPage();
-});
-
-// Initialize login page functionality
-function initLoginPage() {
-    // Setup password toggle visibility
+    // Setup toggle password visibility
     setupPasswordToggle();
     
-    // Focus on token input
-    focusTokenInput();
+    // Animasi masuk untuk login card
+    animateLoginCard();
     
-    // Setup animations
-    setupAnimations();
-    
-    // Handle form submission
+    // Form submission handling with validation
     setupFormSubmission();
-}
+    
+    // Setup throttling and security
+    setupSecurityMeasures();
+});
 
-// Toggle password/token visibility
+// Toggle password visibility
 function setupPasswordToggle() {
-    const togglePasswordButton = document.querySelector('.toggle-password');
-    const passwordInput = document.querySelector('#token');
+    const toggleBtn = document.querySelector('.toggle-password');
+    const tokenInput = document.getElementById('token');
     
-    if (!togglePasswordButton || !passwordInput) return;
+    if (!toggleBtn || !tokenInput) return;
     
-    togglePasswordButton.addEventListener('click', function() {
-        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-        passwordInput.setAttribute('type', type);
+    // Tambahkan event langsung saat halaman load untuk mencegah ikon bawaan
+    setTimeout(() => {
+        // Force tampilan bawaan browser untuk tersembunyi
+        const currentCss = tokenInput.style.cssText;
+        tokenInput.style.cssText = currentCss + '; --password-reveal-display: none !important;';
+    }, 100);
+    
+    toggleBtn.addEventListener('click', function() {
+        // Toggle input type antara 'password' dan 'text'
+        const currentType = tokenInput.getAttribute('type');
+        const newType = currentType === 'password' ? 'text' : 'password';
+        tokenInput.setAttribute('type', newType);
         
-        // Toggle icon
-        const icon = togglePasswordButton.querySelector('i');
-        if (icon) {
-            icon.classList.toggle('fa-eye');
-            icon.classList.toggle('fa-eye-slash');
+        // Perbarui ikon berdasarkan type
+        const icon = this.querySelector('i');
+        if (newType === 'text') {
+            icon.className = 'fas fa-eye-slash'; // Ganti ke ikon tutup mata
+        } else {
+            icon.className = 'fas fa-eye'; // Kembali ke ikon mata normal
         }
     });
 }
 
-// Focus on token input automatically
-function focusTokenInput() {
-    const passwordInput = document.querySelector('#token');
-    if (passwordInput) {
-        setTimeout(() => {
-            passwordInput.focus();
-        }, 500); // Delay focus for animation to complete
-    }
-}
-
-// Setup animations for login elements
-function setupAnimations() {
-    // Add fade-in animation to login container
-    const loginContainer = document.querySelector('.login-container');
-    if (loginContainer) {
-        loginContainer.classList.add('fade-in');
-    }
+// Animasi login card dengan fade in
+function animateLoginCard() {
+    const loginCard = document.querySelector('.login-card');
+    if (!loginCard) return;
     
-    // Animate login card with slight delay
+    // Tambahkan animasi masuk
     setTimeout(() => {
-        const loginCard = document.querySelector('.login-card');
-        if (loginCard) {
-            loginCard.style.opacity = '1';
-            loginCard.style.transform = 'translateY(0)';
-        }
-    }, 300);
+        loginCard.style.opacity = '1';
+        loginCard.style.transform = 'translateY(0)';
+    }, 100);
 }
 
-// Handle form submission
+// Handling form submission & validasi
 function setupFormSubmission() {
-    const loginForm = document.querySelector('.login-form');
-    if (!loginForm) return;
+    const loginForm = document.getElementById('login-form');
+    const tokenField = document.getElementById('token');
+    
+    if (!loginForm || !tokenField) return;
     
     loginForm.addEventListener('submit', function(e) {
-        const tokenInput = document.querySelector('#token');
-        
-        if (!tokenInput || !tokenInput.value.trim()) {
+        // Validasi token
+        if (!tokenField.value.trim()) {
             e.preventDefault();
-            showError('Token tidak boleh kosong');
-            return;
+            showValidationError(tokenField, 'Token harus diisi');
+            return false;
         }
         
-        // Disable the submit button to prevent double submission
-        const submitButton = this.querySelector('button[type="submit"]');
-        if (submitButton) {
-            submitButton.disabled = true;
-            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
+        // Validasi minimal length
+        if (tokenField.value.trim().length < 8) {
+            e.preventDefault();
+            showValidationError(tokenField, 'Token tidak valid (terlalu pendek)');
+            return false;
+        }
+        
+        // Simpan timestamp login attempt untuk deteksi brute force
+        const attempts = getLoginAttempts();
+        attempts.push(Date.now());
+        localStorage.setItem('login_attempts', JSON.stringify(attempts));
+        
+        // Disable button to prevent double-submit
+        document.getElementById('login-btn').disabled = true;
+        document.getElementById('login-btn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
+    });
+    
+    // Reset error state on input
+    tokenField.addEventListener('input', function() {
+        this.classList.remove('error');
+        const errorElem = loginForm.querySelector('.validation-error');
+        if (errorElem) {
+            errorElem.remove();
         }
     });
 }
 
-// Show error message
-function showError(message) {
-    // Check if error alert already exists
-    let errorAlert = document.querySelector('.alert.alert-danger');
+// Setup security measures
+function setupSecurityMeasures() {
+    // Throttle login attempts jika terlalu banyak
+    const attempts = getLoginAttempts();
     
-    // If not, create a new one
-    if (!errorAlert) {
-        errorAlert = document.createElement('div');
-        errorAlert.className = 'alert alert-danger';
-        errorAlert.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${message}`;
-        
-        // Insert after the text-muted paragraph
-        const textMuted = document.querySelector('.text-muted');
-        if (textMuted && textMuted.parentNode) {
-            textMuted.parentNode.insertBefore(errorAlert, textMuted.nextSibling);
+    // Hapus percobaan yang lebih lama dari 5 menit
+    const now = Date.now();
+    const recentAttempts = attempts.filter(time => (now - time) < 5 * 60 * 1000);
+    
+    // Jika banyak percobaan dalam waktu singkat, tambahkan delay
+    if (recentAttempts.length > 5) {
+        const loginBtn = document.getElementById('login-btn');
+        if (loginBtn) {
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<i class="fas fa-hourglass"></i> Menunggu...';
+            
+            setTimeout(() => {
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+            }, 3000);
         }
-    } else {
-        // Update existing error message
-        errorAlert.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${message}`;
     }
     
-    // Shake the input to provide visual feedback
-    const tokenInput = document.querySelector('#token');
-    if (tokenInput) {
-        tokenInput.classList.add('shake');
-        setTimeout(() => {
-            tokenInput.classList.remove('shake');
-        }, 500);
+    // Update storage
+    localStorage.setItem('login_attempts', JSON.stringify(recentAttempts));
+}
+
+// Helper untuk mendapatkan login attempts dari localStorage
+function getLoginAttempts() {
+    try {
+        return JSON.parse(localStorage.getItem('login_attempts') || '[]');
+    } catch(e) {
+        return [];
     }
+}
+
+// Show validation error message
+function showValidationError(inputElement, message) {
+    // Tambahkan class error ke input
+    inputElement.classList.add('error');
+    
+    // Animasi shake untuk feedback error
+    const parentElement = inputElement.parentElement;
+    parentElement.classList.add('shake');
+    setTimeout(() => {
+        parentElement.classList.remove('shake');
+    }, 500);
+    
+    // Tampilkan pesan error
+    const errorElement = document.createElement('div');
+    errorElement.className = 'validation-error';
+    errorElement.textContent = message;
+    
+    // Insert after input group
+    const formGroup = parentElement.parentElement;
+    formGroup.appendChild(errorElement);
+    
+    // Focus input
+    inputElement.focus();
 }

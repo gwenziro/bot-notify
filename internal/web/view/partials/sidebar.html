@@ -13,16 +13,6 @@
             </button>
         </div>
 
-        <div class="sidebar-search">
-            <div class="search-input-group">
-                <i class="fas fa-search search-icon"></i>
-                <input type="text" placeholder="Cari..." class="search-input" id="sidebar-search">
-                <button class="search-clear" id="clear-search">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-        </div>
-
         <nav class="sidebar-nav">
             <div class="nav-section">
                 <h3 class="nav-section-title">Menu Utama</h3>
@@ -41,32 +31,16 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="/messages" class="nav-link" data-page="messages">
-                            <i class="fas fa-comment-alt nav-icon"></i>
-                            <span class="nav-text">Pesan</span>
-                            <span class="nav-badge" id="messages-count">0</span>
+                        <a href="/status" class="nav-link" data-page="status">
+                            <i class="fas fa-info-circle nav-icon"></i>
+                            <span class="nav-text">Status</span>
                         </a>
                     </li>
-                    <li class="nav-item dropdown-nav">
-                        <a href="#" class="nav-link" data-toggle="collapse" data-target="#groupsSubmenu">
-                            <i class="fas fa-users nav-icon"></i>
-                            <span class="nav-text">Grup</span>
-                            <i class="fas fa-chevron-right collapse-icon"></i>
+                    <li class="nav-item">
+                        <a href="/logs" class="nav-link" data-page="logs">
+                            <i class="fas fa-clipboard-list nav-icon"></i>
+                            <span class="nav-text">Log Sistem</span>
                         </a>
-                        <ul class="nav-submenu collapse" id="groupsSubmenu">
-                            <li class="nav-item">
-                                <a href="/groups" class="nav-link" data-page="groups">
-                                    <i class="fas fa-list-ul nav-icon"></i>
-                                    <span class="nav-text">Lihat Semua</span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="/groups/manage" class="nav-link" data-page="manage-groups">
-                                    <i class="fas fa-cog nav-icon"></i>
-                                    <span class="nav-text">Kelola Grup</span>
-                                </a>
-                            </li>
-                        </ul>
                     </li>
                 </ul>
             </div>
@@ -78,18 +52,6 @@
                         <a href="/settings" class="nav-link" data-page="settings">
                             <i class="fas fa-cog nav-icon"></i>
                             <span class="nav-text">Pengaturan</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="/api-docs" class="nav-link" data-page="api-docs">
-                            <i class="fas fa-code nav-icon"></i>
-                            <span class="nav-text">API Docs</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="/help" class="nav-link" data-page="help">
-                            <i class="fas fa-question-circle nav-icon"></i>
-                            <span class="nav-text">Bantuan</span>
                         </a>
                     </li>
                 </ul>

@@ -6,31 +6,34 @@
 /* Base styles */
 @import 'base/_reset.css';        /* CSS Reset */
 @import 'base/_variables.css';    /* CSS Variables dan Design System */
-@import 'base/_typography.css';   /* Base Typography */
 @import 'base/_utilities.css';    /* Utility Classes */
+@import 'base/_base.css';         /* Base Styles */
 
 /* Layout styles */
 @import 'layout/_background.css';  /* File baru untuk background */
-@import 'layout/_grid.css';       /* Grid System */
-@import 'layout/_container.css';  /* Container Styles */
-@import 'layout/_spacing.css';    /* Margin and Padding Utilities */
+@import 'layout/_grid.css';        /* Grid System */
+@import 'layout/_container.css';   /* Container Styles */
+@import 'layout/_spacing.css';     /* Margin and Padding Utilities */
+@import 'layout/_dashboard.css';   /* Dashboard Layout */
 
-/* Componenent styles */
-@import 'components/_alerts.css';    /* Alert Components */
-@import 'components/_buttons.css';   /* Button Components */
-@import 'components/_cards.css';     /* Card Components */
-@import 'components/_badges.css';   /* Badge Components */
-@import 'components/_forms.css';    /* Form Components */
+/* Component styles - impor langsung, bukan melalui _components.css */
+@import 'components/_alerts.css';     /* Alert Components */
+@import 'components/_buttons.css';    /* Button Components */
+@import 'components/_cards.css';      /* Card Components */
+@import 'components/_badges.css';     /* Badge Components */
+@import 'components/_forms.css';      /* Form Components */
 @import 'components/_navigation.css'; /* Navigation Components */
-@import 'components/_progress.css';  /* Progress Components */
-@import 'components/_code.css';      /* Code Components */
-
+@import 'components/_progress.css';   /* Progress Components */
+@import 'components/_code.css';       /* Code Components */
+@import 'components/_header.css';     /* Header Components */
+@import 'components/_footer.css';     /* Footer Components */
+@import 'components/_sidebar.css';    /* Sidebar Components */
 
 /* Page-specific styles */
-@import 'pages/_landing.css';      /* Landing Page Styles */
-@import 'pages/_login.css';        /* Login Page Styles */
+@import 'pages/_landing.css';       /* Landing Page Styles */
+@import 'pages/_login.css';         /* Login Page Styles */
 @import 'pages/_dashboard.css';     /* Dashboard Page Styles */
-
+@import 'pages/_logs.css';          /* Logs Page Styles */
 
 /* Responsive styles */
 

@@ -5,7 +5,9 @@ import (
 
 	"github.com/gofiber/fiber/v2/middleware/session"
 	"github.com/gwenziro/bot-notify/internal/config"
+	"github.com/gwenziro/bot-notify/internal/service/log"
 	"github.com/gwenziro/bot-notify/internal/service/whatsapp/client"
+	"github.com/gwenziro/bot-notify/internal/storage"
 	"github.com/gwenziro/bot-notify/internal/utils"
 	"github.com/gwenziro/bot-notify/internal/web/controller"
 )
@@ -18,6 +20,7 @@ type WebHandler struct {
 	viewsPath    string
 	staticPath   string
 	sessionStore *session.Store
+	storage      storage.Storage
 
 	// Controller untuk berbagai halaman
 	homeController         *controller.HomeController
@@ -26,6 +29,7 @@ type WebHandler struct {
 	dashboardController    *controller.DashboardController
 	settingsController     *controller.SettingsController
 	authController         *controller.AuthController
+	logsController         *controller.LogsController
 }
 
 // NewWebHandler membuat instance baru WebHandler
@@ -36,13 +40,24 @@ func NewWebHandler(cfg *config.Config, whatsClient *client.Client, sessionStore 
 
 	logger := utils.ForModule("web")
 
+	// Buat instance LogService
+	// Catatan: Dalam produksi, ini sebaiknya diinjeksi dari luar
+	logService := log.NewLogService(nil, utils.ForModule("log-service"))
+
+	// Inisialisasi storage dengan fungsi konstruktor yang benar
+	storageInstance, err := storage.NewStorage(cfg)
+	if err != nil {
+		logger.Fatalf("Failed to initialize storage: %v", err)
+	}
+
 	// Inisialisasi controller
 	homeController := controller.NewHomeController(cfg, whatsClient, logger)
 	statusController := controller.NewStatusController(cfg, whatsClient, logger)
 	connectivityController := controller.NewConnectivityController(cfg, whatsClient, logger)
 	dashboardController := controller.NewDashboardController(cfg, whatsClient, logger)
 	settingsController := controller.NewSettingsController(cfg, whatsClient, logger)
-	authController := controller.NewAuthController(cfg, whatsClient, sessionStore, logger)
+	authController := controller.NewAuthController(cfg, whatsClient, sessionStore, storageInstance, logger)
+	logsController := controller.NewLogsController(cfg, whatsClient, logService, logger)
 
 	return &WebHandler{
 		config:                 cfg,
@@ -51,12 +66,14 @@ func NewWebHandler(cfg *config.Config, whatsClient *client.Client, sessionStore 
 		viewsPath:              viewsPath,
 		staticPath:             staticPath,
 		sessionStore:           sessionStore,
+		storage:                storageInstance,
 		homeController:         homeController,
 		statusController:       statusController,
 		connectivityController: connectivityController,
 		dashboardController:    dashboardController,
 		settingsController:     settingsController,
 		authController:         authController,
+		logsController:         logsController,
 	}
 }
 
@@ -80,5 +97,5 @@ func (h *WebHandler) SetSessionStore(store *session.Store) {
 	h.sessionStore = store
 
 	// Re-initialize auth controller with the new session store
-	h.authController = controller.NewAuthController(h.config, h.whatsApp, store, h.logger)
+	h.authController = controller.NewAuthController(h.config, h.whatsApp, store, h.storage, h.logger)
 }

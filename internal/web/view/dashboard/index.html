@@ -1,212 +1,266 @@
 {{template "layouts/dashboard" .}}
 
 {{define "content"}}
-<div class="page-header">
-    <h1 class="page-title">Dashboard</h1>
-    <p class="page-description">Ringkasan sistem dan status WhatsApp Bot Notify.</p>
-</div>
+<div class="dashboard-wrapper">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1 class="page-title">Dashboard</h1>
+        <p class="page-description">Selamat datang di Bot Notify, pantau status sistem dan WhatsApp Anda</p>
+    </div>
 
-<!-- Stats Overview Section -->
-<section class="stats-overview mb-5">
-    <div class="dashboard-grid">
-        <!-- WhatsApp Connection Status -->
-        <div class="col-3 col-md-6 col-sm-6">
-            <div class="stat-card-sm">
+    <!-- Stats Cards Section -->
+    <div class="stats-section">
+        <div class="stats-grid">
+            <!-- WhatsApp Connection Status -->
+            <div class="stat-card" id="whatsapp-stat">
                 <div class="stat-icon">
                     <i class="fas fa-wifi"></i>
                 </div>
                 <div class="stat-content">
-                    <h3 class="stat-title">Status WhatsApp</h3>
-                    <p class="stat-value" id="whatsapp-status">
-                        <span class="status-indicator" id="status-indicator"></span>
-                        <span id="status-text">Memuat...</span>
-                    </p>
+                    <h3 class="stat-label">Status WhatsApp</h3>
+                    <div class="stat-value">
+                        <span class="status-indicator" id="whatsapp-indicator"></span>
+                        <span id="whatsapp-status-text">Menghubungkan...</span>
+                    </div>
                 </div>
             </div>
-        </div>
-        
-        <!-- Total Messages -->
-        <div class="col-3 col-md-6 col-sm-6">
-            <div class="stat-card-sm">
+
+            <!-- Message Count -->
+            <div class="stat-card" id="message-stat">
                 <div class="stat-icon">
                     <i class="fas fa-comment-alt"></i>
                 </div>
                 <div class="stat-content">
-                    <h3 class="stat-title">Total Pesan</h3>
-                    <p class="stat-value" id="total-messages">0</p>
+                    <h3 class="stat-label">Pesan Terkirim</h3>
+                    <p class="stat-value" id="message-count">0</p>
                 </div>
             </div>
-        </div>
-        
-        <!-- Uptime -->
-        <div class="col-3 col-md-6 col-sm-6">
-            <div class="stat-card-sm">
-                <div class="stat-icon">
-                    <i class="fas fa-clock"></i>
-                </div>
-                <div class="stat-content">
-                    <h3 class="stat-title">Uptime</h3>
-                    <p class="stat-value" id="uptime">0:00:00</p>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Available Groups -->
-        <div class="col-3 col-md-6 col-sm-6">
-            <div class="stat-card-sm">
+
+            <!-- Group Count -->
+            <div class="stat-card" id="group-stat">
                 <div class="stat-icon">
                     <i class="fas fa-users"></i>
                 </div>
                 <div class="stat-content">
-                    <h3 class="stat-title">Grup Tersedia</h3>
+                    <h3 class="stat-label">Grup Tersedia</h3>
                     <p class="stat-value" id="group-count">0</p>
                 </div>
             </div>
-        </div>
-    </div>
-</section>
 
-<!-- Main Dashboard Content in 2 Columns -->
-<div class="dashboard-grid">
-    <!-- Left Column -->
-    <div class="col-8 col-md-12">
-        <!-- System Status Card -->
-        <div class="card glass-card mb-4">
-            <div class="card-header">
-                <h2 class="card-title">Status Sistem</h2>
-                <button class="btn btn-sm btn-outline" id="refresh-status">
-                    <i class="fas fa-sync-alt"></i> Refresh
-                </button>
-            </div>
-            <div class="card-body">
-                <!-- System Resources Section -->
-                <div class="mb-4">
-                    <h3 class="mb-3">Penggunaan Sumber Daya</h3>
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span>CPU</span>
-                            <span id="cpu-usage">0%</span>
-                        </div>
-                        <div class="progress">
-                            <div class="progress-bar" id="cpu-bar" style="width: 0%"></div>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span>Memory</span>
-                            <span id="memory-usage">0 MB / 0 MB</span>
-                        </div>
-                        <div class="progress">
-                            <div class="progress-bar" id="memory-bar" style="width: 0%"></div>
-                        </div>
-                    </div>
-                    <div>
-                        <div class="d-flex justify-content-between mb-1">
-                            <span>Disk</span>
-                            <span id="disk-usage">0 MB / 0 MB</span>
-                        </div>
-                        <div class="progress">
-                            <div class="progress-bar" id="disk-bar" style="width: 0%"></div>
-                        </div>
-                    </div>
+            <!-- Uptime -->
+            <div class="stat-card" id="uptime-stat">
+                <div class="stat-icon">
+                    <i class="fas fa-clock"></i>
                 </div>
-                
-                <!-- Connection Info -->
-                <div>
-                    <h3 class="mb-3">Informasi Koneksi</h3>
-                    <table class="system-info-table">
-                        <tr>
-                            <td>Status</td>
-                            <td id="connection-status">Memuat...</td>
-                        </tr>
-                        <tr>
-                            <td>Waktu Terhubung</td>
-                            <td id="connection-time">-</td>
-                        </tr>
-                        <tr>
-                            <td>Terakhir Aktif</td>
-                            <td id="last-activity">-</td>
-                        </tr>
-                        <tr>
-                            <td>Percobaan Koneksi</td>
-                            <td id="connection-attempts">0</td>
-                        </tr>
-                        <tr>
-                            <td>ID Perangkat</td>
-                            <td id="device-id">-</td>
-                        </tr>
-                    </table>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Message Stats Chart Card -->
-        <div class="card glass-card">
-            <div class="card-header">
-                <h2 class="card-title">Statistik Pesan</h2>
-                <div class="d-flex gap-2">
-                    <select class="form-select" id="chart-period">
-                        <option value="day">Hari Ini</option>
-                        <option value="week">7 Hari Terakhir</option>
-                        <option value="month">30 Hari Terakhir</option>
-                    </select>
-                </div>
-            </div>
-            <div class="card-body">
-                <div class="chart-container">
-                    <canvas id="messages-chart"></canvas>
+                <div class="stat-content">
+                    <h3 class="stat-label">Uptime</h3>
+                    <p class="stat-value" id="uptime-value">00:00:00</p>
                 </div>
             </div>
         </div>
     </div>
-    
-    <!-- Right Column -->
-    <div class="col-4 col-md-12">
-        <!-- Quick Actions Card -->
-        <div class="card glass-card mb-4">
-            <div class="card-header">
-                <h2 class="card-title">Aksi Cepat</h2>
+
+    <!-- Main Dashboard Content -->
+    <div class="dashboard-content">
+        <!-- Left Column -->
+        <div class="content-column main-column">
+            <!-- Connection Status Card -->
+            <div class="dashboard-card system-status-card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fas fa-server"></i>
+                        Status Sistem
+                    </h2>
+                    <button id="refresh-status" class="btn btn-sm btn-outline">
+                        <i class="fas fa-sync-alt"></i>
+                        Refresh
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="system-resources">
+                        <h3 class="section-title">Penggunaan Sumber Daya</h3>
+                        
+                        <div class="resource-item">
+                            <div class="resource-info">
+                                <span>CPU</span>
+                                <span id="cpu-usage">0%</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar" id="cpu-bar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="resource-item">
+                            <div class="resource-info">
+                                <span>Memori</span>
+                                <span id="memory-usage">0 MB / 0 MB</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar" id="memory-bar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="resource-item">
+                            <div class="resource-info">
+                                <span>Penyimpanan</span>
+                                <span id="storage-usage">0 MB / 0 MB</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar" id="storage-bar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="connection-details">
+                        <h3 class="section-title">Informasi Koneksi</h3>
+                        <div class="info-table">
+                            <div class="info-row">
+                                <div class="info-label">Status</div>
+                                <div class="info-value" id="connection-status">Menghubungkan...</div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Terhubung sejak</div>
+                                <div class="info-value" id="connected-since">-</div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Terakhir aktif</div>
+                                <div class="info-value" id="last-activity">-</div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Percobaan koneksi</div>
+                                <div class="info-value" id="retry-count">0</div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">ID Perangkat</div>
+                                <div class="info-value" id="device-id">-</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="card-body">
-                <div class="d-flex flex-column gap-2">
-                    <button class="btn btn-primary" id="reconnect-btn">
-                        <i class="fas fa-sync"></i> Hubungkan Ulang WhatsApp
-                    </button>
-                    <button class="btn btn-outline" id="scan-qr-btn">
-                        <i class="fas fa-qrcode"></i> Scan QR Code
-                    </button>
-                    <button class="btn btn-outline" id="check-groups-btn">
-                        <i class="fas fa-users"></i> Cek Grup Tersedia
-                    </button>
-                    <button class="btn btn-danger" id="disconnect-btn">
-                        <i class="fas fa-power-off"></i> Putuskan WhatsApp
-                    </button>
+
+            <!-- Message Stats Chart -->
+            <div class="dashboard-card chart-card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fas fa-chart-line"></i>
+                        Statistik Pesan
+                    </h2>
+                    <div class="card-actions">
+                        <select id="chart-period" class="form-select">
+                            <option value="day">Hari Ini</option>
+                            <option value="week" selected>7 Hari Terakhir</option>
+                            <option value="month">30 Hari Terakhir</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="message-chart"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
-        
-        <!-- Recent Activity Card -->
-        <div class="card glass-card">
-            <div class="card-header">
-                <h2 class="card-title">Aktivitas Terkini</h2>
-                <button class="btn btn-sm btn-outline" id="clear-activity">
-                    <i class="fas fa-trash"></i> Bersihkan
-                </button>
-            </div>
-            <div class="card-body">
-                <ul class="activity-feed" id="activity-feed">
-                    <li class="activity-item">
-                        <div class="activity-icon">
+
+        <!-- Right Column -->
+        <div class="content-column sidebar-column">
+            <!-- Quick Actions Card -->
+            <div class="dashboard-card quick-actions-card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fas fa-bolt"></i>
+                        Aksi Cepat
+                    </h2>
+                </div>
+                <div class="card-body">
+                    <div class="action-buttons">
+                        <button id="qr-scan-btn" class="action-btn">
+                            <i class="fas fa-qrcode"></i>
+                            <span>Scan QR Code</span>
+                        </button>
+                        <button id="check-groups-btn" class="action-btn">
+                            <i class="fas fa-users"></i>
+                            <span>Cek Grup</span>
+                        </button>
+                        <button id="reconnect-btn" class="action-btn primary-action">
+                            <i class="fas fa-sync"></i>
+                            <span>Hubungkan Ulang</span>
+                        </button>
+                        <button id="disconnect-btn" class="action-btn danger-action">
                             <i class="fas fa-power-off"></i>
+                            <span>Putuskan</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activity Feed Card -->
+            <div class="dashboard-card activity-card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fas fa-history"></i>
+                        Aktivitas Terkini
+                    </h2>
+                    <button id="clear-activity" class="btn btn-sm btn-outline">
+                        <i class="fas fa-trash"></i>
+                        Bersihkan
+                    </button>
+                </div>
+                <div class="card-body">
+                    <ul id="activity-feed" class="activity-feed">
+                        <li class="activity-item">
+                            <div class="activity-icon">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="activity-content">
+                                <div class="activity-text">Sistem dimulai</div>
+                                <div class="activity-time" id="system-start-time">Baru saja</div>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Device Info Card -->
+            <div class="dashboard-card device-card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fas fa-mobile-alt"></i>
+                        Informasi Perangkat
+                    </h2>
+                </div>
+                <div class="card-body">
+                    <div class="device-info">
+                        <div class="device-status" id="device-connected">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Terhubung</span>
                         </div>
-                        <div class="activity-content">
-                            <p class="activity-title">Sistem dimulai</p>
-                            <span class="activity-time" id="system-start-time">-</span>
+                        <div class="device-status hidden" id="device-disconnected">
+                            <i class="fas fa-times-circle"></i>
+                            <span>Tidak Terhubung</span>
                         </div>
-                    </li>
-                </ul>
+                        <div class="info-table">
+                            <div class="info-row">
+                                <div class="info-label">Nama</div>
+                                <div class="info-value" id="device-name">-</div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Platform</div>
+                                <div class="info-value" id="device-platform">WhatsApp Web</div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Versi</div>
+                                <div class="info-value" id="whatsapp-version">-</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
+{{end}}
+
+{{define "scripts"}}
+<script src="/static/js/pages/dashboard.js"></script>
 {{end}}

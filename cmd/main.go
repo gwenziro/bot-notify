@@ -58,7 +58,7 @@ func main() {
 
 	// Setup handlers
 	webHandler := web.NewWebHandler(cfg, whatsClient, nil)
-	apiHandler := api.NewAPIHandler(cfg, whatsClient)
+	apiHandler := api.NewAPIHandler(cfg, whatsClient, nil)
 
 	// Buat server dengan template engine yang diaktifkan
 	viewsPath := filepath.Join(utils.ProjectRoot, "internal", "web", "view")

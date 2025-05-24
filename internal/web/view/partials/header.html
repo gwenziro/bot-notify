@@ -12,9 +12,12 @@
             </div>
             
             <div class="header-center">
-                <div class="breadcrumb">
-                    <span class="breadcrumb-item">Dashboard</span>
-                    <span id="current-page-title" class="breadcrumb-item active">Overview</span>
+                <div class="search-input-group">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" placeholder="Cari menu atau fitur..." class="search-input" id="header-search">
+                    <button class="search-clear" id="clear-search">
+                        <i class="fas fa-times"></i>
+                    </button>
                 </div>
             </div>
             
@@ -45,9 +48,6 @@
                                     <p>Tidak ada notifikasi baru</p>
                                 </div>
                             </div>
-                            <div class="dropdown-footer">
-                                <a href="/notifications">Lihat Semua</a>
-                            </div>
                         </div>
                     </div>
                     
@@ -60,9 +60,6 @@
                         <div class="dropdown-menu">
                             <a href="/settings" class="dropdown-item">
                                 <i class="fas fa-cog"></i> Pengaturan
-                            </a>
-                            <a href="/help" class="dropdown-item">
-                                <i class="fas fa-question-circle"></i> Bantuan
                             </a>
                             <div class="dropdown-divider"></div>
                             <a href="/logout" class="dropdown-item">

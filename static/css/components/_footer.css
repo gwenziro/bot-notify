@@ -1,0 +1,110 @@
+/*
+ * FOOTER STYLES
+ * Styling khusus untuk komponen footer dashboard
+ */
+
+.dashboard-footer {
+  grid-area: footer;
+  width: 100%;
+  padding: var(--space-3);
+}
+
+.dashboard-footer .glass-panel {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.footer-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+}
+
+.footer-left, 
+.footer-right {
+  display: flex;
+  align-items: center;
+}
+
+.copyright {
+  font-size: var(--font-size-xs);
+  color: var(--theme-text-muted);
+  margin: 0;
+}
+
+.footer-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.footer-link {
+  color: var(--theme-text-secondary);
+  text-decoration: none;
+  font-size: var(--font-size-xs);
+  transition: color 0.2s ease;
+}
+
+.footer-link:hover {
+  color: var(--theme-text-primary);
+}
+
+.separator {
+  color: var(--theme-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.system-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--font-size-xs);
+  color: var(--theme-text-secondary);
+}
+
+.server-time, 
+.server-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.server-status .status-text.online {
+  color: var(--color-success);
+}
+
+.server-status .status-text.offline {
+  color: var(--color-danger);
+}
+
+/* Responsive adjustments */
+@media (max-width: 767px) {
+  .footer-content {
+    flex-direction: column;
+    gap: var(--space-2);
+    text-align: center;
+    padding: var(--space-2);
+  }
+  
+  .footer-center {
+    order: -1;
+    margin-bottom: var(--space-2);
+  }
+  
+  .footer-nav {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .system-info {
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+  
+  .system-info .separator {
+    display: none;
+  }
+}
