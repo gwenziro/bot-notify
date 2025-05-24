@@ -75,3 +75,52 @@ func Initialize(cfg *config.Config) (Storage, error) {
 		})
 	}
 }
+
+var defaultStorage Storage
+
+// GetStorage mengembalikan instance storage yang telah diinisialisasi
+func GetStorage() Storage {
+	// Jika belum diinisialisasi, kembalikan dummy storage atau nil
+	if defaultStorage == nil {
+		// Untuk development, kita bisa mengembalikan NoOpStorage
+		// atau panic untuk memastikan storage diinisialisasi
+		return NewNoOpStorage()
+	}
+	return defaultStorage
+}
+
+// NewNoOpStorage membuat storage yang tidak melakukan apa-apa (untuk pengujian)
+func NewNoOpStorage() Storage {
+	return &NoOpStorage{}
+}
+
+// NoOpStorage adalah implementasi dummy dari Storage interface
+type NoOpStorage struct{}
+
+func (s *NoOpStorage) Get(_ context.Context, _ string) ([]byte, error) {
+	return nil, nil
+}
+
+func (s *NoOpStorage) Set(_ context.Context, _ string, _ []byte) error {
+	return nil
+}
+
+func (s *NoOpStorage) SetWithTTL(_ context.Context, _ string, _ []byte, _ time.Duration) error {
+	return nil
+}
+
+func (s *NoOpStorage) Delete(_ context.Context, _ string) error {
+	return nil
+}
+
+func (s *NoOpStorage) GetWithPrefix(_ context.Context, _ string) (map[string][]byte, error) {
+	return nil, nil
+}
+
+func (s *NoOpStorage) DeleteWithPrefix(_ context.Context, _ string) error {
+	return nil
+}
+
+func (s *NoOpStorage) Close() error {
+	return nil
+}
