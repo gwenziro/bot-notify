@@ -173,10 +173,10 @@
                             <label for="api-token">Token API Saat Ini</label>
                             <div class="input-group">
                                 <input type="password" id="api-token" class="form-control" value="{{.Config.AccessToken}}" readonly>
-                                <button type="button" class="btn btn-outline" id="toggle-token-btn">
+                                <button type="button" class="btn btn-outline" id="toggle-token-btn" aria-label="Toggle Token Visibility">
                                     <i class="fas fa-eye"></i>
                                 </button>
-                                <button type="button" class="btn btn-outline" id="copy-token-btn">
+                                <button type="button" class="btn btn-outline" id="copy-token-btn" aria-label="Copy Token to Clipboard">
                                     <i class="fas fa-copy"></i>
                                 </button>
                             </div>

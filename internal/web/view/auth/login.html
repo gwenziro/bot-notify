@@ -44,13 +44,14 @@
                 
                 <form action="/auth/login" method="POST" class="login-form">
                     <input type="hidden" name="redirect" value="{{.RedirectTo}}">
+                    <input type="hidden" name="csrf_token" value="{{.CsrfToken}}">
                     
                     <div class="form-group">
                         <label for="token">Access Token</label>
                         <div class="token-input-group">
                             <input type="password" id="token" name="token" class="form-control" 
                                    placeholder="Masukkan token akses" required autocomplete="new-password">
-                            <button type="button" class="toggle-password" tabindex="-1">
+                            <button type="button" class="toggle-password" tabindex="-1" title="Show Password" aria-label="Show Password">
                                 <i class="fas fa-eye"></i>
                             </button>
                         </div>
