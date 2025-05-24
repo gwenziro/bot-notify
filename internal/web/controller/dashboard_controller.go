@@ -30,10 +30,11 @@ func (c *DashboardController) DashboardPage(ctx *fiber.Ctx) error {
 	// Dapatkan status koneksi
 	connectionState := c.whatsApp.GetConnectionState()
 
-	// Render dashboard dengan data
+	// Render layout dashboard dengan data
 	return ctx.Render("dashboard/index", fiber.Map{
 		"Title":       "Dashboard",
 		"Description": "Ringkasan sistem dan status WhatsApp Bot Notify.",
+		"ActivePage":  "dashboard", // Untuk highlight menu aktif di sidebar
 		"Connection": fiber.Map{
 			"Status":      string(connectionState.Status),
 			"IsConnected": connectionState.IsConnected,
@@ -44,5 +45,5 @@ func (c *DashboardController) DashboardPage(ctx *fiber.Ctx) error {
 			"Version": "1.0.0",
 			"Uptime":  "Loading...",
 		},
-	})
+	}, "layouts/dashboard")
 }

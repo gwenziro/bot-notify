@@ -30,9 +30,11 @@ func (c *SettingsController) SettingsPage(ctx *fiber.Ctx) error {
 	// Mendapatkan informasi untuk ditampilkan di halaman pengaturan
 	connectionInfo := c.whatsApp.GetConnectionInfo()
 
-	// Data untuk tampilan
-	viewData := fiber.Map{
+	// Render dengan layout dashboard
+	return ctx.Render("dashboard/settings", fiber.Map{
 		"Title":          "Pengaturan - WhatsApp Bot Notify",
+		"Description":    "Konfigurasi sistem Bot Notify.",
+		"ActivePage":     "settings", // Untuk highlight menu aktif di sidebar
 		"ConnectionInfo": connectionInfo,
 		"Config": fiber.Map{
 			"ServerHost":      c.config.Server.Host,
@@ -44,7 +46,6 @@ func (c *SettingsController) SettingsPage(ctx *fiber.Ctx) error {
 			"TokenExpiry":     c.config.Auth.TokenExpiry.Hours(),
 			"LoggingLevel":    c.config.Logging.Level,
 			"LoggingMaxSize":  c.config.Logging.MaxSize,
-			"LoggingMaxAge":   c.config.Logging.MaxAge,
 			"StorageType":     c.config.Storage.Type,
 			"StorageInMemory": c.config.Storage.InMemory,
 		},
@@ -55,10 +56,7 @@ func (c *SettingsController) SettingsPage(ctx *fiber.Ctx) error {
 			"StoragePath": c.config.Storage.Path,
 			"LogFile":     c.config.Logging.File,
 		},
-	}
-
-	// Render halaman
-	return ctx.Render("dashboard/settings", viewData)
+	}, "layouts/dashboard")
 }
 
 // UpdateSettings menerima pembaruan pengaturan dari form

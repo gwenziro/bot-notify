@@ -33,10 +33,11 @@ func (c *StatusController) StatusPage(ctx *fiber.Ctx) error {
 	return ctx.Render("dashboard/status", fiber.Map{
 		"Title":        "Status Koneksi",
 		"Description":  "Halaman untuk memantau status koneksi WhatsApp.",
+		"ActivePage":   "status", // Untuk highlight menu aktif di sidebar
 		"Status":       string(connectionState.Status),
 		"IsConnected":  connectionState.IsConnected,
 		"LastActivity": connectionState.LastActivity,
 		"Retries":      connectionState.ConnectionRetries,
 		"DeviceInfo":   c.whatsApp.GetDeviceInfo(),
-	})
+	}, "layouts/dashboard")
 }

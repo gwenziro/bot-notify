@@ -31,15 +31,13 @@ func (c *LogsController) LogsPage(ctx *fiber.Ctx) error {
 	// Log akses ke halaman logs
 	c.logger.Info("Mengakses halaman logs")
 
-	// Siapkan data untuk view
-	viewData := fiber.Map{
-		"Title":      "Log Sistem",
-		"ActivePage": "logs",
-		"User":       ctx.Locals("user"),
-	}
-
-	// Perubahan di sini: gunakan nama template secara langsung, tanpa layout
-	return ctx.Render("dashboard/logs", viewData)
+	// Render dengan layout dashboard
+	return ctx.Render("dashboard/logs", fiber.Map{
+		"Title":       "Log Sistem",
+		"Description": "Monitoring dan ekspor log sistem Bot Notify.",
+		"ActivePage":  "logs", // Untuk highlight menu aktif di sidebar
+		"User":        ctx.Locals("user"),
+	}, "layouts/dashboard")
 }
 
 // GetServerSideData digunakan untuk mendapatkan data logs untuk server-side rendering

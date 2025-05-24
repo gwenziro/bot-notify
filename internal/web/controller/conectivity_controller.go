@@ -50,9 +50,11 @@ func (c *ConnectivityController) ConnectivityPage(ctx *fiber.Ctx) error {
 		}
 	}
 
+	// Render dengan layout dashboard
 	return ctx.Render("dashboard/connectivity", fiber.Map{
 		"Title":            "Konektivitas WhatsApp",
 		"Description":      "Halaman untuk menghubungkan WhatsApp Bot Notify.",
+		"ActivePage":       "connectivity", // Untuk highlight menu aktif di sidebar
 		"IsConnected":      connected,
 		"QRCodeImage":      qrImage,
 		"QRCodeTime":       qrTimestamp,
@@ -60,5 +62,5 @@ func (c *ConnectivityController) ConnectivityPage(ctx *fiber.Ctx) error {
 		"RefreshInterval":  30, // Refresh setiap 30 detik
 		"QRCodeEndpoint":   "/api/qr/image",
 		"QRStatusEndpoint": "/api/qr/status",
-	})
+	}, "layouts/dashboard" /* Gunakan layout dashboard */)
 }
