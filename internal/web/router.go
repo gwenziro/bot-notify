@@ -8,7 +8,7 @@ import (
 // RegisterRoutes mendaftarkan semua rute web ke Fiber app
 func (h *WebHandler) RegisterRoutes(app *fiber.App) {
 	// Initialize auth middleware
-	authMiddleware := middleware.NewAuthMiddleware(h.config, h.sessionStore, h.storage)
+	authMiddleware := middleware.NewAuthMiddleware(h.config, h.sessionStore)
 
 	// Serve static files
 	app.Static("/static", h.staticPath)
