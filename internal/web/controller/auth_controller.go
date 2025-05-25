@@ -200,8 +200,25 @@ func (c *AuthController) ProcessLogin(ctx *fiber.Ctx) error {
 		"remember_me": rememberMe,
 	})
 
-	// Redirect ke halaman yang diminta
-	return ctx.Redirect(redirect)
+	// Tambahkan script untuk set token di localStorage untuk API calls
+	redirectHTML := fmt.Sprintf(`
+	<!DOCTYPE html>
+	<html>
+	<head><title>Redirecting...</title></head>
+	<body>
+		<script>
+			// Set token for API calls
+			localStorage.setItem('access_token', '%s');
+			sessionStorage.setItem('authenticated', 'true');
+			// Redirect to requested page
+			window.location.href = '%s';
+		</script>
+	</body>
+	</html>
+	`, token, redirect)
+
+	ctx.Set("Content-Type", "text/html")
+	return ctx.SendString(redirectHTML)
 }
 
 // Logout menangani logout pengguna

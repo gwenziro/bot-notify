@@ -1,5 +1,6 @@
 <aside class="dashboard-sidebar" id="sidebar">
     <div class="glass-panel dark sidebar-content">
+        <!-- Sidebar Header dengan Logo dan Collapse Button -->
         <div class="sidebar-header">
             <div class="app-info">
                 <img src="https://img.icons8.com/3d-fluency/94/bot.png" alt="Bot Notify" class="app-logo">
@@ -13,57 +14,85 @@
             </button>
         </div>
 
+        <!-- Navigation Menu -->
         <nav class="sidebar-nav">
+            <!-- Main Menu Section -->
             <div class="nav-section">
                 <h3 class="nav-section-title">Menu Utama</h3>
                 <ul class="nav-list">
                     <li class="nav-item">
-                        <a href="/dashboard" class="nav-link" data-page="dashboard">
-                            <i class="fas fa-tachometer-alt nav-icon"></i>
+                        <a href="/dashboard" class="nav-link {{if eq .ActivePage "dashboard"}}active{{end}}" data-page="dashboard">
+                            <div class="nav-icon-wrapper">
+                                <i class="fas fa-tachometer-alt nav-icon"></i>
+                            </div>
                             <span class="nav-text">Dashboard</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="/connectivity" class="nav-link" data-page="connectivity">
-                            <i class="fas fa-wifi nav-icon"></i>
+                        <a href="/connectivity" class="nav-link {{if eq .ActivePage "connectivity"}}active{{end}}" data-page="connectivity">
+                            <div class="nav-icon-wrapper">
+                                <i class="fas fa-wifi nav-icon"></i>
+                            </div>
                             <span class="nav-text">Konektivitas</span>
-                            <div class="status-badge" id="connectivity-status"></div>
+                            {{if .WhatsAppConnected}}
+                            <span class="status-badge connected">Terhubung</span>
+                            {{else}}
+                            <span class="status-badge disconnected">Terputus</span>
+                            {{end}}
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="/status" class="nav-link" data-page="status">
-                            <i class="fas fa-info-circle nav-icon"></i>
+                        <a href="/status" class="nav-link {{if eq .ActivePage "status"}}active{{end}}" data-page="status">
+                            <div class="nav-icon-wrapper">
+                                <i class="fas fa-info-circle nav-icon"></i>
+                            </div>
                             <span class="nav-text">Status</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="/logs" class="nav-link" data-page="logs">
-                            <i class="fas fa-clipboard-list nav-icon"></i>
+                        <a href="/logs" class="nav-link {{if eq .ActivePage "logs"}}active{{end}}" data-page="logs">
+                            <div class="nav-icon-wrapper">
+                                <i class="fas fa-clipboard-list nav-icon"></i>
+                            </div>
                             <span class="nav-text">Log Sistem</span>
                         </a>
                     </li>
                 </ul>
             </div>
 
+            <!-- Settings Section -->
             <div class="nav-section">
                 <h3 class="nav-section-title">Pengaturan</h3>
                 <ul class="nav-list">
                     <li class="nav-item">
-                        <a href="/settings" class="nav-link" data-page="settings">
-                            <i class="fas fa-cog nav-icon"></i>
+                        <a href="/settings" class="nav-link {{if eq .ActivePage "settings"}}active{{end}}" data-page="settings">
+                            <div class="nav-icon-wrapper">
+                                <i class="fas fa-cog nav-icon"></i>
+                            </div>
                             <span class="nav-text">Pengaturan</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/docs" class="nav-link {{if eq .ActivePage "docs"}}active{{end}}" data-page="docs">
+                            <div class="nav-icon-wrapper">
+                                <i class="fas fa-book nav-icon"></i>
+                            </div>
+                            <span class="nav-text">Dokumentasi</span>
                         </a>
                     </li>
                 </ul>
             </div>
         </nav>
 
+        <!-- Sidebar Footer with Connection Status -->
         <div class="sidebar-footer">
             <div class="connection-info">
-                <div class="status-indicator" id="sidebar-status-indicator"></div>
+                <div class="status-indicator {{if .WhatsAppConnected}}online{{else}}offline{{end}}" id="sidebar-status-indicator"></div>
                 <div class="connection-details">
                     <span id="sidebar-connection-text">WhatsApp</span>
-                    <span id="sidebar-connection-status">Terhubung</span>
+                    <span id="sidebar-connection-status" class="{{if .WhatsAppConnected}}text-success{{else}}text-danger{{end}}">
+                        {{if .WhatsAppConnected}}Terhubung{{else}}Terputus{{end}}
+                    </span>
                 </div>
             </div>
             <a href="/logout" class="btn-logout" title="Logout">

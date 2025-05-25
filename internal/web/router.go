@@ -19,9 +19,6 @@ func (h *WebHandler) RegisterRoutes(app *fiber.App) {
 	app.Post("/auth/login", h.authController.ProcessLogin)
 	app.Get("/logout", h.authController.Logout)
 
-	// Public WhatsApp status routes
-	app.Get("/status", h.statusController.StatusPage)
-
 	// Protected routes - Dashboard
 	dashboard := app.Group("/dashboard")
 	dashboard.Use(authMiddleware.RequireAuth())
@@ -31,6 +28,11 @@ func (h *WebHandler) RegisterRoutes(app *fiber.App) {
 	connectivity := app.Group("/connectivity")
 	connectivity.Use(authMiddleware.RequireAuth())
 	connectivity.Get("/", h.connectivityController.ConnectivityPage)
+
+	// Protected routes - Status
+	status := app.Group("/status")
+	status.Use(authMiddleware.RequireAuth())
+	status.Get("/", h.statusController.StatusPage)
 
 	// Protected routes - Logs
 	logs := app.Group("/logs")

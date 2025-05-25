@@ -1,82 +1,94 @@
 /**
  * Footer Component JavaScript
- * Handles footer functionality including server time and status updates
+ * Menangani fitur seperti server time dan uptime display
  */
 
-class FooterComponent {
-    constructor() {
-        // Elements
-        this.footerElement = document.querySelector('.dashboard-footer');
-        this.serverTimeElement = document.getElementById('server-time');
-        this.serverStatusElement = document.getElementById('server-status');
-        
-        // Initialize component
-        this.init();
-    }
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize server time
+    updateServerTime();
     
-    init() {
-        // Start the clock
-        this.startClock();
-        
-        // Initial server status check
-        this.checkServerStatus();
-        
-        // Setup interval for status checks
-        setInterval(() => this.checkServerStatus(), 30000); // Check every 30 seconds
-    }
+    // Start server time updater
+    setInterval(updateServerTime, 1000);
     
-    startClock() {
-        if (!this.serverTimeElement) return;
-        
-        const updateClock = () => {
-            const now = new Date();
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            const seconds = String(now.getSeconds()).padStart(2, '0');
-            
-            this.serverTimeElement.textContent = `${hours}:${minutes}:${seconds}`;
-        };
-        
-        // Update immediately
-        updateClock();
-        
-        // Then update every second
-        setInterval(updateClock, 1000);
-    }
+    // Initialize system uptime
+    updateSystemUptime();
     
-    checkServerStatus() {
-        if (!this.serverStatusElement) return;
-        
-        // In a real application, you would fetch the status from the server
-        // For demonstration, we'll simulate with a random status (95% chance of being online)
-        const online = Math.random() > 0.05;
-        
-        this.updateServerStatus(online ? 'online' : 'offline');
-    }
-    
-    updateServerStatus(status) {
-        if (!this.serverStatusElement) return;
-        
-        // Remove existing status classes
-        this.serverStatusElement.className = 'status-text';
-        
-        // Add appropriate class and text
-        if (status === 'online') {
-            this.serverStatusElement.classList.add('online');
-            this.serverStatusElement.textContent = 'Server: Online';
-        } else {
-            this.serverStatusElement.classList.add('offline');
-            this.serverStatusElement.textContent = 'Server: Offline';
-        }
-    }
-    
-    // Method to manually update server status from outside
-    setServerStatus(status) {
-        this.updateServerStatus(status);
-    }
+    // Start system uptime updater
+    setInterval(updateSystemUptime, 1000);
+});
+
+// Global variables to track uptime
+let startTime = sessionStorage.getItem('systemStartTime') ? 
+    new Date(sessionStorage.getItem('systemStartTime')) : new Date();
+
+// Initialize start time if not already set
+if (!sessionStorage.getItem('systemStartTime')) {
+    sessionStorage.setItem('systemStartTime', startTime.toISOString());
 }
 
-// Initialize on DOM load
-document.addEventListener('DOMContentLoaded', () => {
-    window.footerComponent = new FooterComponent();
-});
+/**
+ * Update server time display in footer
+ */
+function updateServerTime() {
+    const serverTimeElement = document.getElementById('server-time');
+    if (!serverTimeElement) return;
+    
+    const now = new Date();
+    const formattedTime = formatTime(now);
+    
+    serverTimeElement.textContent = formattedTime;
+}
+
+/**
+ * Update system uptime display in footer
+ */
+function updateSystemUptime() {
+    const uptimeElement = document.getElementById('system-uptime');
+    if (!uptimeElement) return;
+    
+    const uptime = getUptime();
+    uptimeElement.textContent = `Uptime: ${uptime}`;
+}
+
+/**
+ * Format date as time string (HH:MM:SS)
+ */
+function formatTime(date) {
+    return date.toLocaleTimeString('id-ID', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+    });
+}
+
+/**
+ * Calculate and format uptime
+ */
+function getUptime() {
+    const now = new Date();
+    const diff = now - startTime;
+    
+    // Convert to seconds
+    let seconds = Math.floor(diff / 1000);
+    
+    // Calculate hours, minutes, and remaining seconds
+    const hours = Math.floor(seconds / 3600);
+    seconds %= 3600;
+    const minutes = Math.floor(seconds / 60);
+    seconds %= 60;
+    
+    // Format with leading zeros
+    const formattedHours = String(hours).padStart(2, '0');
+    const formattedMinutes = String(minutes).padStart(2, '0');
+    const formattedSeconds = String(seconds).padStart(2, '0');
+    
+    return `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
+}
+
+/**
+ * Format date as ISO string
+ */
+function formatISODate(date) {
+    return date.toISOString().slice(0, 19).replace('T', ' ');
+}

@@ -2,6 +2,8 @@ package server
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -72,7 +74,7 @@ func NewServer(opts ServerOptions) (*Server, error) {
 
 		// Konfigurasi engine agar bekerja dengan layout
 		engine.AddFunc("yield", func() string {
-			return "{{content}}"
+			return "{{embed}}"
 		})
 
 		engine.AddFunc("formatDate", func(t time.Time) string {
@@ -82,6 +84,29 @@ func NewServer(opts ServerOptions) (*Server, error) {
 		// Tambahkan fungsi currentYear untuk penggunaan di template
 		engine.AddFunc("currentYear", func() string {
 			return time.Now().Format("2006")
+		})
+
+		engine.AddFunc("json", func(v interface{}) (string, error) {
+			b, err := json.Marshal(v)
+			if err != nil {
+				return "", err
+			}
+			return string(b), nil
+		})
+
+		engine.AddFunc("dict", func(values ...interface{}) (map[string]interface{}, error) {
+			if len(values)%2 != 0 {
+				return nil, fmt.Errorf("dict requires an even number of arguments")
+			}
+			dict := make(map[string]interface{}, len(values)/2)
+			for i := 0; i < len(values); i += 2 {
+				key, ok := values[i].(string)
+				if !ok {
+					return nil, fmt.Errorf("dict keys must be strings")
+				}
+				dict[key] = values[i+1]
+			}
+			return dict, nil
 		})
 
 		// Reload templates untuk development

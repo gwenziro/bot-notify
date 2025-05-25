@@ -1,68 +1,79 @@
 <header class="dashboard-header">
     <div class="glass-panel dark">
         <div class="header-content">
+            <!-- Left Section with Toggle and Title -->
             <div class="header-left">
                 <button id="sidebar-toggle" class="btn-icon sidebar-toggle" aria-label="Toggle Sidebar">
                     <i class="fas fa-bars"></i>
                 </button>
-                <div class="brand">
-                    <img src="https://img.icons8.com/3d-fluency/94/bot.png" alt="Bot Notify" class="brand-logo">
-                    <h1 class="brand-name">Bot Notify</h1>
+                <div class="page-title-area">
+                    <h1 class="page-title">{{.Title}}</h1>
+                    <nav class="breadcrumb" aria-label="breadcrumb">
+                        <ol class="breadcrumb-list">
+                            <li class="breadcrumb-item"><a href="/dashboard">Home</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">{{.Title}}</li>
+                        </ol>
+                    </nav>
                 </div>
             </div>
             
-            <div class="header-center">
-                <div class="search-input-group">
-                    <i class="fas fa-search search-icon"></i>
-                    <input type="text" placeholder="Cari menu atau fitur..." class="search-input" id="header-search">
-                    <button class="search-clear" id="clear-search" title="Clear search" aria-label="Clear search">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-            </div>
-            
+            <!-- Right Section with Status and Actions -->
             <div class="header-right">
+                <!-- WhatsApp Connection Status Indicator -->
                 <div class="connection-status">
-                    <span class="status-indicator" id="whatsapp-status-indicator"></span>
-                    <span class="status-text" id="whatsapp-status-text">Menghubungkan...</span>
+                    <span class="status-indicator {{if .IsConnected}}online{{else}}offline{{end}}" id="whatsapp-status-indicator"></span>
+                    <span class="status-text" id="whatsapp-status-text">
+                        {{if .IsConnected}}Terhubung{{else}}Terputus{{end}}
+                    </span>
                 </div>
                 
                 <div class="header-actions">
+                    <!-- Refresh Button -->
                     <button class="btn-icon" id="refresh-btn" title="Refresh" aria-label="Refresh">
                         <i class="fas fa-sync-alt"></i>
                     </button>
                     
+                    <!-- Notifications Dropdown -->
                     <div class="dropdown notification-dropdown">
                         <button class="btn-icon" id="notifications-btn" title="Notifikasi" aria-label="Notifications">
                             <i class="fas fa-bell"></i>
                             <span class="badge" id="notifications-count">0</span>
                         </button>
-                        <div class="dropdown-menu" id="notifications-menu">
+                        <div class="dropdown-menu dropdown-menu-right" id="notifications-menu">
                             <div class="dropdown-header">
                                 <span>Notifikasi</span>
-                                <button class="btn-clear" id="clear-notifications">Clear All</button>
+                                <button class="btn-clear" id="clear-notifications">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
                             </div>
-                            <div class="dropdown-body" id="notifications-list">
+                            <div class="dropdown-body custom-scrollbar" id="notifications-list">
                                 <div class="empty-state">
                                     <i class="fas fa-bell-slash"></i>
                                     <p>Tidak ada notifikasi baru</p>
                                 </div>
                             </div>
+                            <div class="dropdown-footer">
+                                <a href="/notifications" class="dropdown-link">Lihat Semua</a>
+                            </div>
                         </div>
                     </div>
                     
+                    <!-- User Profile Dropdown -->
                     <div class="dropdown user-dropdown">
-                        <button class="user-profile" aria-label="User menu">
+                        <button class="user-profile" id="user-dropdown-toggle" aria-label="User menu">
                             <img src="https://img.icons8.com/color/48/null/administrator-male--v1.png" alt="User" class="avatar">
                             <span class="username">Admin</span>
                             <i class="fas fa-chevron-down"></i>
                         </button>
-                        <div class="dropdown-menu">
+                        <div class="dropdown-menu dropdown-menu-right" id="user-dropdown-menu">
+                            <a href="/settings/profile" class="dropdown-item">
+                                <i class="fas fa-user"></i> Profil
+                            </a>
                             <a href="/settings" class="dropdown-item">
                                 <i class="fas fa-cog"></i> Pengaturan
                             </a>
                             <div class="dropdown-divider"></div>
-                            <a href="/logout" class="dropdown-item">
+                            <a href="/logout" class="dropdown-item text-danger">
                                 <i class="fas fa-sign-out-alt"></i> Keluar
                             </a>
                         </div>
