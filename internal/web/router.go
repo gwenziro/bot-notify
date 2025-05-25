@@ -24,25 +24,8 @@ func (h *WebHandler) RegisterRoutes(app *fiber.App) {
 	dashboard.Use(authMiddleware.RequireAuth())
 	dashboard.Get("/", h.dashboardController.DashboardPage)
 
-	// Protected routes - Connectivity
-	connectivity := app.Group("/connectivity")
-	connectivity.Use(authMiddleware.RequireAuth())
-	connectivity.Get("/", h.connectivityController.ConnectivityPage)
-
-	// Protected routes - Status
-	status := app.Group("/status")
-	status.Use(authMiddleware.RequireAuth())
-	status.Get("/", h.statusController.StatusPage)
-
-	// Protected routes - Logs
-	logs := app.Group("/logs")
-	logs.Use(authMiddleware.RequireAuth())
-	logs.Get("/", h.logsController.LogsPage)
-
-	// Protected routes - Settings
-	settings := app.Group("/settings")
-	settings.Use(authMiddleware.RequireAuth())
-	settings.Get("/", h.settingsController.SettingsPage)
-	settings.Post("/update", h.settingsController.UpdateSettings)
-	settings.Post("/token/update", h.settingsController.UpdateToken)
+	// Documentation route - juga dilindungi auth
+	docs := app.Group("/docs")
+	docs.Use(authMiddleware.RequireAuth())
+	docs.Get("/", h.docController.DocumentationPage)
 }

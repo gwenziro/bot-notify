@@ -1,0 +1,167 @@
+/* ===== VARIABLES ===== */
+:root {
+  /* Colors */
+  --primary: #0a939f;
+  --primary-light: #37b6c1;
+  --primary-dark: #06717a;
+  --primary-glow: rgba(10, 147, 159, 0.5);
+
+  --secondary: #112b3f;
+  --secondary-light: #234064;
+  --secondary-dark: #07172b;
+  --secondary-glow: rgba(17, 43, 63, 0.5);
+
+  --bg-primary: #0a1522;
+  --bg-secondary: #112233;
+
+  --success: #0ecc8d;
+  --success-light: #3ddfa4;
+  --success-dark: #0aa876;
+
+  --danger: #e53e3e;
+  --danger-light: #f56565;
+  --danger-dark: #c53030;
+
+  --warning: #f6ad55;
+  --warning-light: #fbc47d;
+  --warning-dark: #e59229;
+
+  --info: #3182ce;
+  --info-light: #4299e1;
+  --info-dark: #2b6cb0;
+
+  --bg-dark: #0a1522;
+  --bg-light: #1a202c;
+
+  --text-primary: rgba(255, 255, 255, 0.95);
+  --text-secondary: rgba(255, 255, 255, 0.7);
+  --text-muted: rgba(255, 255, 255, 0.45);
+
+  /* Glass Effect */
+  --glass-bg: rgba(26, 45, 66, 0.65);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-highlight: rgba(255, 255, 255, 0.06);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+
+  /* Spacing */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 2.5rem;
+  --space-8: 3rem;
+  --space-9: 3.5rem;
+  --space-10: 4rem;
+  --space-12: 4.5rem;
+  --space-16: 5rem;
+  --space-20: 6rem;
+  --space-24: 8rem;
+  --space-32: 10rem;
+
+  /* Border Radius */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-full: 9999px;
+
+  /* Transitions */
+  --transition-fast: 0.15s;
+  --transition-normal: 0.3s;
+  --transition-slow: 0.5s;
+
+  /* Containers */
+  --container-sm: 640px;
+  --container-md: 768px;
+  --container-lg: 1024px;
+  --container-xl: 1280px;
+
+  /* Typography */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
+  --font-mono: "Fira Code", monospace;
+}
+
+/* ===== BASE & RESET ===== */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Remove default margin */
+body,
+h1,
+h2,
+h3,
+h4,
+p,
+figure,
+blockquote,
+dl,
+dd {
+  margin: 0;
+}
+
+/* Set core root defaults */
+html:focus-within {
+  scroll-behavior: smooth;
+}
+
+
+html,
+body {
+  height: 100%;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  display: flex;
+  text-rendering: optimizeSpeed;
+  flex-direction: column;
+  background-color: #0a1522;
+  color: rgba(255, 255, 255, 0.95);
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Gradient Background */
+.gradient-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -3;
+  background: radial-gradient(
+      circle at top right,
+      #112d3e,
+      var(--bg-primary) 70%
+    ),
+    radial-gradient(circle at bottom left, #0e3c5a, transparent 60%);
+}
+
+/* Subtle Grid Overlay */
+.grid-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -2;
+  background-image: linear-gradient(
+      to right,
+      rgba(255, 255, 255, 0.015) 1px,
+      transparent 1px
+    ),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+  background-size: 40px 40px;
+}

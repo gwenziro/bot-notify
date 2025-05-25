@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -58,24 +59,12 @@ func NewServer(opts ServerOptions) (*Server, error) {
 			return nil, err
 		}
 
-		// Pastikan direktori layouts ada
-		layoutDir := filepath.Join(opts.ViewsPath, "layouts")
-		if err := utils.EnsureDirectoryExists(layoutDir); err != nil {
-			return nil, err
-		}
-
 		// Setup template engine dengan debug info
 		utils.Info("Mengonfigurasi template engine", utils.Fields{
-			"views_path":  opts.ViewsPath,
-			"layouts_dir": layoutDir,
+			"views_path": opts.ViewsPath,
 		})
 
 		engine := html.New(opts.ViewsPath, ".html")
-
-		// Konfigurasi engine agar bekerja dengan layout
-		engine.AddFunc("yield", func() string {
-			return "{{embed}}"
-		})
 
 		engine.AddFunc("formatDate", func(t time.Time) string {
 			return t.Format("02 Jan 2006 15:04:05")
@@ -108,6 +97,9 @@ func NewServer(opts ServerOptions) (*Server, error) {
 			}
 			return dict, nil
 		})
+
+		// Tambahkan fungsi map untuk template
+		engine.AddFunc("lower", strings.ToLower)
 
 		// Reload templates untuk development
 		engine.Reload(true)

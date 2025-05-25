@@ -1,27 +1,31 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{.Title}} - Bot Notify</title>
-    <link rel="stylesheet" href="/static/css/pages/_login.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/login.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
     <link rel="icon" type="image/png" sizes="48x48" href="https://img.icons8.com/fluency/48/message-bot.png">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap"
+        rel="stylesheet">
 </head>
+
 <body class="login-body">
     <!-- Gradient Background -->
-    <div class="gradient-bg"></div>
-    
+    <div class="dark-theme-container gradient-bg"></div>
+
     <!-- Subtle Grid Overlay -->
     <div class="grid-overlay"></div>
-    
+
     <!-- Back to Home Link -->
     <a href="/" class="back-to-home">
         <i class="fas fa-arrow-left"></i>
         <span>Kembali ke Beranda</span>
     </a>
-    
+
     <div class="login-container">
         <div class="login-card">
             <!-- Header bagian atas dengan logo -->
@@ -29,7 +33,7 @@
                 <img src="https://img.icons8.com/3d-fluency/94/bot.png" alt="Bot Notify" class="login-logo">
                 <h1 class="login-title">Bot Notify</h1>
             </div>
-            
+
             <!-- Content berisi form login -->
             <div class="login-content">
                 <h2>Login ke Dashboard</h2>
@@ -41,22 +45,23 @@
                     {{.Error}}
                 </div>
                 {{end}}
-                
+
                 <form action="/auth/login" method="POST" class="login-form">
                     <input type="hidden" name="redirect" value="{{.RedirectTo}}">
                     <input type="hidden" name="csrf_token" value="{{.CsrfToken}}">
-                    
+
                     <div class="form-group">
-                        <label for="token">Akses Token</label>
+                        <label for="token">Token Akses</label>
                         <div class="token-input-group">
-                            <input type="password" id="token" name="token" class="form-control" 
-                                   placeholder="Masukkan token akses" required autocomplete="new-password">
-                            <button type="button" class="toggle-password" tabindex="-1" title="Show Password" aria-label="Show Password">
+                            <input type="password" id="token" name="token" class="form-control"
+                                placeholder="Masukkan token akses" required autocomplete="new-password">
+                            <button type="button" class="toggle-password" tabindex="-1" title="Show Password"
+                                aria-label="Show Password">
                                 <i class="fas fa-eye"></i>
                             </button>
                         </div>
                     </div>
-                    
+
                     <div class="remember-me">
                         <label class="checkbox-container">
                             <input type="checkbox" name="remember_me" id="remember_me">
@@ -64,7 +69,7 @@
                             Ingat saya selama 30 hari
                         </label>
                     </div>
-                    
+
                     <div class="form-actions">
                         <button type="submit" class="btn btn-primary btn-block login-btn">
                             <i class="fas fa-sign-in-alt"></i> Login
@@ -72,47 +77,16 @@
                     </div>
                 </form>
             </div>
-            
+
             <!-- Footer bagian bawah card -->
             <div class="login-footer">
-                <p>&copy; {{.CurrentYear}} Bot Notify</p>
+                <p>&copy; {{currentYear}} Bot Notify</p>
             </div>
         </div>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Toggle password visibility
-            const toggleBtn = document.querySelector('.toggle-password');
-            if (toggleBtn) {
-                toggleBtn.addEventListener('click', function() {
-                    const input = document.getElementById('token');
-                    const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
-                    input.setAttribute('type', type);
-                    
-                    // Update icon
-                    const icon = this.querySelector('i');
-                    if (type === 'text') {
-                        icon.className = 'fas fa-eye-slash';
-                    } else {
-                        icon.className = 'fas fa-eye';
-                    }
-                });
-            }
-            
-            // Animate login card appearance
-            const loginCard = document.querySelector('.login-card');
-            if (loginCard) {
-                loginCard.style.opacity = '0';
-                loginCard.style.transform = 'translateY(20px)';
-                
-                setTimeout(() => {
-                    loginCard.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
-                    loginCard.style.opacity = '1';
-                    loginCard.style.transform = 'translateY(0)';
-                }, 200);
-            }
-        });
-    </script>
+    <!-- Gunakan file JS eksternal untuk login page -->
+    <script src="/static/js/login.js"></script>
 </body>
+
 </html>

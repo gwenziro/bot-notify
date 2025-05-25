@@ -85,7 +85,7 @@ func (c *AuthController) LoginPage(ctx *fiber.Ctx) error {
 	})
 
 	// Render halaman login
-	return ctx.Render("auth/login", fiber.Map{
+	return ctx.Render("login", fiber.Map{
 		"Title":       "Login - WhatsApp Bot Notify",
 		"RedirectTo":  redirect,
 		"Error":       errorText,

@@ -18,7 +18,6 @@ type APIHandler struct {
 	msgHandler    *handler.MessageHandler
 	groupHandler  *handler.GroupHandler
 	qrHandler     *handler.QRCodeHandler
-	logsHandler   *handler.LogsHandler
 	authMw        fiber.Handler
 	config        *config.Config
 	whatsApp      *client.Client
@@ -39,7 +38,6 @@ func NewAPIHandler(cfg *config.Config, whatsClient *client.Client, sessionStore 
 	msgHandler := handler.NewMessageHandler(whatsClient)
 	groupHandler := handler.NewGroupHandler(whatsClient)
 	qrHandler := handler.NewQRCodeHandler(whatsClient)
-	// logsHandler := handler.NewLogsHandler(logService, utils.ForModule("api-logs"))
 
 	return &APIHandler{
 		statusHandler: statusHandler,
@@ -47,11 +45,10 @@ func NewAPIHandler(cfg *config.Config, whatsClient *client.Client, sessionStore 
 		msgHandler:    msgHandler,
 		groupHandler:  groupHandler,
 		qrHandler:     qrHandler,
-		// logsHandler:   logsHandler,
-		authMw:       apiAuthMw.RequireAuth(),
-		config:       cfg,
-		whatsApp:     whatsClient,
-		sessionStore: sessionStore,
-		logger:       logger,
+		authMw:        apiAuthMw.RequireAuth(),
+		config:        cfg,
+		whatsApp:      whatsClient,
+		sessionStore:  sessionStore,
+		logger:        logger,
 	}
 }

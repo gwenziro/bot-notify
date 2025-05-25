@@ -5,7 +5,6 @@ import (
 
 	"github.com/gofiber/fiber/v2/middleware/session"
 	"github.com/gwenziro/bot-notify/internal/config"
-	"github.com/gwenziro/bot-notify/internal/service/log"
 	"github.com/gwenziro/bot-notify/internal/service/whatsapp/client"
 	"github.com/gwenziro/bot-notify/internal/utils"
 	"github.com/gwenziro/bot-notify/internal/web/controller"
@@ -21,13 +20,10 @@ type WebHandler struct {
 	sessionStore *session.Store
 
 	// Controller untuk berbagai halaman
-	homeController         *controller.HomeController
-	statusController       *controller.StatusController
-	connectivityController *controller.ConnectivityController
-	dashboardController    *controller.DashboardController
-	settingsController     *controller.SettingsController
-	authController         *controller.AuthController
-	logsController         *controller.LogsController
+	homeController      *controller.HomeController
+	dashboardController *controller.DashboardController
+	authController      *controller.AuthController
+	docController       *controller.DocController
 }
 
 // NewWebHandler membuat instance baru WebHandler
@@ -38,33 +34,23 @@ func NewWebHandler(cfg *config.Config, whatsClient *client.Client, sessionStore 
 
 	logger := utils.ForModule("web")
 
-	// Buat instance LogService
-	// Catatan: Dalam produksi, ini sebaiknya diinjeksi dari luar
-	logService := log.NewLogService(nil, utils.ForModule("log-service"))
-
 	// Inisialisasi controller
 	homeController := controller.NewHomeController(cfg, whatsClient, logger)
-	statusController := controller.NewStatusController(cfg, whatsClient, logger)
-	connectivityController := controller.NewConnectivityController(cfg, whatsClient, logger)
 	dashboardController := controller.NewDashboardController(cfg, whatsClient, logger)
-	settingsController := controller.NewSettingsController(cfg, whatsClient, logger)
 	authController := controller.NewAuthController(cfg, whatsClient, sessionStore, logger)
-	logsController := controller.NewLogsController(cfg, whatsClient, logService, logger)
+	docController := controller.NewDocController(cfg, whatsClient, logger)
 
 	return &WebHandler{
-		config:                 cfg,
-		whatsApp:               whatsClient,
-		logger:                 logger,
-		viewsPath:              viewsPath,
-		staticPath:             staticPath,
-		sessionStore:           sessionStore,
-		homeController:         homeController,
-		statusController:       statusController,
-		connectivityController: connectivityController,
-		dashboardController:    dashboardController,
-		settingsController:     settingsController,
-		authController:         authController,
-		logsController:         logsController,
+		config:              cfg,
+		whatsApp:            whatsClient,
+		logger:              logger,
+		viewsPath:           viewsPath,
+		staticPath:          staticPath,
+		sessionStore:        sessionStore,
+		homeController:      homeController,
+		dashboardController: dashboardController,
+		authController:      authController,
+		docController:       docController,
 	}
 }
 
