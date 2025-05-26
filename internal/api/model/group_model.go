@@ -1,11 +1,21 @@
 package model
 
+// GroupParticipantInfo berisi informasi tentang anggota grup
+type GroupParticipantInfo struct {
+	JID          string `json:"jid"`
+	PhoneNumber  string `json:"phoneNumber,omitempty"`
+	IsAdmin      bool   `json:"isAdmin"`
+	IsSuperAdmin bool   `json:"isSuperAdmin,omitempty"`
+	DisplayName  string `json:"displayName,omitempty"`
+}
+
 // GroupInfo berisi informasi dasar tentang grup WhatsApp
 type GroupInfo struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	MemberCount int    `json:"memberCount,omitempty"`
-	IsAdmin     bool   `json:"isAdmin"` // Hapus omitempty agar selalu muncul
+	ID           string                 `json:"id"`
+	Name         string                 `json:"name"`
+	MemberCount  int                    `json:"memberCount"`
+	IsAdmin      bool                   `json:"isAdmin"`
+	Participants []GroupParticipantInfo `json:"participants"`
 }
 
 // GroupListResponse untuk hasil query daftar grup

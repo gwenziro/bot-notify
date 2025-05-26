@@ -30,7 +30,7 @@ func (h *ProfileHandler) GetProfile(c *fiber.Ctx) error {
 			model.NewProfileErrorResponse("WhatsApp tidak terhubung"))
 	}
 
-	// Dapatkan informasi perangkat/akun lengkap
+	// Dapatkan informasi perangkat/akun
 	deviceInfo := h.whatsApp.GetDeviceInfo()
 
 	// Format respons
