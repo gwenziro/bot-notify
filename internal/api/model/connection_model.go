@@ -4,14 +4,14 @@ import "time"
 
 // ReconnectRequest untuk request menghubungkan kembali WhatsApp
 type ReconnectRequest struct {
-	Force bool `json:"force"` // Opsional: force reconnect meskipun sudah terhubung
+	Force bool `json:"force"`
 }
 
 // ConnectionResponse adalah respons dasar untuk operasi koneksi
 type ConnectionResponse struct {
-	Success   bool      `json:"sukses"`
-	Message   string    `json:"pesan"`
-	Timestamp time.Time `json:"waktu"`
+	Success   bool      `json:"success"`
+	Message   string    `json:"message"`
+	Timestamp time.Time `json:"timestamp"`
 	Status    string    `json:"status,omitempty"`
 }
 

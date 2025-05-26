@@ -32,11 +32,8 @@ func (h *ConnectionHandler) Reconnect(c *fiber.Ctx) error {
 	err := h.whatsApp.Connect()
 	if err != nil {
 		h.logger.WithError(err).Error("Gagal menghubungkan ulang WhatsApp")
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"sukses": false,
-			"pesan":  "Gagal menghubungkan WhatsApp: " + err.Error(),
-			"waktu":  utils.FormatTime(nil),
-		})
+		return c.Status(fiber.StatusInternalServerError).JSON(
+			model.NewConnectionResponse(false, "Gagal menghubungkan WhatsApp: "+err.Error(), "error"))
 	}
 
 	h.logger.Info("Permintaan menghubungkan ulang WhatsApp berhasil diproses")
@@ -56,11 +53,8 @@ func (h *ConnectionHandler) Disconnect(c *fiber.Ctx) error {
 	err := h.whatsApp.SessionManager.ClearSessions()
 	if err != nil {
 		h.logger.WithError(err).Error("Gagal menghapus sesi WhatsApp")
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"sukses": false,
-			"pesan":  "Koneksi diputus tetapi gagal menghapus sesi: " + err.Error(),
-			"waktu":  utils.FormatTime(nil),
-		})
+		return c.Status(fiber.StatusInternalServerError).JSON(
+			model.NewConnectionResponse(false, "Koneksi diputus tetapi gagal menghapus sesi: "+err.Error(), "error"))
 	}
 
 	h.logger.Info("WhatsApp berhasil diputuskan melalui API")

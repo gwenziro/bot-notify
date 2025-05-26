@@ -16,11 +16,11 @@ type GroupMessageRequest struct {
 
 // MessageResponse untuk hasil operasi kirim pesan
 type MessageResponse struct {
-	Success   bool      `json:"sukses"`
-	Message   string    `json:"pesan"`
-	Recipient string    `json:"penerima"`
-	Type      string    `json:"tipe"`
-	Timestamp time.Time `json:"waktu"`
+	Success   bool      `json:"success"`
+	Message   string    `json:"message"`
+	Recipient string    `json:"recipient"`
+	Type      string    `json:"type"`
+	Timestamp time.Time `json:"timestamp"`
 }
 
 // NewMessageResponse membuat respons pesan baru
@@ -36,11 +36,11 @@ func NewMessageResponse(message string, recipient string, messageType string) Me
 
 // ErrorMessageResponse untuk respons error
 type ErrorMessageResponse struct {
-	Success   bool      `json:"sukses"`
-	Message   string    `json:"pesan"`
+	Success   bool      `json:"success"`
+	Message   string    `json:"message"`
 	Error     string    `json:"error,omitempty"`
-	Timestamp time.Time `json:"waktu"`
-	Code      int       `json:"kode"`
+	Timestamp time.Time `json:"timestamp"`
+	Code      int       `json:"code"`
 }
 
 // NewErrorMessageResponse membuat respons error

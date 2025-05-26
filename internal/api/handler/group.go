@@ -27,20 +27,32 @@ func (h *GroupHandler) ListGroups(c *fiber.Ctx) error {
 	groups, err := h.whatsApp.GetGroups()
 	if err != nil {
 		h.logger.WithError(err).Error("Gagal mendapatkan daftar grup")
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"sukses": false,
-			"pesan":  "Gagal mendapatkan daftar grup: " + err.Error(),
-		})
+		return c.Status(fiber.StatusInternalServerError).JSON(
+			model.NewGroupListResponse("Gagal mendapatkan daftar grup: "+err.Error(), nil))
 	}
+
+	// Dapatkan JID perangkat kita sendiri untuk membandingkan dengan admin grup
+	selfJID := h.whatsApp.GetSelfID()
 
 	// Konversi ke bentuk yang sesuai untuk respons API
 	result := make([]model.GroupInfo, len(groups))
 	for i, group := range groups {
+		// Periksa apakah perangkat kita adalah admin grup
+		isAdmin := false
+		if selfJID != nil {
+			for _, participant := range group.Participants {
+				if participant.JID.String() == selfJID.String() && participant.IsAdmin {
+					isAdmin = true
+					break
+				}
+			}
+		}
+
 		result[i] = model.GroupInfo{
 			ID:          group.JID.String(),
 			Name:        group.Name,
 			MemberCount: len(group.Participants),
-			// Admin status bisa ditambahkan jika tersedia
+			IsAdmin:     isAdmin,
 		}
 	}
 

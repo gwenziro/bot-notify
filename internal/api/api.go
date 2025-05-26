@@ -13,16 +13,17 @@ import (
 // APIHandler bertanggung jawab untuk mengelola endpoint API
 type APIHandler struct {
 	// Handlers untuk berbagai domain
-	statusHandler *handler.StatusHandler
-	connHandler   *handler.ConnectionHandler
-	msgHandler    *handler.MessageHandler
-	groupHandler  *handler.GroupHandler
-	qrHandler     *handler.QRCodeHandler
-	authMw        fiber.Handler
-	config        *config.Config
-	whatsApp      *client.Client
-	sessionStore  *session.Store
-	logger        utils.LogrusEntry
+	statusHandler  *handler.StatusHandler
+	connHandler    *handler.ConnectionHandler
+	msgHandler     *handler.MessageHandler
+	groupHandler   *handler.GroupHandler
+	qrHandler      *handler.QRCodeHandler
+	authMw         fiber.Handler
+	config         *config.Config
+	whatsApp       *client.Client
+	sessionStore   *session.Store
+	logger         utils.LogrusEntry
+	profileHandler *handler.ProfileHandler
 }
 
 // NewAPIHandler membuat instance baru APIHandler
@@ -49,17 +50,19 @@ func NewAPIHandler(cfg *config.Config, whatsClient *client.Client, sessionStore 
 	msgHandler := handler.NewMessageHandler(whatsClient)
 	groupHandler := handler.NewGroupHandler(whatsClient)
 	qrHandler := handler.NewQRCodeHandler(whatsClient)
+	profileHandler := handler.NewProfileHandler(whatsClient)
 
 	return &APIHandler{
-		statusHandler: statusHandler,
-		connHandler:   connHandler,
-		msgHandler:    msgHandler,
-		groupHandler:  groupHandler,
-		qrHandler:     qrHandler,
-		authMw:        apiAuthMw.RequireAuth(),
-		config:        cfg,
-		whatsApp:      whatsClient,
-		sessionStore:  sessionStore,
-		logger:        logger,
+		statusHandler:  statusHandler,
+		connHandler:    connHandler,
+		msgHandler:     msgHandler,
+		groupHandler:   groupHandler,
+		qrHandler:      qrHandler,
+		authMw:         apiAuthMw.RequireAuth(),
+		config:         cfg,
+		whatsApp:       whatsClient,
+		sessionStore:   sessionStore,
+		logger:         logger,
+		profileHandler: profileHandler,
 	}
 }

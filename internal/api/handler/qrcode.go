@@ -2,6 +2,7 @@ package handler
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/gwenziro/bot-notify/internal/api/model"
 	"github.com/gwenziro/bot-notify/internal/service/whatsapp/client"
 	"github.com/gwenziro/bot-notify/internal/service/whatsapp/session"
 	"github.com/gwenziro/bot-notify/internal/utils"
@@ -30,11 +31,8 @@ func (h *QRCodeHandler) GetStatus(c *fiber.Ctx) error {
 	// Dapatkan QR handler dari session manager
 	qrHandler := h.sessionMgr.GetQRHandler()
 	if qrHandler == nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"sukses":    false,
-			"pesan":     "QR handler tidak tersedia",
-			"available": false,
-		})
+		return c.Status(fiber.StatusInternalServerError).JSON(
+			model.NewQRCodeErrorResponse("QR handler tidak tersedia"))
 	}
 
 	// Dapatkan data QR code
@@ -42,12 +40,7 @@ func (h *QRCodeHandler) GetStatus(c *fiber.Ctx) error {
 	hasQR := data != ""
 	isExpired := qrHandler.IsQRCodeExpired(h.maxAgeMins)
 
-	return c.JSON(fiber.Map{
-		"sukses":    true,
-		"available": hasQR && !isExpired,
-		"expired":   isExpired,
-		"timestamp": timestamp,
-	})
+	return c.JSON(model.NewQRCodeStatusResponse(hasQR && !isExpired, isExpired, timestamp))
 }
 
 // GetImage mengembalikan gambar QR code

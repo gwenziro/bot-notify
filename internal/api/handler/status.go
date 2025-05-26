@@ -27,7 +27,7 @@ func NewStatusHandler(whatsClient *client.Client) *StatusHandler {
 	return &StatusHandler{
 		whatsApp: whatsClient,
 		logger:   logger,
-		version:  "1.0.0", // Versi API
+		version:  "1.0.0",
 	}
 }
 
@@ -62,25 +62,21 @@ func (h *StatusHandler) GetStatus(c *fiber.Ctx) error {
 
 	// Konversi ke model
 	status := model.ConnectionStatus{
-		Status:            string(state.Status),
-		IsConnected:       state.IsConnected,
-		ConnectionRetries: state.ConnectionRetries,
-		LastActivity:      state.LastActivity,
-		Timestamp:         state.Timestamp,
-
-		// Format waktu untuk tampilan yang lebih baik
+		Status:                string(state.Status),
+		IsConnected:           state.IsConnected,
+		ConnectionRetries:     state.ConnectionRetries,
+		LastActivity:          state.LastActivity,
+		Timestamp:             state.Timestamp,
 		LastActivityFormatted: utils.FormatTimeShort(&state.LastActivity),
 		TimestampFormatted:    utils.FormatTimeShort(&state.Timestamp),
 	}
 
 	now := time.Now()
 	response := model.StatusResponse{
-		Success: true,
-		Status:  string(state.Status),
-		Details: status,
-		Time:    now,
-
-		// Format waktu untuk tampilan yang lebih baik
+		Success:       true,
+		Status:        string(state.Status),
+		Details:       status,
+		Time:          now,
 		TimeFormatted: utils.FormatTimeShort(&now),
 	}
 
@@ -91,12 +87,10 @@ func (h *StatusHandler) GetStatus(c *fiber.Ctx) error {
 func (h *StatusHandler) TestConnection(c *fiber.Ctx) error {
 	now := time.Now()
 	pingResponse := model.PingResponse{
-		Success: true,
-		Message: "API berfungsi dengan baik",
-		Time:    now,
-		Version: h.version,
-
-		// Format waktu untuk tampilan yang lebih baik
+		Success:       true,
+		Message:       "API berfungsi dengan baik",
+		Time:          now,
+		Version:       h.version,
 		TimeFormatted: utils.FormatTimeShort(&now),
 	}
 

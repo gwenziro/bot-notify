@@ -12,8 +12,9 @@ import (
 	"github.com/gwenziro/bot-notify/internal/utils"
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/store/sqlstore"
+	"go.mau.fi/whatsmeow/types"
 
-	_ "modernc.org/sqlite" // Pure Go SQLite driver
+	_ "modernc.org/sqlite"
 )
 
 // ClientStatus menunjukkan status koneksi WhatsApp
@@ -94,20 +95,13 @@ func (c *Client) UpdateLastActivity() {
 	c.connectionState.LastActivity = time.Now()
 }
 
-func (c *Client) GetStatusMessage() {
-	// Mengembalikan pesan status koneksi
-	switch c.connectionState.Status {
-	case StatusConnected:
-		c.logger.Info("Koneksi WhatsApp berhasil")
-	case StatusConnecting:
-		c.logger.Info("Sedang mencoba menghubungkan ke WhatsApp...")
-	case StatusDisconnected:
-		c.logger.Warn("Koneksi WhatsApp terputus")
-	case StatusLoggedOut:
-		c.logger.Warn("Anda telah keluar dari WhatsApp")
-	default:
-		c.logger.Warn("Status koneksi tidak diketahui")
+// GetSelfID mengembalikan JID dari perangkat sendiri
+func (c *Client) GetSelfID() *types.JID {
+	if c.waClient == nil || !c.waClient.IsLoggedIn() {
+		return nil
 	}
+
+	return c.waClient.Store.ID
 }
 
 // NewClient membuat instance baru dari klien WhatsApp
