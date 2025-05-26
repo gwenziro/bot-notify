@@ -114,6 +114,11 @@ func (c *DashboardController) DashboardPage(ctx *fiber.Ctx) error {
 	var groupsCount int
 	messagesSent := c.messagesSent
 
+	// Tambahkan variabel untuk informasi perangkat
+	var deviceInfo map[string]interface{}
+	deviceName := "WhatsApp Web" // Default untuk nomor
+	contactName := ""            // Default untuk nama kontak
+
 	if connectionState.IsConnected {
 		// Gunakan cache untuk menghindari pengambilan grup berulang
 		var err error
@@ -124,7 +129,31 @@ func (c *DashboardController) DashboardPage(ctx *fiber.Ctx) error {
 			})
 			// Tetap lanjutkan meskipun error, hanya jumlah grup akan 0
 		}
+
+		// Ambil informasi perangkat
+		deviceInfo = c.whatsApp.GetDeviceInfo()
+
+		// Ambil nomor WhatsApp yang diformat
+		if formattedJID, ok := deviceInfo["formatted_jid"].(string); ok && formattedJID != "" {
+			deviceName = formattedJID
+		} else if jid, ok := deviceInfo["id"].(string); ok && jid != "" {
+			// Format JID menjadi nomor telepon yang lebih mudah dibaca jika formatted_jid tidak ada
+			deviceName = client.FormatWhatsAppNumber(jid)
+		}
+
+		// Ambil nama kontak WhatsApp (push_name)
+		if pushName, ok := deviceInfo["push_name"].(string); ok && pushName != "" {
+			contactName = pushName
+		}
+
+		c.logger.Debug("Device info retrieved", utils.Fields{
+			"number":       deviceName,
+			"contact_name": contactName,
+		})
 	}
+
+	// Format waktu untuk tampilan yang lebih baik
+	connectedSinceFormatted := utils.FormatTimeShort(&connectionState.LastActivity)
 
 	// Persiapkan data untuk template
 	baseURL := c.config.Server.BaseURL
@@ -137,21 +166,24 @@ func (c *DashboardController) DashboardPage(ctx *fiber.Ctx) error {
 
 	// Buat data untuk template
 	data := fiber.Map{
-		"Title":             "Dashboard",
-		"CurrentYear":       time.Now().Year(),
-		"IsConnected":       connectionState.IsConnected,
-		"ConnectionStatus":  string(connectionState.Status),
-		"ConnectedSince":    connectionState.LastActivity,
-		"ConnectionRetries": connectionState.ConnectionRetries,
-		"DeviceName":        "WhatsApp Web", // Default, bisa diubah jika ada info device
-		"MessagesSent":      messagesSent,
-		"GroupsCount":       groupsCount,
-		"Uptime":            uptime,
-		"BaseURL":           baseURL,
-		"MaskedToken":       maskedToken,
-		"ConnectionState":   connectionState,
-		"ActivePage":        "dashboard",                 // Untuk highlight menu aktif di sidebar
-		"WhatsAppConnected": connectionState.IsConnected, // Untuk status di sidebar
+		"Title":                   "Dashboard",
+		"CurrentYear":             time.Now().Year(),
+		"IsConnected":             connectionState.IsConnected,
+		"ConnectionStatus":        string(connectionState.Status),
+		"ConnectedSince":          connectionState.LastActivity, // Tetap kirim waktu asli
+		"ConnectedSinceFormatted": connectedSinceFormatted,      // Tambahkan format yang lebih baik
+		"ConnectionRetries":       connectionState.ConnectionRetries,
+		"DeviceName":              deviceName,  // Nomor WhatsApp
+		"ContactName":             contactName, // Nama kontak WhatsApp
+		"DeviceInfo":              deviceInfo,
+		"MessagesSent":            messagesSent,
+		"GroupsCount":             groupsCount,
+		"Uptime":                  uptime,
+		"BaseURL":                 baseURL,
+		"MaskedToken":             maskedToken,
+		"ConnectionState":         connectionState,
+		"ActivePage":              "dashboard",
+		"WhatsAppConnected":       connectionState.IsConnected,
 	}
 
 	// Tambahkan log untuk debugging dengan level yang lebih rendah

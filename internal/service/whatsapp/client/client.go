@@ -94,6 +94,22 @@ func (c *Client) UpdateLastActivity() {
 	c.connectionState.LastActivity = time.Now()
 }
 
+func (c *Client) GetStatusMessage() {
+	// Mengembalikan pesan status koneksi
+	switch c.connectionState.Status {
+	case StatusConnected:
+		c.logger.Info("Koneksi WhatsApp berhasil")
+	case StatusConnecting:
+		c.logger.Info("Sedang mencoba menghubungkan ke WhatsApp...")
+	case StatusDisconnected:
+		c.logger.Warn("Koneksi WhatsApp terputus")
+	case StatusLoggedOut:
+		c.logger.Warn("Anda telah keluar dari WhatsApp")
+	default:
+		c.logger.Warn("Status koneksi tidak diketahui")
+	}
+}
+
 // NewClient membuat instance baru dari klien WhatsApp
 func NewClient(cfg *config.Config) (*Client, error) {
 	ctx, cancel := context.WithCancel(context.Background())

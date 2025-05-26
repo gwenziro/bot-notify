@@ -29,6 +29,17 @@ type APIHandler struct {
 func NewAPIHandler(cfg *config.Config, whatsClient *client.Client, sessionStore *session.Store) *APIHandler {
 	logger := utils.ForModule("api")
 
+	// Lakukan validasi parameter
+	if cfg == nil {
+		logger.Error("Config tidak boleh nil saat membuat APIHandler")
+		// Buat config default untuk mencegah crash
+		cfg = &config.Config{}
+	}
+
+	if whatsClient == nil {
+		logger.Error("WhatsApp client nil saat membuat APIHandler")
+	}
+
 	// Initialize API auth middleware (berbeda dengan web auth middleware)
 	apiAuthMw := middleware.NewAPIAuthMiddleware(cfg, sessionStore)
 

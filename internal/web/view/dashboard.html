@@ -4,9 +4,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="no">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Dashboard - Bot Notify</title>
     <link rel="stylesheet" href="/static/css/dashboard.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <link rel="icon" type="image/png" href="https://img.icons8.com/fluency/48/message-bot.png">
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap"
@@ -57,16 +61,38 @@
                         <div class="connected-info" id="connected-view">
                             <div class="connection-details">
                                 <div class="detail-item">
-                                    <span class="detail-label">Status:</span>
+                                    <span class="detail-label">Status Koneksi:</span>
                                     <span class="detail-value" id="connection-status">{{.ConnectionStatus}}</span>
                                 </div>
                                 <div class="detail-item">
                                     <span class="detail-label">Terhubung sejak:</span>
-                                    <span class="detail-value" id="connected-since">{{.ConnectedSince}}</span>
+                                    <span class="detail-value" id="connected-since">
+                                        {{if .ConnectedSinceFormatted}}
+                                            {{.ConnectedSinceFormatted}}
+                                        {{else}}
+                                            -
+                                        {{end}}
+                                    </span>
                                 </div>
                                 <div class="detail-item">
-                                    <span class="detail-label">Perangkat:</span>
-                                    <span class="detail-value" id="device-name">{{.DeviceName}}</span>
+                                    <span class="detail-label">Nomor WhatsApp:</span>
+                                    <span class="detail-value" id="device-name">
+                                        {{if .DeviceName}}
+                                            {{.DeviceName}}
+                                        {{else}}
+                                            -
+                                        {{end}}
+                                    </span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Nama Kontak:</span>
+                                    <span class="detail-value" id="contact-name">
+                                        {{if .ContactName}}
+                                            {{.ContactName}}
+                                        {{else}}
+                                            -
+                                        {{end}}
+                                    </span>
                                 </div>
                             </div>
                             <div class="connection-actions">
@@ -130,7 +156,7 @@
                             <p class="stat-value" id="groups-count">{{.GroupsCount}}</p>
                             <div class="stat-info">
                                 <i class="fas fa-info-circle"></i>
-                                <span id="groups-info">{{if gt .GroupsCount 0}}Grup siap untuk pengiriman{{else}}Tidak ada grup{{end}}</span>
+                                <span id="groups-info">{{if gt .GroupsCount 0}}Grup siap{{else}}Tidak ada grup{{end}}</span>
                             </div>
                         </div>
                     </div>
@@ -145,9 +171,9 @@
                             <p class="stat-value" id="uptime-value">{{.Uptime}}</p>
                             <div class="stat-progress">
                                 <div class="progress-bar">
-                                    <div class="progress-fill" style="width: 92%"></div>
+                                    <div class="progress-fill" style="width: 12%"></div>
                                 </div>
-                                <span id="uptime-percent">92%</span>
+                                <span id="uptime-percent">12%</span>
                             </div>
                         </div>
                     </div>

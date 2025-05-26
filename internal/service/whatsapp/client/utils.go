@@ -85,3 +85,23 @@ func IsValidPersonalJID(jid types.JID) bool {
 func IsValidGroupJID(jid types.JID) bool {
 	return jid.Server == types.GroupServer && jid.User != ""
 }
+
+// FormatWhatsAppNumber mengubah JID WhatsApp menjadi nomor telepon lokal yang mudah dibaca
+func FormatWhatsAppNumber(jid string) string {
+	// Menangani format XXXXXX@s.whatsapp.net atau XXXXXX:XX@s.whatsapp.net
+	parts := strings.Split(jid, "@")
+	if len(parts) < 2 {
+		return jid // Kembalikan input asli jika bukan format JID yang diharapkan
+	}
+
+	// Ambil bagian nomor telepon (yang mungkin memiliki device ID setelah :)
+	phoneAndDevice := strings.Split(parts[0], ":")
+	phone := phoneAndDevice[0]
+
+	// Ubah awalan 62 (Indonesia) menjadi 0
+	if strings.HasPrefix(phone, "62") {
+		return "0" + phone[2:]
+	}
+
+	return phone
+}

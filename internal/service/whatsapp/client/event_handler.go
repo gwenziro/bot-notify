@@ -60,15 +60,6 @@ func (c *Client) handleQRCodeEvent(evt *events.QR) {
 	}
 }
 
-// handleConnectedEvent menangani event Connected
-func (c *Client) handleConnectedEvent() {
-	c.logger.Info("Terhubung ke WhatsApp")
-	c.connectionState.Status = StatusConnected
-	c.connectionState.IsConnected = true
-	c.connectionState.ConnectionRetries = 0 // Reset retry counter pada koneksi berhasil
-	c.UpdateLastActivity()
-}
-
 // handleDisconnectedEvent menangani event Disconnected
 func (c *Client) handleDisconnectedEvent(_ *events.Disconnected) {
 	c.logger.Warn("Terputus dari WhatsApp")

@@ -66,6 +66,7 @@ func NewServer(opts ServerOptions) (*Server, error) {
 
 		engine := html.New(opts.ViewsPath, ".html")
 
+		// Tambahkan fungsi map untuk template
 		engine.AddFunc("formatDate", func(t time.Time) string {
 			return t.Format("02 Jan 2006 15:04:05")
 		})
@@ -101,11 +102,11 @@ func NewServer(opts ServerOptions) (*Server, error) {
 		// Tambahkan fungsi map untuk template
 		engine.AddFunc("lower", strings.ToLower)
 
-		// Reload templates untuk development
+		// Mode development - aktifkan reload template untuk pengembangan
 		engine.Reload(true)
 
-		// Debug mode untuk lebih banyak informasi error
-		engine.Debug(true)
+		// Matikan debug mode untuk menghilangkan log template parsing
+		engine.Debug(false)
 
 		// Set engine ke konfigurasi fiber
 		fiberConfig.Views = engine

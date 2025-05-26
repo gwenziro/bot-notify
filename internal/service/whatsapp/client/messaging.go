@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/gwenziro/bot-notify/internal/utils"
-	waProto "go.mau.fi/whatsmeow/binary/proto"
+	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/types"
 )
 
@@ -25,7 +25,7 @@ func (c *Client) SendMessage(recipient types.JID, message string) error {
 	c.UpdateLastActivity()
 
 	// Kirim pesan
-	_, err := c.waClient.SendMessage(context.Background(), recipient, &waProto.Message{
+	_, err := c.waClient.SendMessage(context.Background(), recipient, &waE2E.Message{
 		Conversation: &message,
 	})
 
@@ -52,8 +52,8 @@ func (c *Client) SendFormattedMessage(recipient types.JID, message string) error
 	c.UpdateLastActivity()
 
 	// Konversi ke ExtendedTextMessage untuk dukungan format
-	_, err := c.waClient.SendMessage(context.Background(), recipient, &waProto.Message{
-		ExtendedTextMessage: &waProto.ExtendedTextMessage{
+	_, err := c.waClient.SendMessage(context.Background(), recipient, &waE2E.Message{
+		ExtendedTextMessage: &waE2E.ExtendedTextMessage{
 			Text: &message,
 			// Bisa ditambahkan opsi pemformatan lainnya
 		},

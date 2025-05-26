@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -151,6 +152,57 @@ func (c *Client) AttemptReconnect(reason string) {
 			c.AttemptReconnect("reconnect_failed")
 		}
 	})
+}
+
+// handleConnectedEvent menangani event Connected
+func (c *Client) handleConnectedEvent() {
+	// Dapatkan dan log info perangkat yang terhubung
+	deviceName := "Unknown"
+
+	if c.waClient != nil && c.waClient.Store != nil {
+		// Coba mendapatkan nomor dan nama
+		jid := "Unknown"
+		if c.waClient.Store.ID != nil {
+			jid = c.waClient.Store.ID.String()
+		}
+
+		pushName := c.waClient.Store.PushName
+		deviceName = pushName
+		if deviceName == "" {
+			deviceName = jid
+		}
+
+		// Cek detail autentikasi
+		c.logger.Debug("Store authentication details", utils.Fields{
+			"push_name":    pushName,
+			"jid":          jid,
+			"is_logged_in": c.waClient.IsLoggedIn(),
+		})
+	}
+
+	c.logger.Info("Terhubung ke WhatsApp", utils.Fields{
+		"device_name":      deviceName,
+		"client_connected": c.waClient != nil && c.waClient.IsConnected(),
+		"client_logged_in": c.waClient != nil && c.waClient.IsLoggedIn(),
+	})
+
+	// Update status koneksi
+	c.connectionState.Status = StatusConnected
+	c.connectionState.IsConnected = true
+	c.connectionState.ConnectionRetries = 0 // Reset retry counter pada koneksi berhasil
+	c.UpdateLastActivity()
+
+	// Coba update informasi profil setelah terhubung
+	if c.waClient != nil && c.waClient.IsLoggedIn() {
+		go func() {
+			// Berikan sedikit waktu untuk koneksi stabil
+			time.Sleep(3 * time.Second)
+
+			_, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+
+		}()
+	}
 }
 
 // Close menutup semua resource yang digunakan oleh klien

@@ -52,6 +52,11 @@ func main() {
 	}
 	defer whatsClient.Close()
 
+	// Pastikan whatsApp client telah diinisialisasi sebelum membuat handler
+	if whatsClient == nil {
+		utils.Fatal("WhatsApp client nil setelah inisialisasi", utils.Fields{})
+	}
+
 	// Konfigurasi QR code listener
 	whatsClient.SessionManager.SetClient(whatsClient)
 	whatsClient.SessionManager.SetupQRCodeListener()

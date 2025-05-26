@@ -500,8 +500,9 @@
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--glass-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   box-shadow: var(--glass-shadow);
+  min-height: 72px;
 }
 
 .copyright {

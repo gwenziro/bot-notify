@@ -257,7 +257,7 @@ func (m *AuthMiddleware) addSecurityHeaders(c *fiber.Ctx) {
 	c.Set("X-Frame-Options", "DENY")
 	c.Set("X-Content-Type-Options", "nosniff")
 	c.Set("Referrer-Policy", "strict-origin-when-cross-origin")
-	c.Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' cdnjs.cloudflare.com fonts.googleapis.com; font-src 'self' fonts.gstatic.com; img-src 'self' data: img.icons8.com")
+	c.Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' cdnjs.cloudflare.com fonts.googleapis.com; font-src 'self' fonts.gstatic.com cdnjs.cloudflare.com; img-src 'self' data: img.icons8.com")
 }
 
 // SetAutoLogin menetapkan cookie auto-login

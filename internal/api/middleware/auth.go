@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/session"
@@ -9,7 +10,7 @@ import (
 	"github.com/gwenziro/bot-notify/internal/utils"
 )
 
-// APIAuthMiddleware mengelola autentikasi untuk API endpoints
+// APIAuthMiddleware mengelola autentikasi untuk API
 type APIAuthMiddleware struct {
 	config       *config.Config
 	sessionStore *session.Store
@@ -21,114 +22,71 @@ func NewAPIAuthMiddleware(cfg *config.Config, sessionStore *session.Store) *APIA
 	return &APIAuthMiddleware{
 		config:       cfg,
 		sessionStore: sessionStore,
-		logger:       utils.ForModule("api-auth-middleware"),
+		logger:       utils.ForModule("api-middleware"),
 	}
 }
 
-// RequireAuth middleware untuk API endpoints yang mendukung multiple authentication methods
+// RequireAuth memvalidasi bahwa pengguna telah login untuk API
 func (m *APIAuthMiddleware) RequireAuth() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		m.logger.Debug("Checking API authentication", utils.Fields{
-			"path":   c.Path(),
-			"method": c.Method(),
-			"ip":     c.IP(),
-		})
+		// Dapatkan token dari header API
+		token := c.Get("X-Access-Token")
 
-		// Method 1: Check Authorization header (Bearer token)
-		authHeader := c.Get("Authorization")
-		if authHeader != "" {
-			if strings.HasPrefix(authHeader, "Bearer ") {
-				token := strings.TrimPrefix(authHeader, "Bearer ")
-				if m.validateToken(token) {
-					m.logger.Debug("Authentication successful via Bearer token", utils.Fields{
-						"path": c.Path(),
-						"ip":   c.IP(),
-					})
-					return c.Next()
+		// Jika tidak ada token di header, coba dari query parameter
+		if token == "" {
+			token = c.Query("access_token")
+		}
+
+		// Jika masih tidak ada token, coba dari session
+		if token == "" {
+			sess, err := m.sessionStore.Get(c)
+			if err == nil {
+				authToken := sess.Get("auth_token")
+				if authToken != nil {
+					if authStr, ok := authToken.(string); ok {
+						token = authStr
+					}
 				}
 			}
 		}
 
-		// Method 2: Check X-Access-Token header
-		accessToken := c.Get("X-Access-Token")
-		if accessToken != "" {
-			if m.validateToken(accessToken) {
-				m.logger.Debug("Authentication successful via X-Access-Token", utils.Fields{
-					"path": c.Path(),
-					"ip":   c.IP(),
-				})
-				return c.Next()
-			}
+		// Jika token masih kosong, kembalikan error 401
+		if token == "" {
+			// Cek jika request adalah AJAX atau API
+			m.logger.Warn("API token tidak ditemukan", utils.Fields{
+				"path": c.Path(),
+				"ip":   c.IP(),
+			})
+
+			// PENTING: SELALU return JSON untuk endpoint API, tidak boleh redirect atau HTML
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"success": false,
+				"error":   "API token tidak ditemukan",
+				"code":    fiber.StatusUnauthorized,
+			})
 		}
 
-		// Method 3: Check session (for web-based API calls)
-		sess, err := m.sessionStore.Get(c)
-		if err == nil {
-			authenticated := sess.Get("authenticated")
-			authToken := sess.Get("auth_token")
+		// Validasi token
+		configToken := m.config.Auth.AccessToken
+		if !strings.EqualFold(token, configToken) {
+			m.logger.Warn("API token tidak valid", utils.Fields{
+				"path": c.Path(),
+				"ip":   c.IP(),
+			})
 
-			if authenticated == true && authToken != nil {
-				token, ok := authToken.(string)
-				if ok && m.validateToken(token) {
-					m.logger.Debug("Authentication successful via session", utils.Fields{
-						"path": c.Path(),
-						"ip":   c.IP(),
-					})
-					return c.Next()
-				}
-			}
+			// PENTING: SELALU return JSON untuk endpoint API, tidak boleh redirect atau HTML
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"success": false,
+				"error":   "API token tidak valid",
+				"code":    fiber.StatusUnauthorized,
+			})
 		}
 
-		// Method 4: Check cookie auto_login (fallback)
-		autoLoginToken := c.Cookies("auto_login")
-		if autoLoginToken != "" {
-			if m.validateToken(autoLoginToken) {
-				m.logger.Debug("Authentication successful via auto_login cookie", utils.Fields{
-					"path": c.Path(),
-					"ip":   c.IP(),
-				})
-				return c.Next()
-			}
-		}
+		// Set token yang valid di locals
+		c.Locals("token", token)
+		c.Locals("authenticated", true)
+		c.Locals("auth_time", time.Now().Unix())
 
-		// All authentication methods failed
-		m.logger.Warn("API access denied: All authentication methods failed", utils.Fields{
-			"ip":               c.IP(),
-			"path":             c.Path(),
-			"has_auth_header":  authHeader != "",
-			"has_access_token": accessToken != "",
-			"has_session":      err == nil,
-			"has_cookie":       autoLoginToken != "",
-		})
-
-		return c.Status(401).JSON(fiber.Map{
-			"success": false,
-			"error":   "Authentication required",
-			"code":    401,
-		})
+		return c.Next()
 	}
-}
-
-// validateToken memvalidasi token dengan secure comparison
-func (m *APIAuthMiddleware) validateToken(token string) bool {
-	if token == "" || m.config.Auth.AccessToken == "" {
-		return false
-	}
-
-	// Secure string comparison untuk mencegah timing attacks
-	return m.secureCompare(token, m.config.Auth.AccessToken)
-}
-
-// secureCompare membandingkan dua string dengan waktu konstan
-func (m *APIAuthMiddleware) secureCompare(a, b string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-
-	var result byte
-	for i := 0; i < len(a); i++ {
-		result |= a[i] ^ b[i]
-	}
-
-	return result == 0
 }
