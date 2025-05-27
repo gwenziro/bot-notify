@@ -36,20 +36,23 @@ func (h *APIHandler) registerConnectionEndpoints(api fiber.Router) {
 
 // registerMessageEndpoints mendaftarkan endpoint pesan
 func (h *APIHandler) registerMessageEndpoints(api fiber.Router) {
-	api.Post("/send/personal", h.msgHandler.SendPersonal)
-	api.Post("/send/group", h.msgHandler.SendGroup)
-	api.Post("/send/broadcast", h.msgHandler.Broadcast) // Endpoint baru
+	send := api.Group("/send")
+	send.Post("/personal", h.msgHandler.SendPersonal)
+	send.Post("/group", h.msgHandler.SendGroup)
+	send.Post("/broadcast", h.msgHandler.Broadcast)
 }
 
 // registerGroupEndpoints mendaftarkan endpoint grup
 func (h *APIHandler) registerGroupEndpoints(api fiber.Router) {
 	api.Get("/groups", h.groupHandler.ListGroups)
+	api.Get("/groups/:id/participants", h.groupHandler.GetParticipants)
 }
 
 // registerQRCodeEndpoints mendaftarkan endpoint QR code
 func (h *APIHandler) registerQRCodeEndpoints(api fiber.Router) {
-	api.Get("/qr/status", h.qrHandler.GetStatus)
-	api.Get("/qr/image", h.qrHandler.GetImage)
+	qr := api.Group("/qr")
+	qr.Get("/status", h.qrHandler.GetStatus)
+	qr.Get("/image", h.qrHandler.GetImage)
 }
 
 // registerProfileEndpoints mendaftarkan endpoint profil

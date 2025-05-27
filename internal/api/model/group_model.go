@@ -7,6 +7,8 @@ type GroupParticipantInfo struct {
 	IsAdmin      bool   `json:"isAdmin"`
 	IsSuperAdmin bool   `json:"isSuperAdmin,omitempty"`
 	DisplayName  string `json:"displayName,omitempty"`
+	PushName     string `json:"pushName,omitempty"`    // Nama kontak dari store WhatsApp
+	ContactName  string `json:"contactName,omitempty"` // Nama kontak yang digabungkan untuk display
 }
 
 // GroupInfo berisi informasi dasar tentang grup WhatsApp
@@ -31,5 +33,27 @@ func NewGroupListResponse(message string, groups []GroupInfo) GroupListResponse 
 		BaseResponse: NewBaseResponse(true, message),
 		Count:        len(groups),
 		Groups:       groups,
+	}
+}
+
+// GroupParticipantsResponse untuk hasil query daftar anggota grup
+type GroupParticipantsResponse struct {
+	BaseResponse
+	GroupID          string                 `json:"groupId"`
+	GroupName        string                 `json:"groupName"`
+	ParticipantCount int                    `json:"participantCount"`
+	IsAdmin          bool                   `json:"isAdmin"`
+	Participants     []GroupParticipantInfo `json:"participants"`
+}
+
+// NewGroupParticipantsResponse membuat response daftar anggota grup baru
+func NewGroupParticipantsResponse(message string, groupID string, groupName string, isAdmin bool, participants []GroupParticipantInfo) GroupParticipantsResponse {
+	return GroupParticipantsResponse{
+		BaseResponse:     NewBaseResponse(true, message),
+		GroupID:          groupID,
+		GroupName:        groupName,
+		ParticipantCount: len(participants),
+		IsAdmin:          isAdmin,
+		Participants:     participants,
 	}
 }

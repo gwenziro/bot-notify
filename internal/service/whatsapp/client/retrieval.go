@@ -194,3 +194,60 @@ func (c *Client) GetDeviceInfo() map[string]interface{} {
 
 	return result
 }
+
+// GetContactNameByJID mendapatkan nama kontak dari JID jika tersedia
+func (c *Client) GetContactNameByJID(jid types.JID) string {
+	if c.waClient == nil || !c.waClient.IsLoggedIn() {
+		return ""
+	}
+
+	// Konversi ke non-AD JID jika perlu
+	nonAD := jid.ToNonAD()
+
+	// Coba dapatkan dari store kontak
+	ctx := context.Background()
+	contact, err := c.waClient.Store.Contacts.GetContact(ctx, nonAD)
+	if err != nil {
+		c.logger.Debug("Tidak dapat mendapatkan kontak", utils.Fields{
+			"jid": jid.String(),
+			"err": err.Error(),
+		})
+		return ""
+	}
+
+	// Prioritaskan nama berdasarkan yang tersedia
+	if contact.FullName != "" {
+		return contact.FullName
+	} else if contact.PushName != "" {
+		return contact.PushName
+	} else if contact.BusinessName != "" {
+		return contact.BusinessName
+	}
+
+	return ""
+}
+
+// GetEnrichedParticipants mendapatkan daftar peserta grup dengan informasi tambahan
+func (c *Client) GetEnrichedParticipants(groupJID types.JID) ([]types.GroupParticipant, error) {
+	// Dapatkan partisipan dasar
+	participants, err := c.GetGroupParticipants(groupJID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Tidak perlu enrichment jika tidak ada partisipan
+	if len(participants) == 0 {
+		return participants, nil
+	}
+
+	// Enrich each participant with contact information
+	for i := range participants {
+		// Jika DisplayName kosong, coba isi dari kontak
+		if participants[i].DisplayName == "" {
+			contactName := c.GetContactNameByJID(participants[i].JID)
+			participants[i].DisplayName = contactName
+		}
+	}
+
+	return participants, nil
+}

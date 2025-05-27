@@ -69,8 +69,18 @@ func (h *GroupHandler) processGroups(groups []*types.GroupInfo, selfJID *types.J
 			detailedGroup = group
 		}
 
+		// Mendapatkan partisipan dengan info yang diperkaya
+		enrichedParticipants, err := h.WhatsApp.GetEnrichedParticipants(group.JID)
+		if err != nil {
+			h.Logger.WithError(err).Warn("Gagal mendapatkan informasi kontak partisipan untuk daftar grup", utils.Fields{
+				"group_id": group.JID.String(),
+			})
+			// Tetap gunakan participants normal jika gagal mendapatkan yang diperkaya
+			enrichedParticipants = detailedGroup.Participants
+		}
+
 		// Proses partisipan dan cek apakah pengguna adalah admin
-		participants, isAdmin := h.processParticipants(detailedGroup.Participants, normalizedSelfJID)
+		participants, isAdmin := h.processParticipantsWithContacts(enrichedParticipants, normalizedSelfJID)
 
 		result[i] = model.GroupInfo{
 			ID:           group.JID.String(),
@@ -84,8 +94,77 @@ func (h *GroupHandler) processGroups(groups []*types.GroupInfo, selfJID *types.J
 	return result
 }
 
-// processParticipants memproses partisipan grup dan memeriksa status admin
-func (h *GroupHandler) processParticipants(participants []types.GroupParticipant, normalizedSelfJID string) ([]model.GroupParticipantInfo, bool) {
+// GetParticipants mengembalikan daftar partisipan dari sebuah grup
+func (h *GroupHandler) GetParticipants(c *fiber.Ctx) error {
+	// Dapatkan status koneksi terlebih dahulu
+	state, err := h.WhatsApp.GetConnectionStateSafe()
+	if err != nil {
+		return h.SendError(c, "Gagal mendapatkan status koneksi", err, fiber.StatusInternalServerError)
+	}
+
+	// Jika tidak terhubung, kembalikan error yang jelas
+	if !state.IsConnected {
+		h.Logger.Info("Permintaan daftar anggota grup saat WhatsApp tidak terhubung")
+		return c.Status(fiber.StatusServiceUnavailable).JSON(model.NewBaseResponse(false, "WhatsApp sedang tidak terhubung"))
+	}
+
+	// Dapatkan groupID dari parameter
+	groupID := c.Params("id")
+	if groupID == "" {
+		return h.SendError(c, "ID grup harus disediakan", nil, fiber.StatusBadRequest)
+	}
+
+	// Validasi format ID grup
+	if !utils.ValidateGroupID(groupID) {
+		return h.SendError(c, "Format ID grup tidak valid", nil, fiber.StatusBadRequest)
+	}
+
+	// Dapatkan JID perangkat sendiri
+	selfJID := h.WhatsApp.GetSelfID()
+	if selfJID == nil {
+		return h.SendError(c, "Gagal mendapatkan ID perangkat", nil, fiber.StatusInternalServerError)
+	}
+
+	// Dapatkan informasi grup
+	group, err := h.WhatsApp.GetGroupByID(groupID)
+	if err != nil {
+		h.Logger.WithError(err).Error("Gagal mendapatkan informasi grup", utils.Fields{
+			"group_id": groupID,
+		})
+		return h.SendError(c, "Gagal mendapatkan informasi grup", err, fiber.StatusNotFound)
+	}
+
+	// Mendapatkan partisipan dengan info yang diperkaya
+	enrichedParticipants, err := h.WhatsApp.GetEnrichedParticipants(group.JID)
+	if err != nil {
+		h.Logger.WithError(err).Warn("Gagal mendapatkan informasi kontak partisipan", utils.Fields{
+			"group_id": groupID,
+		})
+		// Tetap gunakan participants normal jika gagal mendapatkan yang diperkaya
+		enrichedParticipants = group.Participants
+	}
+
+	// Proses partisipan dan cek apakah pengguna adalah admin
+	normalizedSelfJID := utils.NormalizeJID(selfJID.String())
+	participants, isAdmin := h.processParticipantsWithContacts(enrichedParticipants, normalizedSelfJID)
+
+	h.Logger.WithFields(utils.Fields{
+		"group_id": groupID,
+		"count":    len(participants),
+		"is_admin": isAdmin,
+	}).Info("Daftar anggota grup berhasil diambil")
+
+	return h.SendSuccess(c, model.NewGroupParticipantsResponse(
+		"Daftar anggota grup berhasil diambil",
+		group.JID.String(),
+		group.Name,
+		isAdmin,
+		participants,
+	))
+}
+
+// processParticipantsWithContacts memproses partisipan grup dengan informasi kontak lengkap
+func (h *GroupHandler) processParticipantsWithContacts(participants []types.GroupParticipant, normalizedSelfJID string) ([]model.GroupParticipantInfo, bool) {
 	result := make([]model.GroupParticipantInfo, len(participants))
 	isAdmin := false
 
@@ -97,13 +176,28 @@ func (h *GroupHandler) processParticipants(participants []types.GroupParticipant
 			isAdmin = participant.IsAdmin
 		}
 
+		// Format nomor telepon untuk display
+		phoneNumber := client.FormatWhatsAppNumber(participant.JID.String())
+
+		// Pilih nama kontak yang terbaik untuk ditampilkan
+		contactName := participant.DisplayName
+		pushName := "" // Simpan pushName terpisah jika tersedia dari store
+
+		// Tentukan nama kontak terbaik untuk ditampilkan
+		displayName := contactName
+		if displayName == "" {
+			displayName = phoneNumber // Fallback ke nomor jika tidak ada nama
+		}
+
 		// Tambahkan ke model
 		result[i] = model.GroupParticipantInfo{
 			JID:          participant.JID.String(),
-			PhoneNumber:  client.FormatWhatsAppNumber(participant.JID.String()),
+			PhoneNumber:  phoneNumber,
 			IsAdmin:      participant.IsAdmin,
 			IsSuperAdmin: participant.IsSuperAdmin,
-			DisplayName:  participant.DisplayName,
+			DisplayName:  displayName,
+			PushName:     pushName,
+			ContactName:  contactName,
 		}
 	}
 
