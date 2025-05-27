@@ -105,3 +105,49 @@ func IsPersonalJID(jid string) bool {
 func IsGroupJID(jid string) bool {
 	return strings.Contains(jid, "@g.us")
 }
+
+// ValidatePhoneNumber memeriksa apakah nomor telepon valid untuk WhatsApp
+// Format valid: 628xxxxxxxxxx (kode negara + nomor tanpa awalan 0)
+func ValidatePhoneNumber(number string) bool {
+	number = FormatPhoneNumber(number)
+
+	// Minimal 10 digit (kode negara + nomor)
+	if len(number) < 10 {
+		return false
+	}
+
+	// Harus angka semua
+	for _, c := range number {
+		if c < '0' || c > '9' {
+			return false
+		}
+	}
+
+	return true
+}
+
+// ValidateGroupID memeriksa apakah ID grup valid untuk WhatsApp
+func ValidateGroupID(id string) bool {
+	// Bersihkan ID
+	id = strings.TrimSpace(id)
+
+	// Jika kosong, tidak valid
+	if id == "" {
+		return false
+	}
+
+	// Jika sudah mengandung @g.us, cek formatnya
+	if strings.Contains(id, "@g.us") {
+		parts := strings.Split(id, "@")
+		return len(parts) == 2 && parts[0] != "" && parts[1] == "g.us"
+	}
+
+	// Jika tidak mengandung @g.us, harus angka semua
+	for _, c := range id {
+		if c < '0' || c > '9' {
+			return false
+		}
+	}
+
+	return len(id) > 5 // Minimal panjang ID grup
+}

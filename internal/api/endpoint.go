@@ -38,6 +38,7 @@ func (h *APIHandler) registerConnectionEndpoints(api fiber.Router) {
 func (h *APIHandler) registerMessageEndpoints(api fiber.Router) {
 	api.Post("/send/personal", h.msgHandler.SendPersonal)
 	api.Post("/send/group", h.msgHandler.SendGroup)
+	api.Post("/send/broadcast", h.msgHandler.Broadcast) // Endpoint baru
 }
 
 // registerGroupEndpoints mendaftarkan endpoint grup
