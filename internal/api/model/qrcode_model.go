@@ -4,9 +4,9 @@ import "time"
 
 // QRCodeStatusResponse berisi informasi status QR code
 type QRCodeStatusResponse struct {
+	BaseResponse
 	Available bool       `json:"available"`
 	Expired   bool       `json:"expired"`
-	Message   string     `json:"message"`
 	Timestamp *time.Time `json:"timestamp,omitempty"`
 }
 
@@ -19,6 +19,7 @@ func NewQRCodeStatusResponse(available bool, expired bool, timestamp time.Time) 
 		timestampPtr = &timestamp
 	}
 
+	// Tentukan pesan berdasarkan status
 	var message string
 	if expired {
 		message = "QR code sudah kedaluwarsa. Silakan gunakan endpoint /api/reconnect untuk mendapatkan QR code baru"
@@ -29,23 +30,21 @@ func NewQRCodeStatusResponse(available bool, expired bool, timestamp time.Time) 
 	}
 
 	return QRCodeStatusResponse{
-		Available: available,
-		Expired:   expired,
-		Message:   message,
-		Timestamp: timestampPtr,
+		BaseResponse: NewBaseResponse(true, message),
+		Available:    available,
+		Expired:      expired,
+		Timestamp:    timestampPtr,
 	}
 }
 
 // QRCodeErrorResponse untuk respons error terkait QR code
 type QRCodeErrorResponse struct {
-	Success bool   `json:"success"`
-	Message string `json:"message"`
+	BaseErrorResponse
 }
 
 // NewQRCodeErrorResponse membuat respons error QR code baru
-func NewQRCodeErrorResponse(message string) QRCodeErrorResponse {
+func NewQRCodeErrorResponse(message string, err error, code int) QRCodeErrorResponse {
 	return QRCodeErrorResponse{
-		Success: false,
-		Message: message,
+		BaseErrorResponse: NewBaseErrorResponse(message, err, code),
 	}
 }

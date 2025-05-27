@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"time"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/gwenziro/bot-notify/internal/api/model"
 	"github.com/gwenziro/bot-notify/internal/service/whatsapp/client"
@@ -25,30 +27,10 @@ func NewQRCodeHandler(whatsClient *client.Client) *QRCodeHandler {
 
 // GetStatus mengembalikan status QR code
 func (h *QRCodeHandler) GetStatus(c *fiber.Ctx) error {
-	// Dapatkan status koneksi
-	state, err := h.WhatsApp.GetConnectionStateSafe()
-	if err != nil {
-		return h.SendError(c, "Gagal mendapatkan status koneksi", err, fiber.StatusInternalServerError)
-	}
-
-	// Jika sudah terhubung, QR code tidak relevan
-	if state.IsConnected || h.WhatsApp.IsLoggedIn() {
-		return h.SendSuccess(c, model.QRCodeStatusResponse{
-			Available: false,
-			Expired:   false,
-			Message:   "QR code tidak diperlukan karena WhatsApp sudah terhubung",
-			Timestamp: nil,
-		})
-	}
-
-	// Jika tidak terhubung tetapi belum menjalankan reconnect
-	if !state.IsConnected && state.Status != client.StatusConnecting {
-		return h.SendSuccess(c, model.QRCodeStatusResponse{
-			Available: false,
-			Expired:   false,
-			Message:   "QR code belum tersedia. Silakan gunakan endpoint /api/reconnect terlebih dahulu",
-			Timestamp: nil,
-		})
+	// Periksa ketersediaan QR code berdasarkan status koneksi
+	canContinue, err := h.checkQRAvailability(c)
+	if !canContinue {
+		return err
 	}
 
 	// Dapatkan QR handler dari session manager
@@ -65,30 +47,39 @@ func (h *QRCodeHandler) GetStatus(c *fiber.Ctx) error {
 	return h.SendSuccess(c, model.NewQRCodeStatusResponse(hasQR && !isExpired, isExpired, timestamp))
 }
 
-// GetImage mengembalikan gambar QR code
-func (h *QRCodeHandler) GetImage(c *fiber.Ctx) error {
+// checkQRAvailability memeriksa apakah QR code tersedia berdasarkan status koneksi
+func (h *QRCodeHandler) checkQRAvailability(c *fiber.Ctx) (canContinue bool, err error) {
 	// Dapatkan status koneksi
-	state, err := h.WhatsApp.GetConnectionStateSafe()
+	state, err := h.GetConnectionState()
 	if err != nil {
-		return h.SendError(c, "Gagal mendapatkan status koneksi", err, fiber.StatusInternalServerError)
+		return false, h.SendError(c, "Gagal mendapatkan status koneksi", err, fiber.StatusInternalServerError)
 	}
 
 	// Jika sudah terhubung, QR code tidak relevan
 	if state.IsConnected || h.WhatsApp.IsLoggedIn() {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"success": false,
-			"message": "QR code tidak diperlukan karena WhatsApp sudah terhubung",
-			"code":    fiber.StatusNotFound,
-		})
+		return false, h.SendSuccess(c, model.NewQRCodeStatusResponse(false, false, time.Time{}))
 	}
 
 	// Jika tidak terhubung tetapi belum menjalankan reconnect
 	if !state.IsConnected && state.Status != client.StatusConnecting {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"success": false,
-			"message": "Gambar QR belum tersedia. Silakan gunakan endpoint /api/reconnect terlebih dahulu untuk mendapatkan gambar QR",
-			"code":    fiber.StatusNotFound,
-		})
+		return false, h.SendSuccess(c, model.NewQRCodeStatusResponse(false, false, time.Time{}))
+	}
+
+	return true, nil
+}
+
+// GetImage mengembalikan gambar QR code
+func (h *QRCodeHandler) GetImage(c *fiber.Ctx) error {
+	// Periksa ketersediaan QR code berdasarkan status koneksi
+	canContinue, err := h.checkQRAvailability(c)
+	if !canContinue {
+		// Untuk endpoint gambar, berikan respons image-friendly
+		if c.Get("Accept") == "application/json" {
+			return err
+		}
+
+		// Untuk browser atau permintaan non-JSON, kirim respons 404 yang sederhana
+		return c.Status(fiber.StatusNotFound).SendString("QR code tidak tersedia")
 	}
 
 	// Dapatkan QR handler dari session manager
@@ -101,13 +92,6 @@ func (h *QRCodeHandler) GetImage(c *fiber.Ctx) error {
 	qrPath := qrHandler.GetQRCodePath()
 
 	// Jika QR code kedaluwarsa atau tidak ada, return 404
-	if qrHandler.IsQRCodeExpired(h.maxAgeMins) {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"success": false,
-			"message": "QR code kedaluwarsa atau tidak tersedia",
-			"code":    fiber.StatusNotFound,
-		})
-	}
 	if qrHandler.IsQRCodeExpired(h.maxAgeMins) {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"success": false,

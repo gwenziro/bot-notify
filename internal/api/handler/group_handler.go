@@ -31,13 +31,7 @@ func (h *GroupHandler) ListGroups(c *fiber.Ctx) error {
 	// Jika tidak terhubung, kembalikan error yang jelas tanpa data sensitif
 	if !state.IsConnected {
 		h.Logger.Info("Permintaan daftar grup saat WhatsApp tidak terhubung")
-		return c.Status(fiber.StatusServiceUnavailable).JSON(model.GroupListResponse{
-			Success: false,
-			Message: "WhatsApp sedang tidak terhubung",
-			Count:   0,
-			Groups:  []model.GroupInfo{},
-			// Tidak sertakan timestamp atau informasi koneksi lainnya
-		})
+		return c.Status(fiber.StatusServiceUnavailable).JSON(model.NewGroupListResponse("WhatsApp sedang tidak terhubung", []model.GroupInfo{}))
 	}
 
 	// Dapatkan JID perangkat sendiri

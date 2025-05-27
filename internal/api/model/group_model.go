@@ -20,18 +20,16 @@ type GroupInfo struct {
 
 // GroupListResponse untuk hasil query daftar grup
 type GroupListResponse struct {
-	Success bool        `json:"success"`
-	Message string      `json:"message"`
-	Count   int         `json:"count"`
-	Groups  []GroupInfo `json:"groups"`
+	BaseResponse
+	Count  int         `json:"count"`
+	Groups []GroupInfo `json:"groups"`
 }
 
 // NewGroupListResponse membuat response daftar grup baru
 func NewGroupListResponse(message string, groups []GroupInfo) GroupListResponse {
 	return GroupListResponse{
-		Success: true,
-		Message: message,
-		Count:   len(groups),
-		Groups:  groups,
+		BaseResponse: NewBaseResponse(true, message),
+		Count:        len(groups),
+		Groups:       groups,
 	}
 }

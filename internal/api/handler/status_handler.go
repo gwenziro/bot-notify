@@ -58,26 +58,16 @@ func (h *StatusHandler) GetStatus(c *fiber.Ctx) error {
 	}
 
 	now := time.Now()
-	response := model.StatusResponse{
-		Success:    true,
-		Details:    status,
-		Time:       utils.FormatTimeIndonesia(&now),
-		ServerTime: now,
-	}
+	response := model.NewStatusResponse("Status koneksi WhatsApp", status)
+	response.Time = utils.FormatTimeIndonesia(&now)
+	response.ServerTime = now
 
 	return h.SendSuccess(c, response)
 }
 
 // TestConnection menguji koneksi API tanpa autentikasi
 func (h *StatusHandler) TestConnection(c *fiber.Ctx) error {
-	now := time.Now()
-	pingResponse := model.PingResponse{
-		Success:       true,
-		Message:       "API berfungsi dengan baik",
-		Time:          now,
-		Version:       h.version,
-		TimeFormatted: utils.FormatTimeShort(&now),
-	}
+	pingResponse := model.NewPingResponse("API berfungsi dengan baik", h.version)
 
 	return h.SendSuccess(c, pingResponse)
 }

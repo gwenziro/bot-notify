@@ -1,12 +1,9 @@
 package handler
 
 import (
-	"time"
-
 	"github.com/gofiber/fiber/v2"
 	"github.com/gwenziro/bot-notify/internal/api/model"
 	"github.com/gwenziro/bot-notify/internal/service/whatsapp/client"
-	"github.com/gwenziro/bot-notify/internal/utils"
 )
 
 // ProfileHandler menangani endpoint profil API
@@ -24,7 +21,7 @@ func NewProfileHandler(whatsClient *client.Client) *ProfileHandler {
 // GetProfile mengembalikan informasi profil akun WhatsApp terhubung
 func (h *ProfileHandler) GetProfile(c *fiber.Ctx) error {
 	// Dapatkan status koneksi terlebih dahulu
-	state, err := h.WhatsApp.GetConnectionStateSafe()
+	state, err := h.GetConnectionState()
 	if err != nil {
 		return h.SendError(c, "Gagal mendapatkan status koneksi", err, fiber.StatusInternalServerError)
 	}
@@ -37,40 +34,22 @@ func (h *ProfileHandler) GetProfile(c *fiber.Ctx) error {
 		emptyProfile := model.ProfileInfo{
 			IsConnected: false,
 			IsLoggedIn:  false,
-			// Tidak menyertakan field lain agar omitempty bekerja
 		}
 
 		// Kembalikan respons minimal
-		return c.Status(fiber.StatusServiceUnavailable).JSON(model.ProfileResponse{
-			Success:   false,
-			Message:   "WhatsApp sedang tidak terhubung",
-			Profile:   emptyProfile,
-			Timestamp: time.Now(),
-		})
+		errorResp := model.NewProfileResponse("WhatsApp sedang tidak terhubung", emptyProfile)
+		errorResp.BaseResponse.Success = false
+		return c.Status(fiber.StatusServiceUnavailable).JSON(errorResp)
 	}
 
-	// Dapatkan informasi perangkat/akun dan status koneksi
+	// Dapatkan informasi perangkat/akun
 	deviceInfo := h.WhatsApp.GetDeviceInfo()
 
 	// Format respons - hanya sertakan ConnectedSince jika terhubung
 	profile := model.ProfileInfo{
-		IsConnected: state.IsConnected,
-		IsLoggedIn:  h.WhatsApp.IsLoggedIn(),
-	}
-
-	// ConnectedSince hanya disertakan jika terhubung
-	if state.IsConnected {
-		// Pastikan ConnectedSince memiliki nilai yang benar, bukan nilai default
-		if !state.ConnectedSince.IsZero() {
-			connectedSince := state.ConnectedSince                      // Salin nilai
-			formattedTime := utils.FormatTimeIndonesia(&connectedSince) // Format untuk tampilan
-			profile.ConnectedSince = formattedTime
-		} else {
-			// Jika ConnectedSince masih nilai default, gunakan LastActivity sebagai fallback
-			connectedSince := state.LastActivity
-			formattedTime := utils.FormatTimeIndonesia(&connectedSince)
-			profile.ConnectedSince = formattedTime
-		}
+		IsConnected:    state.IsConnected,
+		IsLoggedIn:     h.WhatsApp.IsLoggedIn(),
+		ConnectedSince: h.FormatConnectedSince(state),
 	}
 
 	// Isi data dari deviceInfo

@@ -7,25 +7,45 @@ import (
 // ConnectionStatus berisi informasi status koneksi WhatsApp
 type ConnectionStatus struct {
 	Status            string `json:"status"`
-	IsConnected       bool   `json:"isConnected"`                 // Gunakan camelCase
-	ConnectionRetries int    `json:"connectionRetries,omitempty"` // Gunakan camelCase
-	LastActivity      string `json:"lastActivity,omitempty"`      // Ubah ke string terformat
-	Timestamp         string `json:"timestamp,omitempty"`         // Ubah ke string terformat
+	IsConnected       bool   `json:"isConnected"`
+	ConnectionRetries int    `json:"connectionRetries,omitempty"`
+	LastActivity      string `json:"lastActivity,omitempty"`
+	Timestamp         string `json:"timestamp,omitempty"`
 }
 
 // StatusResponse berisi respons dari endpoint status
 type StatusResponse struct {
-	Success    bool             `json:"success"`
+	BaseResponse
 	Details    ConnectionStatus `json:"details"`
-	Time       string           `json:"time"`       // Format waktu yang user-friendly
-	ServerTime time.Time        `json:"serverTime"` // Waktu asli untuk perhitungan
+	Time       string           `json:"time"`
+	ServerTime time.Time        `json:"serverTime"`
+}
+
+// NewStatusResponse membuat respons status baru
+func NewStatusResponse(message string, details ConnectionStatus) StatusResponse {
+	return StatusResponse{
+		BaseResponse: NewBaseResponse(true, message),
+		Details:      details,
+		Time:         time.Now().Format("02 Jan 2006 15:04:05"),
+		ServerTime:   time.Now(),
+	}
 }
 
 // PingResponse berisi respons dari endpoint ping
 type PingResponse struct {
-	Success       bool      `json:"success"`
-	Message       string    `json:"message"`
-	Time          time.Time `json:"time"`
+	BaseResponse
 	Version       string    `json:"version"`
-	TimeFormatted string    `json:"time_formatted"`
+	Time          time.Time `json:"time"`
+	TimeFormatted string    `json:"timeFormatted"`
+}
+
+// NewPingResponse membuat respons ping baru
+func NewPingResponse(message string, version string) PingResponse {
+	now := time.Now()
+	return PingResponse{
+		BaseResponse:  NewBaseResponse(true, message),
+		Version:       version,
+		Time:          now,
+		TimeFormatted: now.Format("02 Jan 2006 15:04:05"),
+	}
 }

@@ -20,12 +20,10 @@ type GroupMessageRequest struct {
 
 // MessageResponse untuk hasil operasi kirim pesan
 type MessageResponse struct {
-	Success   bool      `json:"success"`
-	Message   string    `json:"message"`
-	Recipient string    `json:"recipient"`
-	Type      string    `json:"type"`
-	Timestamp time.Time `json:"timestamp"`
-	SentTime  string    `json:"sentTime,omitempty"` // Waktu terkirim dalam format yang mudah dibaca
+	BaseResponse
+	Recipient string `json:"recipient"`
+	Type      string `json:"type"`
+	SentTime  string `json:"sentTime,omitempty"`
 }
 
 // NewMessageResponse membuat respons pesan baru
@@ -33,36 +31,21 @@ func NewMessageResponse(message string, recipient string, messageType string) Me
 	now := time.Now()
 
 	return MessageResponse{
-		Success:   true,
-		Message:   message,
-		Recipient: recipient,
-		Type:      messageType,
-		Timestamp: now,
-		SentTime:  utils.FormatTimeIndonesia(&now), // Format waktu dalam bahasa Indonesia
+		BaseResponse: NewBaseResponse(true, message),
+		Recipient:    recipient,
+		Type:         messageType,
+		SentTime:     utils.FormatTimeIndonesia(&now),
 	}
 }
 
 // ErrorMessageResponse untuk respons error
 type ErrorMessageResponse struct {
-	Success   bool      `json:"success"`
-	Message   string    `json:"message"`
-	Error     string    `json:"error,omitempty"`
-	Timestamp time.Time `json:"timestamp"`
-	Code      int       `json:"code"`
+	BaseErrorResponse
 }
 
 // NewErrorMessageResponse membuat respons error
 func NewErrorMessageResponse(message string, err error, code int) ErrorMessageResponse {
-	errMsg := ""
-	if err != nil {
-		errMsg = err.Error()
-	}
-
 	return ErrorMessageResponse{
-		Success:   false,
-		Message:   message,
-		Error:     errMsg,
-		Timestamp: time.Now(),
-		Code:      code,
+		BaseErrorResponse: NewBaseErrorResponse(message, err, code),
 	}
 }

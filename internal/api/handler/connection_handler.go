@@ -48,7 +48,7 @@ func (h *ConnectionHandler) Disconnect(c *fiber.Ctx) error {
 	h.WhatsApp.Disconnect()
 
 	// Tunggu sejenak agar status koneksi sempat diperbarui
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(300 * time.Millisecond)
 
 	// Hapus sesi
 	err := h.WhatsApp.SessionManager.ClearSessions()
