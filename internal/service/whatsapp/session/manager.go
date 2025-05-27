@@ -134,6 +134,14 @@ func (m *Manager) ClearSessions() error {
 	// Hapus QR code
 	m.qrHandler.ClearQRCode()
 
+	// Periksa apakah client mendukung metode untuk mengupdate status koneksi
+	if client, ok := m.client.(interface {
+		SetConnectionState(status interface{}, isConnected bool, retries int)
+	}); ok {
+		// Perbarui status koneksi secara eksplisit
+		client.SetConnectionState("disconnected", false, 0)
+	}
+
 	return nil
 }
 

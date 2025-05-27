@@ -13,25 +13,45 @@ func (h *APIHandler) RegisterEndpoints(app *fiber.App) {
 	api := app.Group("/api")
 	api.Use(h.authMw)
 
-	// Status API
-	api.Get("/status", h.statusHandler.GetStatus)
+	// Daftarkan endpoint berdasarkan domain
+	h.registerStatusEndpoints(api)
+	h.registerConnectionEndpoints(api)
+	h.registerMessageEndpoints(api)
+	h.registerGroupEndpoints(api)
+	h.registerQRCodeEndpoints(api)
+	h.registerProfileEndpoints(api)
+}
 
-	// WhatsApp Connection
+// registerStatusEndpoints mendaftarkan endpoint status
+func (h *APIHandler) registerStatusEndpoints(api fiber.Router) {
+	api.Get("/status", h.statusHandler.GetStatus)
+}
+
+// registerConnectionEndpoints mendaftarkan endpoint koneksi
+func (h *APIHandler) registerConnectionEndpoints(api fiber.Router) {
 	api.Post("/reconnect", h.connHandler.Reconnect)
 	api.Get("/reconnect", h.connHandler.Reconnect)
 	api.Post("/disconnect", h.connHandler.Disconnect)
+}
 
-	// Message API
+// registerMessageEndpoints mendaftarkan endpoint pesan
+func (h *APIHandler) registerMessageEndpoints(api fiber.Router) {
 	api.Post("/send/personal", h.msgHandler.SendPersonal)
 	api.Post("/send/group", h.msgHandler.SendGroup)
+}
 
-	// Groups API
+// registerGroupEndpoints mendaftarkan endpoint grup
+func (h *APIHandler) registerGroupEndpoints(api fiber.Router) {
 	api.Get("/groups", h.groupHandler.ListGroups)
+}
 
-	// QR Code API
+// registerQRCodeEndpoints mendaftarkan endpoint QR code
+func (h *APIHandler) registerQRCodeEndpoints(api fiber.Router) {
 	api.Get("/qr/status", h.qrHandler.GetStatus)
 	api.Get("/qr/image", h.qrHandler.GetImage)
+}
 
-	// Profile API
+// registerProfileEndpoints mendaftarkan endpoint profil
+func (h *APIHandler) registerProfileEndpoints(api fiber.Router) {
 	api.Get("/profile", h.profileHandler.GetProfile)
 }

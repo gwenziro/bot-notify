@@ -34,6 +34,7 @@ type ConnectionState struct {
 	ConnectionRetries int          `json:"connection_retries"`
 	LastActivity      time.Time    `json:"last_activity"`
 	Timestamp         time.Time    `json:"timestamp"`
+	ConnectedSince    time.Time    `json:"connected_since"` // Waktu koneksi pertama dibuat
 }
 
 // EventHandlerFunc adalah tipe fungsi untuk menangani event WhatsApp
@@ -64,10 +65,18 @@ func (c *Client) GetConnectionState() ConnectionState {
 
 // SetConnectionState mengatur status koneksi saat ini
 func (c *Client) SetConnectionState(status ClientStatus, isConnected bool, retries int) {
+	previousStatus := c.connectionState.Status
+
 	c.connectionState.Status = status
 	c.connectionState.IsConnected = isConnected
 	c.connectionState.ConnectionRetries = retries
 	c.connectionState.Timestamp = time.Now()
+
+	// Set ConnectedSince hanya jika status berubah dari tidak terhubung menjadi terhubung
+	if status == StatusConnected && previousStatus != StatusConnected {
+		c.connectionState.ConnectedSince = time.Now()
+		c.logger.Info("Connection established, setting ConnectedSince timestamp")
+	}
 }
 
 // GetConnectionRetries mengembalikan jumlah percobaan koneksi

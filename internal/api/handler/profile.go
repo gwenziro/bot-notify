@@ -1,101 +1,104 @@
 package handler
 
 import (
+	"time"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/gwenziro/bot-notify/internal/api/model"
 	"github.com/gwenziro/bot-notify/internal/service/whatsapp/client"
 	"github.com/gwenziro/bot-notify/internal/utils"
-	"go.mau.fi/whatsmeow/types"
 )
 
 // ProfileHandler menangani endpoint profil API
 type ProfileHandler struct {
-	whatsApp *client.Client
-	logger   utils.LogrusEntry
+	BaseHandler
 }
 
 // NewProfileHandler membuat instance baru ProfileHandler
 func NewProfileHandler(whatsClient *client.Client) *ProfileHandler {
 	return &ProfileHandler{
-		whatsApp: whatsClient,
-		logger:   utils.ForModule("handler-profile"),
+		BaseHandler: NewBaseHandler(whatsClient, "handler-profile"),
 	}
 }
 
 // GetProfile mengembalikan informasi profil akun WhatsApp terhubung
 func (h *ProfileHandler) GetProfile(c *fiber.Ctx) error {
-	// Periksa koneksi
-	if !h.whatsApp.GetConnectionState().IsConnected {
-		return c.Status(fiber.StatusServiceUnavailable).JSON(
-			model.NewProfileErrorResponse("WhatsApp tidak terhubung"))
+	// Dapatkan status koneksi terlebih dahulu
+	state, err := h.WhatsApp.GetConnectionStateSafe()
+	if err != nil {
+		return h.SendError(c, "Gagal mendapatkan status koneksi", err, fiber.StatusInternalServerError)
 	}
 
-	// Dapatkan informasi perangkat/akun
-	deviceInfo := h.whatsApp.GetDeviceInfo()
+	// Jika tidak terhubung, kembalikan informasi terbatas tanpa timestamp
+	if !state.IsConnected {
+		h.Logger.Info("Permintaan profil saat WhatsApp tidak terhubung")
 
-	// Format respons
+		// Buat profile kosong tanpa menyertakan ConnectedSince
+		emptyProfile := model.ProfileInfo{
+			IsConnected: false,
+			IsLoggedIn:  false,
+			// Tidak menyertakan field lain agar omitempty bekerja
+		}
+
+		// Kembalikan respons minimal
+		return c.Status(fiber.StatusServiceUnavailable).JSON(model.ProfileResponse{
+			Success:   false,
+			Message:   "WhatsApp sedang tidak terhubung",
+			Profile:   emptyProfile,
+			Timestamp: time.Now(),
+		})
+	}
+
+	// Dapatkan informasi perangkat/akun dan status koneksi
+	deviceInfo := h.WhatsApp.GetDeviceInfo()
+
+	// Format respons - hanya sertakan ConnectedSince jika terhubung
 	profile := model.ProfileInfo{
-		IsConnected: h.whatsApp.GetConnectionState().IsConnected,
-		IsLoggedIn:  h.whatsApp.IsLoggedIn(),
+		IsConnected: state.IsConnected,
+		IsLoggedIn:  h.WhatsApp.IsLoggedIn(),
 	}
 
-	// Dapatkan informasi kontak sendiri untuk informasi yang lebih lengkap
-	var contactInfo *types.ContactInfo
-	if h.whatsApp.IsLoggedIn() {
-		info, err := h.whatsApp.GetOwnContactInfo()
-		if err == nil {
-			contactInfo = info
-			h.logger.Debug("Berhasil mendapatkan informasi kontak sendiri")
+	// ConnectedSince hanya disertakan jika terhubung
+	if state.IsConnected {
+		// Pastikan ConnectedSince memiliki nilai yang benar, bukan nilai default
+		if !state.ConnectedSince.IsZero() {
+			connectedSince := state.ConnectedSince                      // Salin nilai
+			formattedTime := utils.FormatTimeIndonesia(&connectedSince) // Format untuk tampilan
+			profile.ConnectedSince = formattedTime
 		} else {
-			h.logger.Debug("Gagal mendapatkan informasi kontak sendiri", utils.Fields{
-				"error": err.Error(),
-			})
+			// Jika ConnectedSince masih nilai default, gunakan LastActivity sebagai fallback
+			connectedSince := state.LastActivity
+			formattedTime := utils.FormatTimeIndonesia(&connectedSince)
+			profile.ConnectedSince = formattedTime
 		}
 	}
 
-	// Isi data dari deviceInfo yang sudah lengkap
+	// Isi data dari deviceInfo
 	if id, ok := deviceInfo["id"].(string); ok {
 		profile.ID = id
 		profile.PhoneNumber = client.FormatWhatsAppNumber(id)
 	}
 
-	// Ambil nama dari berbagai sumber dengan prioritas
-	if name, ok := deviceInfo["push_name"].(string); ok && name != "" {
-		profile.Name = name
-	} else if contactInfo != nil && contactInfo.PushName != "" {
-		profile.Name = contactInfo.PushName
-	} else if name, ok := deviceInfo["name"].(string); ok && name != "" {
-		profile.Name = name
+	// Dapatkan nama dari deviceInfo (paling terpercaya)
+	if pushName, ok := deviceInfo["push_name"].(string); ok && pushName != "" {
+		profile.Name = pushName
 	} else {
-		// Fallback ke nomor telepon sebagai nama
+		// Fallback ke nomor telepon jika tidak ada nama
 		profile.Name = profile.PhoneNumber
 	}
 
-	// Ambil status dari deviceInfo
-	if status, ok := deviceInfo["status"].(string); ok && status != "" {
+	// Ambil status jika tersedia
+	if status, ok := deviceInfo["status"].(string); ok {
 		profile.Status = status
 	}
 
-	// Ambil informasi perangkat dari deviceInfo
-	if device, ok := deviceInfo["device"].(string); ok && device != "" {
-		profile.Device = device
-	} else if platform, ok := deviceInfo["platform"].(string); ok && platform != "" {
-		profile.Device = platform
-	} else {
-		profile.Device = "WhatsApp Web"
+	// Ambil URL foto profil jika tersedia
+	if h.WhatsApp.IsLoggedIn() && h.WhatsApp.GetSelfID() != nil {
+		if pictureURL, err := h.WhatsApp.GetProfilePictureURL(); err == nil && pictureURL != "" {
+			profile.PictureURL = pictureURL
+		}
 	}
 
-	// Ambil URL foto profil dari deviceInfo
-	if pictureURL, ok := deviceInfo["picture_url"].(string); ok && pictureURL != "" {
-		profile.PictureURL = pictureURL
-	}
-
-	h.logger.Info("Informasi profil WhatsApp berhasil diambil", utils.Fields{
-		"name":    profile.Name,
-		"number":  profile.PhoneNumber,
-		"device":  profile.Device,
-		"has_pic": profile.PictureURL != "",
-	})
-
-	return c.JSON(model.NewProfileResponse("Profil WhatsApp berhasil diambil", profile))
+	h.Logger.Info("Informasi profil WhatsApp berhasil diambil")
+	return h.SendSuccess(c, model.NewProfileResponse("Profil WhatsApp berhasil diambil", profile))
 }

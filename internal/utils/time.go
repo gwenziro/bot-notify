@@ -30,24 +30,30 @@ func FormatTime(t *time.Time) string {
 		t.Hour(), t.Minute(), t.Second())
 }
 
-// FormatTimeShort memformat time.Time menjadi string singkat
+// FormatTimeShort memformat waktu menjadi string pendek
 // Format: "26 Mei 2025, 11:35"
 func FormatTimeShort(t *time.Time) string {
-	if t == nil {
-		t = &time.Time{}
-		*t = time.Now()
+	if t == nil || t.IsZero() {
+		return ""
+	}
+	return t.Format("02 Jan 2006, 15:04")
+}
+
+// FormatTimeIndonesia memformat waktu ke format yang umum di Indonesia
+func FormatTimeIndonesia(t *time.Time) string {
+	if t == nil || t.IsZero() {
+		return ""
 	}
 
-	// Tentukan nama bulan dalam bahasa Indonesia
-	bulan := []string{
-		"Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
-		"Jul", "Agt", "Sep", "Okt", "Nov", "Des",
+	// Format: "27 Mei 2025 08:03:10"
+	bulanIndonesia := []string{
+		"Januari", "Februari", "Maret", "April", "Mei", "Juni",
+		"Juli", "Agustus", "September", "Oktober", "November", "Desember",
 	}
-	namaBulan := bulan[t.Month()-1]
 
-	// Format: "26 Mei 2025, 11:35"
-	return fmt.Sprintf("%02d %s %d, %02d:%02d",
-		t.Day(), namaBulan, t.Year(), t.Hour(), t.Minute())
+	month := bulanIndonesia[t.Month()-1]
+	return fmt.Sprintf("%d %s %d %02d:%02d:%02d",
+		t.Day(), month, t.Year(), t.Hour(), t.Minute(), t.Second())
 }
 
 // FormatTimeRelative memformat time.Time menjadi waktu relatif

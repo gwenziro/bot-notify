@@ -11,76 +11,61 @@ import (
 
 // StatusHandler menangani endpoint status API
 type StatusHandler struct {
-	whatsApp *client.Client
-	logger   utils.LogrusEntry
-	version  string
+	BaseHandler
+	version string
 }
 
 // NewStatusHandler membuat instance baru StatusHandler
 func NewStatusHandler(whatsClient *client.Client) *StatusHandler {
-	logger := utils.ForModule("handler-status")
-
-	if whatsClient == nil {
-		logger.Error("whatsClient tidak boleh nil saat membuat StatusHandler")
-	}
-
 	return &StatusHandler{
-		whatsApp: whatsClient,
-		logger:   logger,
-		version:  "1.0.0",
+		BaseHandler: NewBaseHandler(whatsClient, "handler-status"),
+		version:     "1.0.0",
 	}
 }
 
 // GetStatus mengembalikan status koneksi WhatsApp
 func (h *StatusHandler) GetStatus(c *fiber.Ctx) error {
 	// Log untuk debugging
-	h.logger.Debug("GetStatus dipanggil", utils.Fields{
-		"has_client": h.whatsApp != nil,
-		"path":       c.Path(),
+	h.Logger.Debug("GetStatus dipanggil", utils.Fields{
+		"path": c.Path(),
 	})
 
 	// Periksa apakah whatsApp client nil
-	if h.whatsApp == nil {
-		h.logger.Error("whatsApp client is nil in GetStatus")
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"success": false,
-			"error":   "WhatsApp client not initialized",
-			"code":    fiber.StatusInternalServerError,
-		})
+	if h.WhatsApp == nil {
+		h.Logger.Error("whatsApp client is nil in GetStatus")
+		return h.SendError(c, "WhatsApp client not initialized", nil, fiber.StatusInternalServerError)
 	}
 
 	// Dapatkan status koneksi dengan pengecekan error
-	state, err := h.whatsApp.GetConnectionStateSafe()
+	state, err := h.WhatsApp.GetConnectionStateSafe()
 	if err != nil {
-		h.logger.WithError(err).Error("Gagal mendapatkan status koneksi")
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"success": false,
-			"error":   "Failed to get connection state: " + err.Error(),
-			"code":    fiber.StatusInternalServerError,
-		})
+		h.Logger.WithError(err).Error("Gagal mendapatkan status koneksi")
+		return h.SendError(c, "Failed to get connection state", err, fiber.StatusInternalServerError)
 	}
 
-	// Konversi ke model
+	// Konversi ke model dengan menyesuaikan data berdasarkan status koneksi
 	status := model.ConnectionStatus{
-		Status:                string(state.Status),
-		IsConnected:           state.IsConnected,
-		ConnectionRetries:     state.ConnectionRetries,
-		LastActivity:          state.LastActivity,
-		Timestamp:             state.Timestamp,
-		LastActivityFormatted: utils.FormatTimeShort(&state.LastActivity),
-		TimestampFormatted:    utils.FormatTimeShort(&state.Timestamp),
+		Status:      string(state.Status),
+		IsConnected: state.IsConnected,
+	}
+
+	// Hanya sertakan informasi detail jika terhubung
+	if state.IsConnected {
+		// Gunakan format waktu Indonesia
+		status.ConnectionRetries = state.ConnectionRetries
+		status.LastActivity = utils.FormatTimeIndonesia(&state.LastActivity)
+		status.Timestamp = utils.FormatTimeIndonesia(&state.Timestamp)
 	}
 
 	now := time.Now()
 	response := model.StatusResponse{
-		Success:       true,
-		Status:        string(state.Status),
-		Details:       status,
-		Time:          now,
-		TimeFormatted: utils.FormatTimeShort(&now),
+		Success:    true,
+		Details:    status,
+		Time:       utils.FormatTimeIndonesia(&now),
+		ServerTime: now,
 	}
 
-	return c.JSON(response)
+	return h.SendSuccess(c, response)
 }
 
 // TestConnection menguji koneksi API tanpa autentikasi
@@ -94,5 +79,5 @@ func (h *StatusHandler) TestConnection(c *fiber.Ctx) error {
 		TimeFormatted: utils.FormatTimeShort(&now),
 	}
 
-	return c.JSON(pingResponse)
+	return h.SendSuccess(c, pingResponse)
 }

@@ -46,25 +46,36 @@ func (c *Client) GetGroupByID(groupID string) (*types.GroupInfo, error) {
 	return group, nil
 }
 
-// GetContactInfo mendapatkan informasi kontak
-func (c *Client) GetContactInfo(phoneNumber string) (*types.ContactInfo, error) {
-	if c.waClient == nil || !c.connectionState.IsConnected {
-		return nil, errors.New("klien WhatsApp belum terhubung")
+// GetContactInfo mendapatkan informasi kontak berdasarkan nomor telepon atau JID
+func (c *Client) GetContactInfo(identifier string) (*types.ContactInfo, error) {
+	// Validasi koneksi
+	if err := c.validateConnection(); err != nil {
+		return nil, err
 	}
 
-	// Konversi nomor telepon ke JID
-	jid := ParsePhoneNumber(phoneNumber)
-	// Ambil info kontak
-	c.logger.WithField("phone", phoneNumber).Debug("Mengambil informasi kontak")
 	c.UpdateLastActivity()
 
+	// Ambil kontak dari store
 	ctx := context.Background()
-	contact, err := c.waClient.Store.Contacts.GetContact(ctx, jid)
+	contact, err := c.waClient.Store.Contacts.GetContact(ctx, ParsePhoneNumber(identifier))
 	if err != nil {
-		return nil, fmt.Errorf("gagal mendapatkan info kontak %s: %w", phoneNumber, err)
+		return nil, fmt.Errorf("gagal mendapatkan info kontak %s: %w", identifier, err)
 	}
 
 	return &contact, nil
+}
+
+// validateConnection adalah helper untuk memvalidasi koneksi
+func (c *Client) validateConnection() error {
+	if c.waClient == nil || !c.connectionState.IsConnected {
+		return errors.New("klien WhatsApp belum terhubung")
+	}
+
+	if c.waClient.Store == nil || c.waClient.Store.Contacts == nil {
+		return errors.New("penyimpanan kontak WhatsApp tidak tersedia")
+	}
+
+	return nil
 }
 
 // IsLoggedIn memeriksa apakah pengguna sudah login
@@ -127,12 +138,10 @@ func (c *Client) GetProfilePictureURL() (string, error) {
 		return "", fmt.Errorf("id akun tidak tersedia")
 	}
 
-	params := &whatsmeow.GetProfilePictureParams{
-		Preview: false,
-	}
-
 	// Gunakan API whatsmeow untuk mendapatkan foto profil
-	profilePic, err := c.waClient.GetProfilePictureInfo(selfID.ToNonAD(), params)
+	profilePic, err := c.waClient.GetProfilePictureInfo(selfID.ToNonAD(), &whatsmeow.GetProfilePictureParams{
+		Preview: false,
+	})
 	if err != nil {
 		return "", err
 	}
@@ -144,155 +153,44 @@ func (c *Client) GetProfilePictureURL() (string, error) {
 	return profilePic.URL, nil
 }
 
-// GetOwnContactInfo mendapatkan informasi kontak dari akun WhatsApp yang terhubung saat ini
-func (c *Client) GetOwnContactInfo() (*types.ContactInfo, error) {
-	if c.waClient == nil || !c.connectionState.IsConnected {
-		return nil, errors.New("klien WhatsApp belum terhubung")
-	}
-
-	// Dapatkan ID sendiri
-	selfID := c.waClient.Store.ID
-	if selfID == nil {
-		return nil, errors.New("ID akun tidak tersedia")
-	}
-
-	// Menggunakan fungsi GetContactInfo yang sudah ada dengan ID sendiri
-	selfJID := selfID.ToNonAD()
-	selfNumber := FormatWhatsAppNumber(selfJID.String())
-
-	c.logger.Debug("Mengambil informasi kontak sendiri", utils.Fields{
-		"jid":    selfJID.String(),
-		"number": selfNumber,
-	})
-
-	// Ambil kontak menggunakan konteks
-	ctx := context.Background()
-	contact, err := c.waClient.Store.Contacts.GetContact(ctx, selfJID)
-	if err != nil {
-		return nil, fmt.Errorf("gagal mendapatkan info kontak sendiri: %w", err)
-	}
-
-	return &contact, nil
-}
-
-// GetDeviceInfo mengembalikan informasi lengkap tentang perangkat yang digunakan
+// GetDeviceInfo mengembalikan informasi tentang perangkat WhatsApp yang terhubung
 func (c *Client) GetDeviceInfo() map[string]interface{} {
 	// Validasi dasar
-	if c == nil {
+	if c == nil || c.waClient == nil || c.waClient.Store == nil || c.waClient.Store.ID == nil {
 		return map[string]interface{}{
 			"logged_in": false,
-			"error":     "client is nil",
+			"error":     "tidak ada sesi aktif",
 		}
 	}
 
-	if c.waClient == nil {
-		return map[string]interface{}{
-			"logged_in": false,
-			"error":     "whatsmeow client is nil",
-		}
-	}
-
-	if c.waClient.Store == nil {
-		return map[string]interface{}{
-			"logged_in": false,
-			"error":     "whatsmeow store is nil",
-		}
-	}
-
-	if c.waClient.Store.ID == nil {
-		return map[string]interface{}{
-			"logged_in": false,
-			"error":     "not logged in, no JID available",
-		}
-	}
-
-	// Log semua informasi yang tersedia di store
-	c.logger.Debug("WhatsApp store info", utils.Fields{
-		"store_id":     c.waClient.Store.ID.String(),
-		"push_name":    c.waClient.Store.PushName,
-		"has_contacts": c.waClient.Store.Contacts != nil,
-	})
-
-	// Dapatkan informasi dasar
+	// Dapatkan informasi dasar yang pasti tersedia
 	jid := c.waClient.Store.ID.String()
 	formattedNumber := FormatWhatsAppNumber(jid)
 	pushName := c.waClient.Store.PushName
 
-	// Dapatkan nama dan informasi kontak tambahan dari GetOwnContactInfo
-	if pushName == "" {
-		c.logger.Debug("Push name is empty, trying to get it from contact info")
-
-		// Gunakan GetOwnContactInfo untuk mendapatkan informasi kontak
-		contactInfo, err := c.GetOwnContactInfo()
-		if err == nil && contactInfo != nil && contactInfo.PushName != "" {
-			pushName = contactInfo.PushName
-			c.logger.Debug("Found push name from own contact info", utils.Fields{"push_name": pushName})
-		} else {
-			c.logger.Debug("Failed to get contact info", utils.Fields{"error": err})
-		}
-	}
-
-	// Dapatkan status - catatan: ContactInfo tidak memiliki field Status
-	status := "" // Tidak dapat mengakses status kontak
-
-	// Informasi platform - Store.Platform mungkin bukan pointer di versi whatsmeow
-	platform := "WhatsApp Web" // Default platform
-
-	// Coba dapatkan informasi platform dari sumber lain
-	if c.waClient.Store != nil && c.waClient.Store.PushName != "" {
-		// Mungkin kita bisa mendapatkan informasi dari properti lain
-		// Untuk saat ini, gunakan default
-	}
-
-	// Informasi versi - Store.ClientVersion tidak tersedia di whatsmeow
-	version := ""
-
-	// Coba dapatkan URL foto profil
+	// Dapatkan URL foto profil jika tersedia
 	pictureURL := ""
 	if c.waClient.IsLoggedIn() {
-		params := &whatsmeow.GetProfilePictureParams{
-			Preview: false,
-		}
-		if profilePic, err := c.waClient.GetProfilePictureInfo(c.waClient.Store.ID.ToNonAD(), params); err == nil && profilePic != nil && profilePic.URL != "" {
-			pictureURL = profilePic.URL
-			c.logger.Debug("Found profile picture URL", utils.Fields{"url": pictureURL})
-		} else {
-			c.logger.Debug("Failed to get profile picture", utils.Fields{"error": err})
+		if pic, err := c.GetProfilePictureURL(); err == nil && pic != "" {
+			pictureURL = pic
 		}
 	}
 
-	// Siapkan hasil yang lengkap
-	deviceInfo := map[string]interface{}{
+	// Siapkan hasil
+	result := map[string]interface{}{
 		"id":            jid,
 		"formatted_jid": formattedNumber,
 		"logged_in":     true,
 		"push_name":     pushName,
-		"status":        status,
-		"platform":      platform,
 		"picture_url":   pictureURL,
 	}
 
-	// Tambahkan informasi opsional jika tersedia
-	if version != "" {
-		deviceInfo["version"] = version
-	}
-
-	// Buat field device yang menggabungkan platform dan versi
-	deviceType := platform
-	if version != "" {
-		deviceType = fmt.Sprintf("%s %s", platform, version)
-	}
-	deviceInfo["device"] = deviceType
-
-	// Log informasi device untuk debugging
-	c.logger.Debug("Complete device info retrieved", utils.Fields{
-		"id":          jid,
+	c.logger.Debug("Device info retrieved", utils.Fields{
+		"jid":         jid,
 		"number":      formattedNumber,
 		"push_name":   pushName,
-		"platform":    platform,
-		"version":     version,
 		"has_picture": pictureURL != "",
 	})
 
-	return deviceInfo
+	return result
 }

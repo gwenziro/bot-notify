@@ -4,14 +4,14 @@ import "time"
 
 // ProfileInfo berisi informasi dasar tentang akun WhatsApp yang terhubung
 type ProfileInfo struct {
-	ID          string `json:"id"`
-	PhoneNumber string `json:"phoneNumber"`
-	Name        string `json:"name"`
-	Status      string `json:"status,omitempty"`
-	IsConnected bool   `json:"isConnected"`
-	IsLoggedIn  bool   `json:"isLoggedIn"`
-	PictureURL  string `json:"pictureUrl,omitempty"`
-	Device      string `json:"device,omitempty"`
+	ID             string `json:"id,omitempty"`
+	PhoneNumber    string `json:"phoneNumber,omitempty"`
+	Name           string `json:"name,omitempty"`
+	Status         string `json:"status,omitempty"`
+	IsConnected    bool   `json:"isConnected"`
+	IsLoggedIn     bool   `json:"isLoggedIn"`
+	PictureURL     string `json:"pictureUrl,omitempty"`
+	ConnectedSince string `json:"connectedSince,omitempty"` // Ubah ke string terformat
 }
 
 // ProfileResponse untuk hasil query profil WhatsApp

@@ -95,6 +95,13 @@ func (c *Client) Disconnect() {
 	}
 
 	c.logger.Info("Menutup koneksi WhatsApp")
+
+	// Perbarui status koneksi SEBELUM memanggil disconnect
+	c.connectionState.Status = StatusDisconnected
+	c.connectionState.IsConnected = false
+	c.connectionState.Timestamp = time.Now()
+
+	// Tutup koneksi aktual
 	c.waClient.Disconnect()
 }
 
@@ -157,7 +164,7 @@ func (c *Client) AttemptReconnect(reason string) {
 // handleConnectedEvent menangani event Connected
 func (c *Client) handleConnectedEvent() {
 	// Dapatkan dan log info perangkat yang terhubung
-	deviceName := "Unknown"
+	contactName := "Unknown"
 
 	if c.waClient != nil && c.waClient.Store != nil {
 		// Coba mendapatkan nomor dan nama
@@ -167,9 +174,9 @@ func (c *Client) handleConnectedEvent() {
 		}
 
 		pushName := c.waClient.Store.PushName
-		deviceName = pushName
-		if deviceName == "" {
-			deviceName = jid
+		contactName = pushName
+		if contactName == "" {
+			contactName = jid
 		}
 
 		// Cek detail autentikasi
@@ -181,15 +188,25 @@ func (c *Client) handleConnectedEvent() {
 	}
 
 	c.logger.Info("Terhubung ke WhatsApp", utils.Fields{
-		"device_name":      deviceName,
+		"contact_name":     contactName,
 		"client_connected": c.waClient != nil && c.waClient.IsConnected(),
 		"client_logged_in": c.waClient != nil && c.waClient.IsLoggedIn(),
 	})
 
 	// Update status koneksi
+	previousStatus := c.connectionState.Status
 	c.connectionState.Status = StatusConnected
 	c.connectionState.IsConnected = true
-	c.connectionState.ConnectionRetries = 0 // Reset retry counter pada koneksi berhasil
+	c.connectionState.ConnectionRetries = 0
+
+	// Set ConnectedSince hanya jika baru terhubung
+	if previousStatus != StatusConnected {
+		c.connectionState.ConnectedSince = time.Now()
+		c.logger.Info("Connection established, setting ConnectedSince timestamp", utils.Fields{
+			"connected_since": c.connectionState.ConnectedSince,
+		})
+	}
+
 	c.UpdateLastActivity()
 
 	// Coba update informasi profil setelah terhubung

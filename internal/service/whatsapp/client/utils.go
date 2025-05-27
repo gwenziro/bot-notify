@@ -1,43 +1,9 @@
 package client
 
 import (
-	"strings"
-
+	"github.com/gwenziro/bot-notify/internal/utils"
 	"go.mau.fi/whatsmeow/types"
 )
-
-// FormatPhoneNumber memformat nomor telepon menjadi format ID WhatsApp personal
-func FormatPhoneNumber(number string) string {
-	// Bersihkan nomor dari karakter non-digit
-	number = strings.TrimSpace(number)
-
-	// Hapus karakter non-digit (selain + di awal)
-	if strings.HasPrefix(number, "+") {
-		number = "+" + strings.Map(func(r rune) rune {
-			if r >= '0' && r <= '9' {
-				return r
-			}
-			return -1
-		}, number[1:])
-	} else {
-		number = strings.Map(func(r rune) rune {
-			if r >= '0' && r <= '9' {
-				return r
-			}
-			return -1
-		}, number)
-	}
-
-	// Jika dimulai dengan +, hapus +
-	number = strings.TrimPrefix(number, "+")
-
-	// Jika dimulai dengan 0, ganti dengan 62 (kode negara Indonesia)
-	if strings.HasPrefix(number, "0") {
-		number = "62" + number[1:]
-	}
-
-	return number
-}
 
 // ParseJID mengkonversi string ID menjadi JID WhatsApp
 func ParseJID(id string) (types.JID, error) {
@@ -46,33 +12,15 @@ func ParseJID(id string) (types.JID, error) {
 
 // ParsePhoneNumber mengkonversi nomor telepon menjadi JID personal
 func ParsePhoneNumber(phoneNumber string) types.JID {
-	number := FormatPhoneNumber(phoneNumber)
+	number := utils.FormatPhoneNumber(phoneNumber)
 	return types.NewJID(number, types.DefaultUserServer)
-}
-
-// FormatGroupID memformat ID grup WhatsApp
-func FormatGroupID(id string) string {
-	// Jika sudah memiliki @g.us, gunakan apa adanya
-	if strings.Contains(id, "@g.us") {
-		return id
-	}
-
-	// Hapus karakter non-digit dari ID
-	id = strings.Map(func(r rune) rune {
-		if r >= '0' && r <= '9' {
-			return r
-		}
-		return -1
-	}, id)
-
-	return id + "@g.us"
 }
 
 // ParseGroupID mengkonversi ID grup menjadi JID grup
 func ParseGroupID(groupID string) types.JID {
-	id := FormatGroupID(groupID)
+	id := utils.FormatGroupID(groupID)
 	// Hapus @g.us jika ada untuk memastikan format yang benar
-	id = strings.TrimSuffix(id, "@g.us")
+	id = id[:len(id)-5] // Menghapus "@g.us"
 	return types.NewJID(id, types.GroupServer)
 }
 
@@ -86,22 +34,10 @@ func IsValidGroupJID(jid types.JID) bool {
 	return jid.Server == types.GroupServer && jid.User != ""
 }
 
-// FormatWhatsAppNumber mengubah JID WhatsApp menjadi nomor telepon lokal yang mudah dibaca
-func FormatWhatsAppNumber(jid string) string {
-	// Menangani format XXXXXX@s.whatsapp.net atau XXXXXX:XX@s.whatsapp.net
-	parts := strings.Split(jid, "@")
-	if len(parts) < 2 {
-		return jid // Kembalikan input asli jika bukan format JID yang diharapkan
-	}
-
-	// Ambil bagian nomor telepon (yang mungkin memiliki device ID setelah :)
-	phoneAndDevice := strings.Split(parts[0], ":")
-	phone := phoneAndDevice[0]
-
-	// Ubah awalan 62 (Indonesia) menjadi 0
-	if strings.HasPrefix(phone, "62") {
-		return "0" + phone[2:]
-	}
-
-	return phone
-}
+// Alias untuk fungsi di utils package untuk kemudahan penggunaan
+var (
+	FormatPhoneNumber    = utils.FormatPhoneNumber
+	FormatGroupID        = utils.FormatGroupID
+	FormatWhatsAppNumber = utils.FormatWhatsAppNumber
+	NormalizeJID         = utils.NormalizeJID
+)

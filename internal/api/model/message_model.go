@@ -1,6 +1,10 @@
 package model
 
-import "time"
+import (
+	"time"
+
+	"github.com/gwenziro/bot-notify/internal/utils"
+)
 
 // PersonalMessageRequest untuk request API kirim pesan personal
 type PersonalMessageRequest struct {
@@ -21,16 +25,20 @@ type MessageResponse struct {
 	Recipient string    `json:"recipient"`
 	Type      string    `json:"type"`
 	Timestamp time.Time `json:"timestamp"`
+	SentTime  string    `json:"sentTime,omitempty"` // Waktu terkirim dalam format yang mudah dibaca
 }
 
 // NewMessageResponse membuat respons pesan baru
 func NewMessageResponse(message string, recipient string, messageType string) MessageResponse {
+	now := time.Now()
+
 	return MessageResponse{
 		Success:   true,
 		Message:   message,
 		Recipient: recipient,
 		Type:      messageType,
-		Timestamp: time.Now(),
+		Timestamp: now,
+		SentTime:  utils.FormatTimeIndonesia(&now), // Format waktu dalam bahasa Indonesia
 	}
 }
 

@@ -1,23 +1,22 @@
 package handler
 
 import (
+	"time"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/gwenziro/bot-notify/internal/api/model"
 	"github.com/gwenziro/bot-notify/internal/service/whatsapp/client"
-	"github.com/gwenziro/bot-notify/internal/utils"
 )
 
 // ConnectionHandler menangani endpoint koneksi WhatsApp
 type ConnectionHandler struct {
-	whatsApp *client.Client
-	logger   utils.LogrusEntry
+	BaseHandler
 }
 
 // NewConnectionHandler membuat instance baru ConnectionHandler
 func NewConnectionHandler(whatsClient *client.Client) *ConnectionHandler {
 	return &ConnectionHandler{
-		whatsApp: whatsClient,
-		logger:   utils.ForModule("handler-connection"),
+		BaseHandler: NewBaseHandler(whatsClient, "handler-connection"),
 	}
 }
 
@@ -29,16 +28,15 @@ func (h *ConnectionHandler) Reconnect(c *fiber.Ctx) error {
 	c.BodyParser(&req)
 
 	// Connect whatsapp langsung
-	err := h.whatsApp.Connect()
+	err := h.WhatsApp.Connect()
 	if err != nil {
-		h.logger.WithError(err).Error("Gagal menghubungkan ulang WhatsApp")
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			model.NewConnectionResponse(false, "Gagal menghubungkan WhatsApp: "+err.Error(), "error"))
+		h.Logger.WithError(err).Error("Gagal menghubungkan ulang WhatsApp")
+		return h.SendError(c, "Gagal menghubungkan WhatsApp", err, fiber.StatusInternalServerError)
 	}
 
-	h.logger.Info("Permintaan menghubungkan ulang WhatsApp berhasil diproses")
+	h.Logger.Info("Permintaan menghubungkan ulang WhatsApp berhasil diproses")
 
-	return c.JSON(model.NewConnectionResponse(
+	return h.SendSuccess(c, model.NewConnectionResponse(
 		true,
 		"Permintaan menghubungkan ulang WhatsApp berhasil diproses",
 		"connecting"))
@@ -46,21 +44,29 @@ func (h *ConnectionHandler) Reconnect(c *fiber.Ctx) error {
 
 // Disconnect memutuskan koneksi WhatsApp
 func (h *ConnectionHandler) Disconnect(c *fiber.Ctx) error {
-	// Putuskan koneksi WhatsApp
-	h.whatsApp.Disconnect()
+	// Putuskan koneksi WhatsApp terlebih dahulu
+	h.WhatsApp.Disconnect()
+
+	// Tunggu sejenak agar status koneksi sempat diperbarui
+	time.Sleep(100 * time.Millisecond)
 
 	// Hapus sesi
-	err := h.whatsApp.SessionManager.ClearSessions()
+	err := h.WhatsApp.SessionManager.ClearSessions()
 	if err != nil {
-		h.logger.WithError(err).Error("Gagal menghapus sesi WhatsApp")
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			model.NewConnectionResponse(false, "Koneksi diputus tetapi gagal menghapus sesi: "+err.Error(), "error"))
+		h.Logger.WithError(err).Error("Gagal menghapus sesi WhatsApp")
+		return h.SendError(c, "Koneksi diputus tetapi gagal menghapus sesi", err, fiber.StatusInternalServerError)
 	}
 
-	h.logger.Info("WhatsApp berhasil diputuskan melalui API")
+	// Verifikasi status koneksi setelah disconnect
+	state := h.WhatsApp.GetConnectionState()
+	if state.IsConnected {
+		h.Logger.Warn("Status koneksi masih terdeteksi sebagai terhubung setelah disconnect")
+	}
 
-	return c.JSON(model.NewConnectionResponse(
+	h.Logger.Info("WhatsApp berhasil diputuskan melalui API")
+
+	return h.SendSuccess(c, model.NewConnectionResponse(
 		true,
 		"WhatsApp berhasil diputuskan dan sesi dibersihkan",
-		"disconnected"))
+		string(h.WhatsApp.GetConnectionState().Status)))
 }

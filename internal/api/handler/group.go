@@ -1,132 +1,117 @@
 package handler
 
 import (
-	"strings"
-
 	"github.com/gofiber/fiber/v2"
 	"github.com/gwenziro/bot-notify/internal/api/model"
 	"github.com/gwenziro/bot-notify/internal/service/whatsapp/client"
 	"github.com/gwenziro/bot-notify/internal/utils"
+	"go.mau.fi/whatsmeow/types"
 )
 
 // GroupHandler menangani endpoint grup API
 type GroupHandler struct {
-	whatsApp *client.Client
-	logger   utils.LogrusEntry
+	BaseHandler
 }
 
 // NewGroupHandler membuat instance baru GroupHandler
 func NewGroupHandler(whatsClient *client.Client) *GroupHandler {
 	return &GroupHandler{
-		whatsApp: whatsClient,
-		logger:   utils.ForModule("handler-group"),
+		BaseHandler: NewBaseHandler(whatsClient, "handler-group"),
 	}
 }
 
 // ListGroups mengembalikan daftar grup yang tersedia
 func (h *GroupHandler) ListGroups(c *fiber.Ctx) error {
-	// Dapatkan JID perangkat kita sendiri untuk membandingkan dengan admin grup
-	selfJID := h.whatsApp.GetSelfID()
-	if selfJID == nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			model.NewGroupListResponse("Gagal mendapatkan ID perangkat", nil))
-	}
-
-	// Gunakan WhatsApp client langsung untuk mendapatkan daftar grup
-	groups, err := h.whatsApp.GetGroups()
+	// Dapatkan status koneksi terlebih dahulu
+	state, err := h.WhatsApp.GetConnectionStateSafe()
 	if err != nil {
-		h.logger.WithError(err).Error("Gagal mendapatkan daftar grup")
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			model.NewGroupListResponse("Gagal mendapatkan daftar grup: "+err.Error(), nil))
+		return h.SendError(c, "Gagal mendapatkan status koneksi", err, fiber.StatusInternalServerError)
 	}
 
-	// Tambahkan log untuk debugging
-	h.logger.Debug("Self JID for admin check", utils.Fields{
-		"jid": selfJID.String(),
-	})
+	// Jika tidak terhubung, kembalikan error yang jelas tanpa data sensitif
+	if !state.IsConnected {
+		h.Logger.Info("Permintaan daftar grup saat WhatsApp tidak terhubung")
+		return c.Status(fiber.StatusServiceUnavailable).JSON(model.GroupListResponse{
+			Success: false,
+			Message: "WhatsApp sedang tidak terhubung",
+			Count:   0,
+			Groups:  []model.GroupInfo{},
+			// Tidak sertakan timestamp atau informasi koneksi lainnya
+		})
+	}
 
-	// Konversi ke bentuk yang sesuai untuk respons API
+	// Dapatkan JID perangkat sendiri
+	selfJID := h.WhatsApp.GetSelfID()
+	if selfJID == nil {
+		return h.SendError(c, "Gagal mendapatkan ID perangkat", nil, fiber.StatusInternalServerError)
+	}
+
+	// Dapatkan daftar grup
+	groups, err := h.WhatsApp.GetGroups()
+	if err != nil {
+		h.Logger.WithError(err).Error("Gagal mendapatkan daftar grup")
+		return h.SendError(c, "Gagal mendapatkan daftar grup", err, fiber.StatusInternalServerError)
+	}
+
+	// Proses data grup
+	result := h.processGroups(groups, selfJID)
+
+	h.Logger.WithField("count", len(groups)).Info("Daftar grup berhasil diambil")
+	return h.SendSuccess(c, model.NewGroupListResponse("Daftar grup berhasil diambil", result))
+}
+
+// processGroups mengkonversi daftar grup WhatsApp ke model API
+func (h *GroupHandler) processGroups(groups []*types.GroupInfo, selfJID *types.JID) []model.GroupInfo {
 	result := make([]model.GroupInfo, len(groups))
+	normalizedSelfJID := utils.NormalizeJID(selfJID.String())
+
 	for i, group := range groups {
-		// Dapatkan informasi grup lebih detail
-		detailedGroup, err := h.whatsApp.GetGroupByID(group.JID.String())
+		// Dapatkan informasi detail grup
+		detailedGroup, err := h.WhatsApp.GetGroupByID(group.JID.String())
 		if err != nil {
-			h.logger.WithError(err).Warn("Gagal mendapatkan informasi detail grup", utils.Fields{
+			h.Logger.WithError(err).Warn("Gagal mendapatkan informasi detail grup", utils.Fields{
 				"group_id": group.JID.String(),
 			})
-			// Gunakan informasi grup yang sudah ada jika detail gagal diambil
 			detailedGroup = group
 		}
 
-		// Periksa apakah perangkat kita adalah admin grup menggunakan data participant
-		isAdmin := false
-		normalizedSelfJID := normalizeJID(selfJID.String())
-
-		// Konversi participants ke model
-		participants := make([]model.GroupParticipantInfo, len(detailedGroup.Participants))
-		for j, participant := range detailedGroup.Participants {
-			// Normalize participant JID untuk perbandingan
-			normalizedParticipantJID := normalizeJID(participant.JID.String())
-
-			// Periksa apakah ini adalah JID kita
-			if normalizedSelfJID == normalizedParticipantJID {
-				isAdmin = participant.IsAdmin
-				h.logger.Debug("Found self in participants", utils.Fields{
-					"is_admin": participant.IsAdmin,
-					"jid":      normalizedParticipantJID,
-				})
-			}
-
-			// Tambahkan ke daftar participants
-			participants[j] = model.GroupParticipantInfo{
-				JID:          participant.JID.String(),
-				PhoneNumber:  client.FormatWhatsAppNumber(participant.JID.String()),
-				IsAdmin:      participant.IsAdmin,
-				IsSuperAdmin: participant.IsSuperAdmin,
-				DisplayName:  participant.DisplayName,
-			}
-		}
+		// Proses partisipan dan cek apakah pengguna adalah admin
+		participants, isAdmin := h.processParticipants(detailedGroup.Participants, normalizedSelfJID)
 
 		result[i] = model.GroupInfo{
 			ID:           group.JID.String(),
 			Name:         group.Name,
-			MemberCount:  len(group.Participants),
+			MemberCount:  len(detailedGroup.Participants),
 			IsAdmin:      isAdmin,
 			Participants: participants,
 		}
 	}
 
-	h.logger.WithField("count", len(groups)).Info("Daftar grup berhasil diambil")
-
-	// Kirim response sukses menggunakan model terkait
-	return c.JSON(model.NewGroupListResponse("Daftar grup berhasil diambil", result))
+	return result
 }
 
-// normalizeJID menormalkan JID untuk perbandingan yang lebih andal
-func normalizeJID(jid string) string {
-	// Hapus bagian server dan device identifier jika ada
-	normalized := jid
+// processParticipants memproses partisipan grup dan memeriksa status admin
+func (h *GroupHandler) processParticipants(participants []types.GroupParticipant, normalizedSelfJID string) ([]model.GroupParticipantInfo, bool) {
+	result := make([]model.GroupParticipantInfo, len(participants))
+	isAdmin := false
 
-	// Hapus bagian setelah @s.whatsapp.net atau @g.us
-	if idx := strings.IndexByte(normalized, '@'); idx > 0 {
-		// Ekstrak bagian nomor saja
-		userPart := normalized[:idx]
-		// Ambil bagian "server" (s.whatsapp.net atau g.us)
-		serverPart := ""
-		if strings.Contains(normalized, "@s.whatsapp.net") {
-			serverPart = "@s.whatsapp.net"
-		} else if strings.Contains(normalized, "@g.us") {
-			serverPart = "@g.us"
+	for i, participant := range participants {
+		normalizedParticipantJID := utils.NormalizeJID(participant.JID.String())
+
+		// Periksa apakah ini adalah JID kita
+		if normalizedSelfJID == normalizedParticipantJID {
+			isAdmin = participant.IsAdmin
 		}
 
-		// Hapus device identifier (misalnya ":3" pada "123456789:3@s.whatsapp.net")
-		if deviceIdx := strings.IndexByte(userPart, ':'); deviceIdx > 0 {
-			userPart = userPart[:deviceIdx]
+		// Tambahkan ke model
+		result[i] = model.GroupParticipantInfo{
+			JID:          participant.JID.String(),
+			PhoneNumber:  client.FormatWhatsAppNumber(participant.JID.String()),
+			IsAdmin:      participant.IsAdmin,
+			IsSuperAdmin: participant.IsSuperAdmin,
+			DisplayName:  participant.DisplayName,
 		}
-
-		// Gabungkan kembali
-		normalized = userPart + serverPart
 	}
 
-	return normalized
+	return result, isAdmin
 }
