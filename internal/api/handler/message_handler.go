@@ -105,52 +105,13 @@ func (h *MessageHandler) SendGroup(c *fiber.Ctx) error {
 
 // Broadcast mengirim pesan ke banyak nomor/grup sekaligus
 func (h *MessageHandler) Broadcast(c *fiber.Ctx) error {
-	// Validasi koneksi
-	if err := h.validateConnection(c); err != nil {
-		return err
-	}
-
-	// Parse dan validasi request
-	req, err := h.parseBroadcastRequest(c)
-	if err != nil {
-		return err
-	}
-
-	// Proses dan deduplikasi nomor personal
-	cleanedPersonalNumbers, dupPersonalCount := h.processPersonalNumbers(req.PersonalNumbers)
-	req.PersonalNumbers = cleanedPersonalNumbers
-
-	// Proses dan deduplikasi ID grup
-	cleanedGroupIDs, dupGroupCount := h.processGroupIDs(req.GroupIDs)
-	req.GroupIDs = cleanedGroupIDs
-
-	// Log tentang deduplikasi
-	h.logDeduplikasi(dupPersonalCount, dupGroupCount, cleanedPersonalNumbers, cleanedGroupIDs)
-
-	// Validasi jumlah target
-	if err := h.validateTargetCount(c, len(cleanedPersonalNumbers)+len(cleanedGroupIDs)); err != nil {
-		return err
-	}
-
-	// Validasi pesan
-	if req.Message == "" {
-		return h.SendError(c, "Pesan tidak boleh kosong", nil, fiber.StatusBadRequest)
-	}
-
-	// Sesuaikan delay
-	req.DelayMs = h.normalizeDelay(req.DelayMs)
-
-	// Lakukan broadcast dan dapatkan hasilnya
-	return h.executeBroadcast(c, req)
-}
-
-// validateConnection memeriksa apakah WhatsApp terhubung
-func (h *MessageHandler) validateConnection(c *fiber.Ctx) error {
+	// Periksa koneksi WhatsApp
 	state, err := h.WhatsApp.GetConnectionStateSafe()
 	if err != nil {
 		return h.SendError(c, "Gagal mendapatkan status koneksi", err, fiber.StatusInternalServerError)
 	}
 
+	// Jika tidak terhubung, kembalikan error yang jelas
 	if !state.IsConnected {
 		h.Logger.Info("Permintaan broadcast saat WhatsApp tidak terhubung")
 		errorResp := model.NewMessageResponse("Gagal mengirim pesan broadcast: WhatsApp sedang tidak terhubung", "", "")
@@ -158,57 +119,52 @@ func (h *MessageHandler) validateConnection(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusServiceUnavailable).JSON(errorResp)
 	}
 
-	return nil
-}
-
-// parseBroadcastRequest mem-parsing request broadcast dari body request
-func (h *MessageHandler) parseBroadcastRequest(c *fiber.Ctx) (*model.BroadcastRequest, error) {
 	// Debug lebih detail untuk melihat struktur JSON asli
 	bodyBytes := c.Body()
 	h.Logger.Debug(fmt.Sprintf("Request body raw: %s", string(bodyBytes)))
 
+	// Parse request
 	var req model.BroadcastRequest
 	if err := c.BodyParser(&req); err != nil {
 		h.Logger.WithError(err).Error("Gagal parsing request body broadcast")
-		return nil, h.SendError(c, "Format request tidak valid", err, fiber.StatusBadRequest)
+		return h.SendError(c, "Format request tidak valid", err, fiber.StatusBadRequest)
 	}
 
+	// Debugging
 	h.Logger.Debug(fmt.Sprintf("Personal numbers raw: %+v", req.PersonalNumbers))
 	h.Logger.Debug(fmt.Sprintf("Group IDs raw: %+v", req.GroupIDs))
 
-	return &req, nil
-}
+	// Proses personalNumbers dengan deduplikasi yang benar
+	cleanedPersonalNumbers := make([]string, 0)
+	seenPersonalNumbers := make(map[string]bool)
+	dupPersonalCount := 0 // Ubah: Mulai dari 0 dan tambah saat menemukan duplikat
 
-// processPersonalNumbers memproses dan mendeduplikasi nomor personal
-func (h *MessageHandler) processPersonalNumbers(numbers []string) ([]string, int) {
-	cleanedNumbers := make([]string, 0)
-	seenNumbers := make(map[string]bool)
-	dupCount := 0
-
-	for _, num := range numbers {
+	for _, num := range req.PersonalNumbers {
 		// Lompati nilai kosong/array kosong
-		if utils.IsEmptyArrayString(num) || num == "" {
+		if num == "[]" || num == "[ ]" || num == "" {
 			continue
 		}
 
 		// Tangani kasus array dalam string
-		if utils.IsArrayString(num) {
+		if strings.HasPrefix(num, "[") && strings.HasSuffix(num, "]") {
 			h.Logger.Debug(fmt.Sprintf("Memproses array dalam string: %s", num))
 
 			// Ekstrak nilai-nilai dalam array
-			innerArray := utils.ExtractArrayValues(num)
+			innerArray := extractArrayValues(num)
+			// Ubah: Proses hasil ekstraksi dengan deduplikasi
 			for _, innerNum := range innerArray {
 				if innerNum == "" || !utils.ValidatePhoneNumber(innerNum) {
 					continue
 				}
 
-				// Deduplikasi dengan normalisasi
+				// Normalisasi untuk deduplikasi
 				normalizedNum := utils.FormatPhoneNumber(innerNum)
-				if !seenNumbers[normalizedNum] {
-					seenNumbers[normalizedNum] = true
-					cleanedNumbers = append(cleanedNumbers, innerNum)
+
+				if !seenPersonalNumbers[normalizedNum] {
+					seenPersonalNumbers[normalizedNum] = true
+					cleanedPersonalNumbers = append(cleanedPersonalNumbers, innerNum)
 				} else {
-					dupCount++
+					dupPersonalCount++ // Tambahkan counter duplikat
 					h.Logger.Info("Melewati nomor duplikat", utils.Fields{
 						"number": innerNum,
 					})
@@ -223,52 +179,50 @@ func (h *MessageHandler) processPersonalNumbers(numbers []string) ([]string, int
 			continue
 		}
 
-		// Deduplikasi
+		// Deduplikasi nomor normal
 		normalizedNum := utils.FormatPhoneNumber(num)
-		if !seenNumbers[normalizedNum] {
-			seenNumbers[normalizedNum] = true
-			cleanedNumbers = append(cleanedNumbers, num)
+		if !seenPersonalNumbers[normalizedNum] {
+			seenPersonalNumbers[normalizedNum] = true
+			cleanedPersonalNumbers = append(cleanedPersonalNumbers, num)
 		} else {
-			dupCount++
+			dupPersonalCount++ // Tambahkan counter duplikat
 			h.Logger.Info("Melewati nomor duplikat", utils.Fields{
 				"number": num,
 			})
 		}
 	}
 
-	return cleanedNumbers, dupCount
-}
+	// Proses groupIDs dengan deduplikasi yang benar
+	cleanedGroupIDs := make([]string, 0)
+	seenGroupIDs := make(map[string]bool)
+	dupGroupCount := 0 // Ubah: Mulai dari 0 dan tambah saat menemukan duplikat
 
-// processGroupIDs memproses dan mendeduplikasi ID grup
-func (h *MessageHandler) processGroupIDs(groupIDs []string) ([]string, int) {
-	cleanedIDs := make([]string, 0)
-	seenIDs := make(map[string]bool)
-	dupCount := 0
-
-	for _, id := range groupIDs {
+	for _, id := range req.GroupIDs {
 		// Lompati nilai kosong/array kosong
-		if utils.IsEmptyArrayString(id) || id == "" {
+		if id == "[]" || id == "[ ]" || id == "" {
 			continue
 		}
 
 		// Tangani kasus array dalam string
-		if utils.IsArrayString(id) {
+		if strings.HasPrefix(id, "[") && strings.HasSuffix(id, "]") {
 			h.Logger.Debug(fmt.Sprintf("Memproses array dalam string: %s", id))
 
 			// Ekstrak nilai-nilai dalam array
-			innerArray := utils.ExtractArrayValues(id)
+			innerArray := extractArrayValues(id)
+			// Ubah: Proses hasil ekstraksi dengan deduplikasi
 			for _, innerID := range innerArray {
 				if innerID == "" || !utils.ValidateGroupID(innerID) {
 					continue
 				}
 
-				// Deduplikasi dengan normalisasi
-				normalizedID := h.normalizeGroupID(innerID)
-				if !seenIDs[normalizedID] {
-					seenIDs[normalizedID] = true
-					cleanedIDs = append(cleanedIDs, innerID)
+				// Normalisasi untuk deduplikasi
+				normalizedID := normalizeGroupID(innerID)
+
+				if !seenGroupIDs[normalizedID] {
+					seenGroupIDs[normalizedID] = true
+					cleanedGroupIDs = append(cleanedGroupIDs, innerID)
 				} else {
-					dupCount++
+					dupGroupCount++ // Tambahkan counter duplikat
 					h.Logger.Info("Melewati ID grup duplikat", utils.Fields{
 						"group_id": innerID,
 					})
@@ -283,39 +237,20 @@ func (h *MessageHandler) processGroupIDs(groupIDs []string) ([]string, int) {
 			continue
 		}
 
-		// Deduplikasi
-		normalizedID := h.normalizeGroupID(id)
-		if !seenIDs[normalizedID] {
-			seenIDs[normalizedID] = true
-			cleanedIDs = append(cleanedIDs, id)
+		// Deduplikasi group ID
+		normalizedID := normalizeGroupID(id)
+		if !seenGroupIDs[normalizedID] {
+			seenGroupIDs[normalizedID] = true
+			cleanedGroupIDs = append(cleanedGroupIDs, id)
 		} else {
-			dupCount++
+			dupGroupCount++ // Tambahkan counter duplikat
 			h.Logger.Info("Melewati ID grup duplikat", utils.Fields{
 				"group_id": id,
 			})
 		}
 	}
 
-	return cleanedIDs, dupCount
-}
-
-// normalizeGroupID adalah helper untuk memastikan ID grup dinormalisasi secara konsisten
-func (h *MessageHandler) normalizeGroupID(id string) string {
-	// Hapus @g.us jika ada
-	id = strings.Split(id, "@")[0]
-
-	// Hapus semua karakter non-digit
-	return strings.Map(func(r rune) rune {
-		if r >= '0' && r <= '9' {
-			return r
-		}
-		return -1
-	}, id)
-}
-
-// logDeduplikasi mencatat informasi tentang deduplikasi
-func (h *MessageHandler) logDeduplikasi(dupPersonalCount, dupGroupCount int, cleanedPersonalNumbers, cleanedGroupIDs []string) {
-	// Log jumlah duplikat
+	// Log jumlah duplikat yang ditemukan dan diproses
 	if dupPersonalCount > 0 || dupGroupCount > 0 {
 		h.Logger.Info("Ditemukan dan dilewati target duplikat", utils.Fields{
 			"duplicate_personal": dupPersonalCount,
@@ -323,17 +258,21 @@ func (h *MessageHandler) logDeduplikasi(dupPersonalCount, dupGroupCount int, cle
 		})
 	}
 
-	// Log hasil pembersihan
+	// Update request dengan data yang sudah dibersihkan
+	req.PersonalNumbers = cleanedPersonalNumbers
+	req.GroupIDs = cleanedGroupIDs
+
+	// Tambahkan log untuk verifikasi hasil cleaning
 	h.Logger.WithFields(utils.Fields{
 		"cleaned_personal_count": len(cleanedPersonalNumbers),
 		"cleaned_group_count":    len(cleanedGroupIDs),
 		"cleaned_personal":       cleanedPersonalNumbers,
 		"cleaned_groups":         cleanedGroupIDs,
 	}).Debug("Hasil pembersihan input")
-}
 
-// validateTargetCount memvalidasi jumlah target untuk broadcast
-func (h *MessageHandler) validateTargetCount(c *fiber.Ctx, totalTargets int) error {
+	// Hitung ulang total target
+	totalTargets := len(req.PersonalNumbers) + len(req.GroupIDs)
+
 	// Validasi jumlah minimum target
 	if totalTargets < 2 {
 		return h.SendError(c, "Minimal harus ada 2 target penerima untuk broadcast", nil, fiber.StatusBadRequest)
@@ -344,37 +283,34 @@ func (h *MessageHandler) validateTargetCount(c *fiber.Ctx, totalTargets int) err
 		return h.SendError(c, "Maksimal hanya 16 target penerima untuk broadcast", nil, fiber.StatusBadRequest)
 	}
 
-	return nil
-}
-
-// normalizeDelay menormalkan nilai delay ke rentang yang wajar
-func (h *MessageHandler) normalizeDelay(delayMs int) int {
-	if delayMs <= 0 {
-		return 1000 // Default 1 detik
-	} else if delayMs > 5000 {
-		return 5000 // Maksimal 5 detik
+	if req.Message == "" {
+		return h.SendError(c, "Pesan tidak boleh kosong", nil, fiber.StatusBadRequest)
 	}
-	return delayMs
-}
 
-// executeBroadcast melakukan proses broadcast dan mengirim hasilnya
-func (h *MessageHandler) executeBroadcast(c *fiber.Ctx, req *model.BroadcastRequest) error {
+	// Sesuaikan delay jika tidak dalam rentang yang wajar
+	if req.DelayMs <= 0 {
+		req.DelayMs = 1000 // Default 1 detik
+	} else if req.DelayMs > 5000 {
+		req.DelayMs = 5000 // Maksimal 5 detik
+	}
+
 	// Catat waktu mulai untuk menghitung durasi proses
 	startTime := time.Now()
 
-	// Log informasi broadcast
+	// Proses broadcast
 	h.Logger.WithFields(utils.Fields{
-		"personal_count": len(req.PersonalNumbers),
-		"group_count":    len(req.GroupIDs),
-		"delay_ms":       req.DelayMs,
+		"personal_count":       len(req.PersonalNumbers),
+		"group_count":          len(req.GroupIDs),
+		"delay_ms":             req.DelayMs,
+		"personal_numbers_raw": req.PersonalNumbers, // Log array mentah untuk debugging
 	}).Info("Memulai pengiriman broadcast")
 
-	// Cetak setiap nomor untuk debugging
+	// Cetak setiap nomor secara individual untuk memastikan parsing benar
 	for i, num := range req.PersonalNumbers {
 		h.Logger.Debug(fmt.Sprintf("Personal number #%d: %s", i+1, num))
 	}
 
-	// Lakukan broadcast
+	// Lakukan broadcast dengan data yang sudah bersih
 	results := h.WhatsApp.BroadcastMessage(
 		req.PersonalNumbers,
 		req.GroupIDs,
@@ -409,4 +345,59 @@ func (h *MessageHandler) executeBroadcast(c *fiber.Ctx, req *model.BroadcastRequ
 	)
 
 	return h.SendSuccess(c, response)
+}
+
+// extractArrayValues mengekstrak nilai-nilai dari string array JSON
+func extractArrayValues(arrayStr string) []string {
+	// Hapus tanda bracket di awal dan akhir
+	content := strings.TrimSpace(strings.TrimPrefix(strings.TrimSuffix(arrayStr, "]"), "["))
+	if content == "" {
+		return []string{}
+	}
+
+	// Split berdasarkan koma tetapi hitung tanda kutip
+	var result []string
+	var currentValue strings.Builder
+	inQuotes := false
+
+	for _, char := range content {
+		switch char {
+		case '"', '\'':
+			inQuotes = !inQuotes
+		case ',':
+			if !inQuotes {
+				// Koma di luar tanda kutip = pemisah
+				val := strings.TrimSpace(currentValue.String())
+				// Bersihkan tanda kutip
+				val = strings.Trim(val, `"'`)
+				result = append(result, val)
+				currentValue.Reset()
+				continue
+			}
+		}
+		currentValue.WriteRune(char)
+	}
+
+	// Tambahkan nilai terakhir jika ada
+	if currentValue.Len() > 0 {
+		val := strings.TrimSpace(currentValue.String())
+		val = strings.Trim(val, `"'`)
+		result = append(result, val)
+	}
+
+	return result
+}
+
+// normalizeGroupID adalah helper untuk memastikan ID grup dinormalisasi secara konsisten
+func normalizeGroupID(id string) string {
+	// Hapus @g.us jika ada
+	id = strings.Split(id, "@")[0]
+
+	// Hapus semua karakter non-digit
+	return strings.Map(func(r rune) rune {
+		if r >= '0' && r <= '9' {
+			return r
+		}
+		return -1
+	}, id)
 }
