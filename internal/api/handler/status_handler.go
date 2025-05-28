@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"time"
-
 	"github.com/gofiber/fiber/v2"
 	"github.com/gwenziro/bot-notify/internal/api/model"
 	"github.com/gwenziro/bot-notify/internal/service/whatsapp/client"
@@ -43,26 +41,27 @@ func (h *StatusHandler) GetStatus(c *fiber.Ctx) error {
 		return h.SendError(c, "Failed to get connection state", err, fiber.StatusInternalServerError)
 	}
 
-	// Konversi ke model dengan menyesuaikan data berdasarkan status koneksi
-	status := model.ConnectionStatus{
-		Status:      string(state.Status),
-		IsConnected: state.IsConnected,
+	// Buat respons dengan status yang sesuai
+	message := "Status koneksi WhatsApp"
+	if !state.IsConnected {
+		message = "WhatsApp sedang tidak terhubung"
 	}
+
+	response := model.NewStatusResponse(message, string(state.Status), state.IsConnected)
 
 	// Hanya sertakan informasi detail jika terhubung
 	if state.IsConnected {
-		// Gunakan format waktu Indonesia
-		status.ConnectionRetries = state.ConnectionRetries
-		status.LastActivity = utils.FormatTimeIndonesia(&state.LastActivity)
-		status.Timestamp = utils.FormatTimeIndonesia(&state.Timestamp)
+		response.ConnectionRetries = state.ConnectionRetries
+		response.LastActivity = utils.FormatTimeIndonesia(&state.LastActivity)
 	}
 
-	now := time.Now()
-	response := model.NewStatusResponse("Status koneksi WhatsApp", status)
-	response.Time = utils.FormatTimeIndonesia(&now)
-	response.ServerTime = now
+	// Sesuaikan kode status HTTP
+	statusCode := fiber.StatusOK
+	if !state.IsConnected {
+		statusCode = fiber.StatusServiceUnavailable
+	}
 
-	return h.SendSuccess(c, response)
+	return c.Status(statusCode).JSON(response)
 }
 
 // TestConnection menguji koneksi API tanpa autentikasi

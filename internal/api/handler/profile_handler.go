@@ -1,9 +1,12 @@
 package handler
 
 import (
+	"time"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/gwenziro/bot-notify/internal/api/model"
 	"github.com/gwenziro/bot-notify/internal/service/whatsapp/client"
+	"github.com/gwenziro/bot-notify/internal/utils"
 )
 
 // ProfileHandler menangani endpoint profil API
@@ -20,30 +23,31 @@ func NewProfileHandler(whatsClient *client.Client) *ProfileHandler {
 
 // GetProfile mengembalikan informasi profil akun WhatsApp terhubung
 func (h *ProfileHandler) GetProfile(c *fiber.Ctx) error {
-	// Dapatkan status koneksi terlebih dahulu
-	state, err := h.GetConnectionState()
-	if err != nil {
-		return h.SendError(c, "Gagal mendapatkan status koneksi", err, fiber.StatusInternalServerError)
-	}
-
-	// Jika tidak terhubung, kembalikan informasi terbatas tanpa timestamp
-	if !state.IsConnected {
-		h.Logger.Info("Permintaan profil saat WhatsApp tidak terhubung")
-
-		// Buat profile kosong tanpa menyertakan ConnectedSince
+	// Gunakan metode standar untuk memeriksa koneksi
+	if !h.CheckWhatsAppConnection(c, "Gagal mendapatkan profil: WhatsApp sedang tidak terhubung") {
+		// Buat profile kosong dengan informasi minimal
 		emptyProfile := model.ProfileInfo{
 			IsConnected: false,
 			IsLoggedIn:  false,
 		}
 
-		// Kembalikan respons minimal
-		errorResp := model.NewProfileResponse("WhatsApp sedang tidak terhubung", emptyProfile)
-		errorResp.BaseResponse.Success = false
-		return c.Status(fiber.StatusServiceUnavailable).JSON(errorResp)
+		// Kembalikan respons dengan format yang konsisten
+		now := time.Now()
+		return c.Status(fiber.StatusServiceUnavailable).JSON(model.ProfileResponse{
+			BaseResponse: model.BaseResponse{
+				Success: false,
+				Message: "WhatsApp sedang tidak terhubung",
+				Time:    utils.FormatTimeIndonesia(&now),
+			},
+			Profile: emptyProfile,
+		})
 	}
 
 	// Dapatkan informasi perangkat/akun
 	deviceInfo := h.WhatsApp.GetDeviceInfo()
+
+	// Dapatkan status koneksi
+	state := h.WhatsApp.GetConnectionState()
 
 	// Format respons - hanya sertakan ConnectedSince jika terhubung
 	profile := model.ProfileInfo{

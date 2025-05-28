@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"time"
-
 	"github.com/gofiber/fiber/v2"
 	"github.com/gwenziro/bot-notify/internal/api/model"
 	"github.com/gwenziro/bot-notify/internal/service/whatsapp/client"
@@ -25,12 +23,32 @@ func NewQRCodeHandler(whatsClient *client.Client) *QRCodeHandler {
 	}
 }
 
-// GetStatus mengembalikan status QR code
+// GetStatus mengembalikan status QR code saat ini
 func (h *QRCodeHandler) GetStatus(c *fiber.Ctx) error {
-	// Periksa ketersediaan QR code berdasarkan status koneksi
-	canContinue, err := h.checkQRAvailability(c)
-	if !canContinue {
-		return err
+	// Periksa status koneksi WhatsApp terlebih dahulu
+	state, err := h.WhatsApp.GetConnectionStateSafe()
+	if err != nil {
+		return h.SendError(c, "Gagal mendapatkan status koneksi", err, fiber.StatusInternalServerError)
+	}
+
+	// Jika WhatsApp sudah terhubung, berikan respons khusus
+	if state.IsConnected {
+		// WhatsApp sudah terhubung, tidak perlu QR code
+		response := model.NewQRCodeStatusResponse(false, false)
+
+		// Override pesan untuk kasus sudah terhubung
+		response.Message = "QR code tidak tersedia: WhatsApp sudah terhubung"
+		response.ConnectedStatus = true // Tambahkan informasi bahwa sudah terhubung
+
+		return c.Status(fiber.StatusOK).JSON(response)
+	}
+
+	// Tentukan status code yang sesuai
+	statusCode := fiber.StatusOK
+
+	// Jika WhatsApp tidak terhubung, maka QR code tidak tersedia
+	if !state.IsConnected {
+		statusCode = fiber.StatusServiceUnavailable
 	}
 
 	// Dapatkan QR handler dari session manager
@@ -40,11 +58,14 @@ func (h *QRCodeHandler) GetStatus(c *fiber.Ctx) error {
 	}
 
 	// Dapatkan data QR code
-	data, timestamp := qrHandler.GetQRCodeData()
+	data, _ := qrHandler.GetQRCodeData()
 	hasQR := data != ""
 	isExpired := qrHandler.IsQRCodeExpired(h.maxAgeMins)
 
-	return h.SendSuccess(c, model.NewQRCodeStatusResponse(hasQR && !isExpired, isExpired, timestamp))
+	response := model.NewQRCodeStatusResponse(hasQR && !isExpired, isExpired)
+
+	// Return dengan status code yang sesuai
+	return c.Status(statusCode).JSON(response)
 }
 
 // checkQRAvailability memeriksa apakah QR code tersedia berdasarkan status koneksi
@@ -57,12 +78,12 @@ func (h *QRCodeHandler) checkQRAvailability(c *fiber.Ctx) (canContinue bool, err
 
 	// Jika sudah terhubung, QR code tidak relevan
 	if state.IsConnected || h.WhatsApp.IsLoggedIn() {
-		return false, h.SendSuccess(c, model.NewQRCodeStatusResponse(false, false, time.Time{}))
+		return false, h.SendSuccess(c, model.NewQRCodeStatusResponse(false, false))
 	}
 
 	// Jika tidak terhubung tetapi belum menjalankan reconnect
 	if !state.IsConnected && state.Status != client.StatusConnecting {
-		return false, h.SendSuccess(c, model.NewQRCodeStatusResponse(false, false, time.Time{}))
+		return false, h.SendSuccess(c, model.NewQRCodeStatusResponse(false, false))
 	}
 
 	return true, nil

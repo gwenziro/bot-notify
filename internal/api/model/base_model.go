@@ -1,20 +1,25 @@
 package model
 
-import "time"
+import (
+	"time"
+
+	"github.com/gwenziro/bot-notify/internal/utils"
+)
 
 // BaseResponse adalah model dasar untuk semua respons API
 type BaseResponse struct {
-	Success   bool      `json:"success"`
-	Message   string    `json:"message"`
-	Timestamp time.Time `json:"timestamp"`
+	Success bool   `json:"success"`
+	Message string `json:"message"`
+	Time    string `json:"time"`
 }
 
 // NewBaseResponse membuat respons dasar baru
 func NewBaseResponse(success bool, message string) BaseResponse {
+	now := time.Now()
 	return BaseResponse{
-		Success:   success,
-		Message:   message,
-		Timestamp: time.Now(),
+		Success: success,
+		Message: message,
+		Time:    utils.FormatTimeIndonesia(&now),
 	}
 }
 

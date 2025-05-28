@@ -34,7 +34,7 @@ type ConnectionState struct {
 	ConnectionRetries int          `json:"connection_retries"`
 	LastActivity      time.Time    `json:"last_activity"`
 	Timestamp         time.Time    `json:"timestamp"`
-	ConnectedSince    time.Time    `json:"connected_since"` // Waktu koneksi pertama dibuat
+	ConnectedSince    time.Time    `json:"connected_since"`
 }
 
 // EventHandlerFunc adalah tipe fungsi untuk menangani event WhatsApp

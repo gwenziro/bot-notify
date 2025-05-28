@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"time"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/gwenziro/bot-notify/internal/api/model"
 	"github.com/gwenziro/bot-notify/internal/service/whatsapp/client"
@@ -22,16 +24,19 @@ func NewGroupHandler(whatsClient *client.Client) *GroupHandler {
 
 // ListGroups mengembalikan daftar grup yang tersedia
 func (h *GroupHandler) ListGroups(c *fiber.Ctx) error {
-	// Dapatkan status koneksi terlebih dahulu
-	state, err := h.WhatsApp.GetConnectionStateSafe()
-	if err != nil {
-		return h.SendError(c, "Gagal mendapatkan status koneksi", err, fiber.StatusInternalServerError)
-	}
-
-	// Jika tidak terhubung, kembalikan error yang jelas tanpa data sensitif
-	if !state.IsConnected {
-		h.Logger.Info("Permintaan daftar grup saat WhatsApp tidak terhubung")
-		return c.Status(fiber.StatusServiceUnavailable).JSON(model.NewGroupListResponse("WhatsApp sedang tidak terhubung", []model.GroupInfo{}))
+	// Gunakan metode standar untuk memeriksa koneksi
+	if !h.CheckWhatsAppConnection(c, "WhatsApp sedang tidak terhubung") {
+		// Karena ListGroups mengembalikan array kosong saat tidak terhubung, kita perlu membuat respons khusus
+		now := time.Now()
+		return c.Status(fiber.StatusServiceUnavailable).JSON(model.GroupListResponse{
+			BaseResponse: model.BaseResponse{
+				Success: false,
+				Message: "WhatsApp sedang tidak terhubung",
+				Time:    utils.FormatTimeIndonesia(&now),
+			},
+			Count:  0,
+			Groups: []model.GroupInfo{},
+		})
 	}
 
 	// Dapatkan JID perangkat sendiri
@@ -96,16 +101,9 @@ func (h *GroupHandler) processGroups(groups []*types.GroupInfo, selfJID *types.J
 
 // GetParticipants mengembalikan daftar partisipan dari sebuah grup
 func (h *GroupHandler) GetParticipants(c *fiber.Ctx) error {
-	// Dapatkan status koneksi terlebih dahulu
-	state, err := h.WhatsApp.GetConnectionStateSafe()
-	if err != nil {
-		return h.SendError(c, "Gagal mendapatkan status koneksi", err, fiber.StatusInternalServerError)
-	}
-
-	// Jika tidak terhubung, kembalikan error yang jelas
-	if !state.IsConnected {
-		h.Logger.Info("Permintaan daftar anggota grup saat WhatsApp tidak terhubung")
-		return c.Status(fiber.StatusServiceUnavailable).JSON(model.NewBaseResponse(false, "WhatsApp sedang tidak terhubung"))
+	// Gunakan metode standar untuk memeriksa koneksi
+	if !h.CheckWhatsAppConnection(c, "Gagal mendapatkan daftar anggota grup: WhatsApp sedang tidak terhubung") {
+		return nil
 	}
 
 	// Dapatkan groupID dari parameter

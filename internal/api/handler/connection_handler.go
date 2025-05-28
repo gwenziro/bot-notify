@@ -39,7 +39,7 @@ func (h *ConnectionHandler) Reconnect(c *fiber.Ctx) error {
 	return h.SendSuccess(c, model.NewConnectionResponse(
 		true,
 		"Permintaan menghubungkan ulang WhatsApp berhasil diproses",
-		"connecting"))
+		string(h.WhatsApp.GetConnectionState().Status)))
 }
 
 // Disconnect memutuskan koneksi WhatsApp

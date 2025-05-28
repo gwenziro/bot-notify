@@ -2,7 +2,6 @@ package handler
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gwenziro/bot-notify/internal/api/model"
@@ -22,6 +21,32 @@ func NewBaseHandler(whatsClient *client.Client, module string) BaseHandler {
 		WhatsApp: whatsClient,
 		Logger:   utils.ForModule(module),
 	}
+}
+
+// SendError mengirim respons error standar
+func (h *BaseHandler) SendError(c *fiber.Ctx, message string, err error, code int) error {
+	return c.Status(code).JSON(model.NewErrorMessageResponse(message, err, code))
+}
+
+// SendSuccess mengirim respons sukses standar dengan data
+func (h *BaseHandler) SendSuccess(c *fiber.Ctx, data interface{}) error {
+	return c.JSON(data)
+}
+
+// SendDisconnectedResponse mengirim respons standar untuk kondisi tidak terhubung
+// Return: false agar bisa digunakan sebagai return value dalam if statement
+func (h *BaseHandler) SendDisconnectedResponse(c *fiber.Ctx, customMessage string) bool {
+	if customMessage == "" {
+		customMessage = "WhatsApp sedang tidak terhubung"
+	}
+
+	// Gunakan HTTP 503 Service Unavailable untuk konsistensi
+	c.Status(fiber.StatusServiceUnavailable).JSON(model.NewBaseResponse(
+		false,
+		customMessage,
+	))
+
+	return false
 }
 
 // CheckConnection memeriksa apakah WhatsApp terhubung
@@ -63,27 +88,21 @@ func (h *BaseHandler) GetConnectionState() (client.ConnectionState, error) {
 	return state, nil
 }
 
-// SendError mengirim respons error standar
-func (h *BaseHandler) SendError(c *fiber.Ctx, message string, err error, code int) error {
-	return c.Status(code).JSON(model.NewErrorMessageResponse(message, err, code))
-}
-
-// SendSuccess mengirim respons sukses standar dengan data
-func (h *BaseHandler) SendSuccess(c *fiber.Ctx, data interface{}) error {
-	return c.JSON(data)
-}
-
-// SendDisconnectedResponse mengirim respons standar untuk WhatsApp tidak terhubung
-func (h *BaseHandler) SendDisconnectedResponse(c *fiber.Ctx, customMessage string) error {
-	if customMessage == "" {
-		customMessage = "WhatsApp sedang tidak terhubung"
+// CheckWhatsAppConnection memeriksa dan mengirimkan respons disconnect jika perlu
+// Return: true jika terhubung, false jika tidak terhubung (dan respons sudah dikirim)
+func (h *BaseHandler) CheckWhatsAppConnection(c *fiber.Ctx, customMessage string) bool {
+	state, err := h.WhatsApp.GetConnectionStateSafe()
+	if err != nil {
+		h.SendError(c, "Gagal mendapatkan status koneksi", err, fiber.StatusInternalServerError)
+		return false
 	}
 
-	return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{
-		"success":   false,
-		"message":   customMessage,
-		"timestamp": time.Now(),
-	})
+	if !state.IsConnected {
+		h.Logger.Info(fmt.Sprintf("Permintaan endpoint %s saat WhatsApp tidak terhubung", c.Path()))
+		return h.SendDisconnectedResponse(c, customMessage)
+	}
+
+	return true
 }
 
 // FormatConnectedSince memformat waktu koneksi dalam format Indonesia

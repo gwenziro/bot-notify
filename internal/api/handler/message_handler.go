@@ -25,18 +25,9 @@ func NewMessageHandler(whatsClient *client.Client) *MessageHandler {
 
 // SendPersonal mengirim pesan ke nomor personal
 func (h *MessageHandler) SendPersonal(c *fiber.Ctx) error {
-	// Dapatkan status koneksi terlebih dahulu
-	state, err := h.WhatsApp.GetConnectionStateSafe()
-	if err != nil {
-		return h.SendError(c, "Gagal mendapatkan status koneksi", err, fiber.StatusInternalServerError)
-	}
-
-	// Jika tidak terhubung, kembalikan error yang jelas
-	if !state.IsConnected {
-		h.Logger.Info("Permintaan kirim pesan personal saat WhatsApp tidak terhubung")
-		errorResp := model.NewMessageResponse("Gagal mengirim pesan: WhatsApp sedang tidak terhubung", "", "")
-		errorResp.BaseResponse.Success = false
-		return c.Status(fiber.StatusServiceUnavailable).JSON(errorResp)
+	// Gunakan metode standar untuk memeriksa koneksi
+	if !h.CheckWhatsAppConnection(c, "Gagal mengirim pesan: WhatsApp sedang tidak terhubung") {
+		return nil // Respons sudah dikirim oleh CheckWhatsAppConnection
 	}
 
 	var req model.PersonalMessageRequest
@@ -65,18 +56,9 @@ func (h *MessageHandler) SendPersonal(c *fiber.Ctx) error {
 
 // SendGroup mengirim pesan ke grup
 func (h *MessageHandler) SendGroup(c *fiber.Ctx) error {
-	// Dapatkan status koneksi terlebih dahulu
-	state, err := h.WhatsApp.GetConnectionStateSafe()
-	if err != nil {
-		return h.SendError(c, "Gagal mendapatkan status koneksi", err, fiber.StatusInternalServerError)
-	}
-
-	// Jika tidak terhubung, kembalikan error yang jelas
-	if !state.IsConnected {
-		h.Logger.Info("Permintaan kirim pesan grup saat WhatsApp tidak terhubung")
-		errorResp := model.NewMessageResponse("Gagal mengirim pesan: WhatsApp sedang tidak terhubung", "", "")
-		errorResp.BaseResponse.Success = false
-		return c.Status(fiber.StatusServiceUnavailable).JSON(errorResp)
+	// Gunakan metode standar untuk memeriksa koneksi
+	if !h.CheckWhatsAppConnection(c, "Gagal mengirim pesan: WhatsApp sedang tidak terhubung") {
+		return nil // Respons sudah dikirim oleh CheckWhatsAppConnection
 	}
 
 	var req model.GroupMessageRequest
@@ -105,18 +87,9 @@ func (h *MessageHandler) SendGroup(c *fiber.Ctx) error {
 
 // Broadcast mengirim pesan ke banyak nomor/grup sekaligus
 func (h *MessageHandler) Broadcast(c *fiber.Ctx) error {
-	// Periksa koneksi WhatsApp
-	state, err := h.WhatsApp.GetConnectionStateSafe()
-	if err != nil {
-		return h.SendError(c, "Gagal mendapatkan status koneksi", err, fiber.StatusInternalServerError)
-	}
-
-	// Jika tidak terhubung, kembalikan error yang jelas
-	if !state.IsConnected {
-		h.Logger.Info("Permintaan broadcast saat WhatsApp tidak terhubung")
-		errorResp := model.NewMessageResponse("Gagal mengirim pesan broadcast: WhatsApp sedang tidak terhubung", "", "")
-		errorResp.BaseResponse.Success = false
-		return c.Status(fiber.StatusServiceUnavailable).JSON(errorResp)
+	// Gunakan metode standar untuk memeriksa koneksi
+	if !h.CheckWhatsAppConnection(c, "Gagal mengirim pesan broadcast: WhatsApp sedang tidak terhubung") {
+		return nil // Respons sudah dikirim oleh CheckWhatsAppConnection
 	}
 
 	// Debug lebih detail untuk melihat struktur JSON asli

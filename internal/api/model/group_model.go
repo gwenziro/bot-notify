@@ -7,8 +7,8 @@ type GroupParticipantInfo struct {
 	IsAdmin      bool   `json:"isAdmin"`
 	IsSuperAdmin bool   `json:"isSuperAdmin,omitempty"`
 	DisplayName  string `json:"displayName,omitempty"`
-	PushName     string `json:"pushName,omitempty"`    // Nama kontak dari store WhatsApp
-	ContactName  string `json:"contactName,omitempty"` // Nama kontak yang digabungkan untuk display
+	PushName     string `json:"pushName,omitempty"`
+	ContactName  string `json:"contactName,omitempty"`
 }
 
 // GroupInfo berisi informasi dasar tentang grup WhatsApp

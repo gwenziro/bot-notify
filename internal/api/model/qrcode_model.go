@@ -1,39 +1,33 @@
 package model
 
-import "time"
-
 // QRCodeStatusResponse berisi informasi status QR code
 type QRCodeStatusResponse struct {
 	BaseResponse
-	Available bool       `json:"available"`
-	Expired   bool       `json:"expired"`
-	Timestamp *time.Time `json:"timestamp,omitempty"`
+	Available       bool `json:"available"`
+	Expired         bool `json:"expired"`
+	ConnectedStatus bool `json:"connected,omitempty"`
 }
 
 // NewQRCodeStatusResponse membuat respons status QR code baru
-func NewQRCodeStatusResponse(available bool, expired bool, timestamp time.Time) QRCodeStatusResponse {
-	var timestampPtr *time.Time
-
-	// Hanya sertakan timestamp jika QR code tersedia dan tidak kosong
-	if available && !timestamp.IsZero() {
-		timestampPtr = &timestamp
-	}
-
-	// Tentukan pesan berdasarkan status
+func NewQRCodeStatusResponse(available bool, expired bool) QRCodeStatusResponse {
+	// Tentukan pesan dan status sukses berdasarkan status
 	var message string
+	success := available && !expired // Success=true hanya jika tersedia dan tidak expired
+
 	if expired {
 		message = "QR code sudah kedaluwarsa. Silakan gunakan endpoint /api/reconnect untuk mendapatkan QR code baru"
+		success = false // QR expired = tidak sukses
 	} else if !available {
 		message = "QR code belum tersedia. Silakan gunakan endpoint /api/reconnect terlebih dahulu"
+		success = false // QR tidak tersedia = tidak sukses
 	} else {
 		message = "QR code tersedia, silakan pindai"
 	}
 
 	return QRCodeStatusResponse{
-		BaseResponse: NewBaseResponse(true, message),
+		BaseResponse: NewBaseResponse(success, message),
 		Available:    available,
 		Expired:      expired,
-		Timestamp:    timestampPtr,
 	}
 }
 
