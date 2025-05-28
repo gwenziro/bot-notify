@@ -128,13 +128,13 @@ func (h *QRHandler) GetQRCodeTimestamp() time.Time {
 }
 
 // IsQRCodeExpired memeriksa apakah QR code sudah kedaluwarsa
-func (h *QRHandler) IsQRCodeExpired(maxAgeMinutes int) bool {
+func (h *QRHandler) IsQRCodeExpired(maxAgeMinutes float64) bool {
 	timestamp := h.GetQRCodeTimestamp()
 	if timestamp.IsZero() {
 		return true
 	}
 
-	return time.Since(timestamp).Minutes() > float64(maxAgeMinutes)
+	return time.Since(timestamp).Minutes() > maxAgeMinutes
 }
 
 // ClearQRCode menghapus QR code yang disimpan

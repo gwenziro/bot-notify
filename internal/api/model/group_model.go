@@ -28,9 +28,9 @@ type GroupListResponse struct {
 }
 
 // NewGroupListResponse membuat response daftar grup baru
-func NewGroupListResponse(message string, groups []GroupInfo) GroupListResponse {
+func NewGroupListResponse(success bool, message string, groups []GroupInfo) GroupListResponse {
 	return GroupListResponse{
-		BaseResponse: NewBaseResponse(true, message),
+		BaseResponse: NewBaseResponse(success, message),
 		Count:        len(groups),
 		Groups:       groups,
 	}

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/gwenziro/bot-notify/internal/api/constants"
 	"github.com/gwenziro/bot-notify/internal/api/model"
 	"github.com/gwenziro/bot-notify/internal/service/whatsapp/client"
 	"github.com/gwenziro/bot-notify/internal/utils"
@@ -44,7 +45,9 @@ func (h *StatusHandler) GetStatus(c *fiber.Ctx) error {
 	// Buat respons dengan status yang sesuai
 	message := "Status koneksi WhatsApp"
 	if !state.IsConnected {
-		message = "WhatsApp sedang tidak terhubung"
+		message = constants.MsgNotConnected
+	} else {
+		message = constants.MsgConnected
 	}
 
 	response := model.NewStatusResponse(message, string(state.Status), state.IsConnected)
@@ -67,6 +70,5 @@ func (h *StatusHandler) GetStatus(c *fiber.Ctx) error {
 // TestConnection menguji koneksi API tanpa autentikasi
 func (h *StatusHandler) TestConnection(c *fiber.Ctx) error {
 	pingResponse := model.NewPingResponse("API berfungsi dengan baik", h.version)
-
 	return h.SendSuccess(c, pingResponse)
 }

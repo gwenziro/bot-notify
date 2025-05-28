@@ -1,12 +1,10 @@
 package handler
 
 import (
-	"time"
-
 	"github.com/gofiber/fiber/v2"
+	"github.com/gwenziro/bot-notify/internal/api/constants"
 	"github.com/gwenziro/bot-notify/internal/api/model"
 	"github.com/gwenziro/bot-notify/internal/service/whatsapp/client"
-	"github.com/gwenziro/bot-notify/internal/utils"
 )
 
 // ProfileHandler menangani endpoint profil API
@@ -24,23 +22,19 @@ func NewProfileHandler(whatsClient *client.Client) *ProfileHandler {
 // GetProfile mengembalikan informasi profil akun WhatsApp terhubung
 func (h *ProfileHandler) GetProfile(c *fiber.Ctx) error {
 	// Gunakan metode standar untuk memeriksa koneksi
-	if !h.CheckWhatsAppConnection(c, "Gagal mendapatkan profil: WhatsApp sedang tidak terhubung") {
+	if !h.CheckWhatsAppConnection(c, "Gagal mendapatkan profil: "+constants.MsgNotConnected) {
 		// Buat profile kosong dengan informasi minimal
 		emptyProfile := model.ProfileInfo{
 			IsConnected: false,
 			IsLoggedIn:  false,
 		}
 
-		// Kembalikan respons dengan format yang konsisten
-		now := time.Now()
-		return c.Status(fiber.StatusServiceUnavailable).JSON(model.ProfileResponse{
-			BaseResponse: model.BaseResponse{
-				Success: false,
-				Message: "WhatsApp sedang tidak terhubung",
-				Time:    utils.FormatTimeIndonesia(&now),
-			},
-			Profile: emptyProfile,
-		})
+		// Kembalikan respons dengan format yang konsisten dan success=false
+		return c.Status(fiber.StatusServiceUnavailable).JSON(model.NewProfileResponse(
+			false,                     // Set success ke false
+			constants.MsgNotConnected, // Pesan yang lebih sesuai
+			emptyProfile,
+		))
 	}
 
 	// Dapatkan informasi perangkat/akun
@@ -83,5 +77,9 @@ func (h *ProfileHandler) GetProfile(c *fiber.Ctx) error {
 	}
 
 	h.Logger.Info("Informasi profil WhatsApp berhasil diambil")
-	return h.SendSuccess(c, model.NewProfileResponse("Profil WhatsApp berhasil diambil", profile))
+	return h.SendSuccess(c, model.NewProfileResponse(
+		true, // Tetap true untuk respons sukses
+		constants.MsgProfileRetrieved,
+		profile,
+	))
 }

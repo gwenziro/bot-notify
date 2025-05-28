@@ -26,12 +26,19 @@ func (c *Client) SendMessage(recipient types.JID, message string) error {
 	// Update aktivitas
 	c.UpdateLastActivity()
 
-	// Kirim pesan
-	_, err := c.waClient.SendMessage(context.Background(), recipient, &waE2E.Message{
+	// Tambahkan timeout 10 detik untuk operasi pengiriman pesan
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Kirim pesan dengan context timeout
+	_, err := c.waClient.SendMessage(ctx, recipient, &waE2E.Message{
 		Conversation: &message,
 	})
 
 	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			return fmt.Errorf("timeout saat mengirim pesan: operasi melebihi 10 detik")
+		}
 		return fmt.Errorf("gagal mengirim pesan: %w", err)
 	}
 

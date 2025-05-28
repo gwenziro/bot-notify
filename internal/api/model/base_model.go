@@ -8,9 +8,9 @@ import (
 
 // BaseResponse adalah model dasar untuk semua respons API
 type BaseResponse struct {
-	Success bool   `json:"success"`
-	Message string `json:"message"`
-	Time    string `json:"time"`
+	Success bool   `json:"success"` // Status keberhasilan operasi
+	Message string `json:"message"` // Pesan status dalam bahasa manusia
+	Time    string `json:"time"`    // Waktu respons dalam format Indonesia
 }
 
 // NewBaseResponse membuat respons dasar baru
@@ -23,14 +23,14 @@ func NewBaseResponse(success bool, message string) BaseResponse {
 	}
 }
 
-// ErrorResponse untuk respons error
+// BaseErrorResponse untuk respons error API
 type BaseErrorResponse struct {
 	BaseResponse
-	Error string `json:"error,omitempty"`
-	Code  int    `json:"code"`
+	Error string `json:"error,omitempty"` // Detail error jika ada
+	Code  int    `json:"code"`            // HTTP status code
 }
 
-// NewErrorResponse membuat respons error baru
+// NewBaseErrorResponse membuat respons error baru
 func NewBaseErrorResponse(message string, err error, code int) BaseErrorResponse {
 	errMsg := ""
 	if err != nil {

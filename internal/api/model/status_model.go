@@ -19,13 +19,11 @@ type StatusResponse struct {
 
 // NewStatusResponse membuat respons status baru
 func NewStatusResponse(message string, status string, isConnected bool) StatusResponse {
-	resp := StatusResponse{
+	return StatusResponse{
 		BaseResponse: NewBaseResponse(isConnected, message),
 		Status:       status,
 		IsConnected:  isConnected,
 	}
-
-	return resp
 }
 
 // PingResponse berisi respons dari endpoint ping

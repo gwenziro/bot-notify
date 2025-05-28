@@ -112,7 +112,8 @@ func ValidatePhoneNumber(number string) bool {
 	number = FormatPhoneNumber(number)
 
 	// Minimal 10 digit (kode negara + nomor)
-	if len(number) < 10 {
+	// Maksimal 15 digit (standar ITU-T E.164 untuk nomor internasional)
+	if len(number) < 10 || len(number) > 15 {
 		return false
 	}
 

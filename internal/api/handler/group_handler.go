@@ -1,9 +1,10 @@
 package handler
 
 import (
-	"time"
+	"fmt"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gwenziro/bot-notify/internal/api/constants"
 	"github.com/gwenziro/bot-notify/internal/api/model"
 	"github.com/gwenziro/bot-notify/internal/service/whatsapp/client"
 	"github.com/gwenziro/bot-notify/internal/utils"
@@ -25,38 +26,36 @@ func NewGroupHandler(whatsClient *client.Client) *GroupHandler {
 // ListGroups mengembalikan daftar grup yang tersedia
 func (h *GroupHandler) ListGroups(c *fiber.Ctx) error {
 	// Gunakan metode standar untuk memeriksa koneksi
-	if !h.CheckWhatsAppConnection(c, "WhatsApp sedang tidak terhubung") {
+	if !h.CheckWhatsAppConnection(c, constants.MsgNotConnected) {
 		// Karena ListGroups mengembalikan array kosong saat tidak terhubung, kita perlu membuat respons khusus
-		now := time.Now()
-		return c.Status(fiber.StatusServiceUnavailable).JSON(model.GroupListResponse{
-			BaseResponse: model.BaseResponse{
-				Success: false,
-				Message: "WhatsApp sedang tidak terhubung",
-				Time:    utils.FormatTimeIndonesia(&now),
-			},
-			Count:  0,
-			Groups: []model.GroupInfo{},
-		})
+		return c.Status(fiber.StatusServiceUnavailable).JSON(model.NewGroupListResponse(
+			false, // Set success ke false saat tidak terhubung
+			constants.MsgNotConnected,
+			[]model.GroupInfo{},
+		))
 	}
 
 	// Dapatkan JID perangkat sendiri
 	selfJID := h.WhatsApp.GetSelfID()
 	if selfJID == nil {
-		return h.SendError(c, "Gagal mendapatkan ID perangkat", nil, fiber.StatusInternalServerError)
+		return h.SendError(c, fmt.Sprintf(constants.MsgFindIDFailed, "self"), nil, fiber.StatusInternalServerError)
 	}
 
 	// Dapatkan daftar grup
 	groups, err := h.WhatsApp.GetGroups()
 	if err != nil {
 		h.Logger.WithError(err).Error("Gagal mendapatkan daftar grup")
-		return h.SendError(c, "Gagal mendapatkan daftar grup", err, fiber.StatusInternalServerError)
+		return h.SendError(c, fmt.Sprintf(constants.MsgGroupDataRetrievalFailed, err), nil, fiber.StatusInternalServerError)
 	}
 
 	// Proses data grup
 	result := h.processGroups(groups, selfJID)
 
 	h.Logger.WithField("count", len(groups)).Info("Daftar grup berhasil diambil")
-	return h.SendSuccess(c, model.NewGroupListResponse("Daftar grup berhasil diambil", result))
+	return h.SendSuccess(c, model.NewGroupListResponse(
+		true, // Set success ke true saat berhasil
+		constants.MsgGroupsRetrieved,
+		result))
 }
 
 // processGroups mengkonversi daftar grup WhatsApp ke model API
@@ -102,25 +101,25 @@ func (h *GroupHandler) processGroups(groups []*types.GroupInfo, selfJID *types.J
 // GetParticipants mengembalikan daftar partisipan dari sebuah grup
 func (h *GroupHandler) GetParticipants(c *fiber.Ctx) error {
 	// Gunakan metode standar untuk memeriksa koneksi
-	if !h.CheckWhatsAppConnection(c, "Gagal mendapatkan daftar anggota grup: WhatsApp sedang tidak terhubung") {
+	if !h.CheckWhatsAppConnection(c, "Gagal mendapatkan daftar anggota grup: "+constants.MsgNotConnected) {
 		return nil
 	}
 
 	// Dapatkan groupID dari parameter
 	groupID := c.Params("id")
 	if groupID == "" {
-		return h.SendError(c, "ID grup harus disediakan", nil, fiber.StatusBadRequest)
+		return h.SendError(c, constants.MsgGroupIDRequired, nil, fiber.StatusBadRequest)
 	}
 
 	// Validasi format ID grup
 	if !utils.ValidateGroupID(groupID) {
-		return h.SendError(c, "Format ID grup tidak valid", nil, fiber.StatusBadRequest)
+		return h.SendError(c, constants.MsgInvalidGroupID, nil, fiber.StatusBadRequest)
 	}
 
 	// Dapatkan JID perangkat sendiri
 	selfJID := h.WhatsApp.GetSelfID()
 	if selfJID == nil {
-		return h.SendError(c, "Gagal mendapatkan ID perangkat", nil, fiber.StatusInternalServerError)
+		return h.SendError(c, fmt.Sprintf(constants.MsgFindIDFailed, "self"), nil, fiber.StatusInternalServerError)
 	}
 
 	// Dapatkan informasi grup
@@ -129,7 +128,7 @@ func (h *GroupHandler) GetParticipants(c *fiber.Ctx) error {
 		h.Logger.WithError(err).Error("Gagal mendapatkan informasi grup", utils.Fields{
 			"group_id": groupID,
 		})
-		return h.SendError(c, "Gagal mendapatkan informasi grup", err, fiber.StatusNotFound)
+		return h.SendError(c, fmt.Sprintf(constants.MsgGroupDataRetrievalFailed, err), nil, fiber.StatusNotFound)
 	}
 
 	// Mendapatkan partisipan dengan info yang diperkaya
@@ -153,7 +152,7 @@ func (h *GroupHandler) GetParticipants(c *fiber.Ctx) error {
 	}).Info("Daftar anggota grup berhasil diambil")
 
 	return h.SendSuccess(c, model.NewGroupParticipantsResponse(
-		"Daftar anggota grup berhasil diambil",
+		constants.MsgGroupParticipantsRetrieved,
 		group.JID.String(),
 		group.Name,
 		isAdmin,

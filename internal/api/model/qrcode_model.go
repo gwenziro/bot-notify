@@ -9,20 +9,9 @@ type QRCodeStatusResponse struct {
 }
 
 // NewQRCodeStatusResponse membuat respons status QR code baru
-func NewQRCodeStatusResponse(available bool, expired bool) QRCodeStatusResponse {
-	// Tentukan pesan dan status sukses berdasarkan status
-	var message string
+func NewQRCodeStatusResponse(available bool, expired bool, message string) QRCodeStatusResponse {
+	// Tentukan status sukses berdasarkan status
 	success := available && !expired // Success=true hanya jika tersedia dan tidak expired
-
-	if expired {
-		message = "QR code sudah kedaluwarsa. Silakan gunakan endpoint /api/reconnect untuk mendapatkan QR code baru"
-		success = false // QR expired = tidak sukses
-	} else if !available {
-		message = "QR code belum tersedia. Silakan gunakan endpoint /api/reconnect terlebih dahulu"
-		success = false // QR tidak tersedia = tidak sukses
-	} else {
-		message = "QR code tersedia, silakan pindai"
-	}
 
 	return QRCodeStatusResponse{
 		BaseResponse: NewBaseResponse(success, message),

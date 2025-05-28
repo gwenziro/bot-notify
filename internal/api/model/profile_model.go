@@ -19,9 +19,9 @@ type ProfileResponse struct {
 }
 
 // NewProfileResponse membuat response profil baru
-func NewProfileResponse(message string, profile ProfileInfo) ProfileResponse {
+func NewProfileResponse(success bool, message string, profile ProfileInfo) ProfileResponse {
 	return ProfileResponse{
-		BaseResponse: NewBaseResponse(true, message),
+		BaseResponse: NewBaseResponse(success, message),
 		Profile:      profile,
 	}
 }

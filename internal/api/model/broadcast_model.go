@@ -1,6 +1,10 @@
 package model
 
-import "time"
+import (
+	"time"
+
+	"github.com/gwenziro/bot-notify/internal/utils"
+)
 
 // BroadcastRequest untuk request API broadcast pesan
 type BroadcastRequest struct {
@@ -26,7 +30,7 @@ type BroadcastResponse struct {
 	FailedCount      int               `json:"failedCount"`      // Jumlah gagal
 	Results          []BroadcastResult `json:"results"`          // Detail hasil
 	ProcessingTimeMs int64             `json:"processingTimeMs"` // Waktu pemrosesan
-	SentTime         string            `json:"sentTime"`         // Waktu pengiriman
+	SentTime         string            `json:"sentTime"`         // Waktu pengiriman dalam format Indonesia
 }
 
 // NewBroadcastResponse membuat response broadcast baru
@@ -39,6 +43,8 @@ func NewBroadcastResponse(message string, results []BroadcastResult, processingT
 		}
 	}
 
+	now := time.Now()
+
 	return BroadcastResponse{
 		BaseResponse:     NewBaseResponse(true, message),
 		TotalTargets:     len(results),
@@ -46,6 +52,6 @@ func NewBroadcastResponse(message string, results []BroadcastResult, processingT
 		FailedCount:      len(results) - successCount,
 		Results:          results,
 		ProcessingTimeMs: processingTime,
-		SentTime:         time.Now().Format("02 Jan 2006 15:04:05"),
+		SentTime:         utils.FormatTimeIndonesia(&now), // Gunakan format waktu standar
 	}
 }

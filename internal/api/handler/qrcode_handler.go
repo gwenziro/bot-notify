@@ -2,16 +2,20 @@ package handler
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/gwenziro/bot-notify/internal/api/constants"
 	"github.com/gwenziro/bot-notify/internal/api/model"
 	"github.com/gwenziro/bot-notify/internal/service/whatsapp/client"
 	"github.com/gwenziro/bot-notify/internal/service/whatsapp/session"
 )
 
+// QR code expiration time constant
+const QrCodeExpirationMinutes = 25.0 / 60.0 // 25 detik dinyatakan dalam menit
+
 // QRCodeHandler menangani endpoint QR code API
 type QRCodeHandler struct {
 	BaseHandler
 	sessionMgr *session.Manager
-	maxAgeMins int
+	maxAgeMins float64
 }
 
 // NewQRCodeHandler membuat instance baru QRCodeHandler
@@ -19,7 +23,7 @@ func NewQRCodeHandler(whatsClient *client.Client) *QRCodeHandler {
 	return &QRCodeHandler{
 		BaseHandler: NewBaseHandler(whatsClient, "handler-qrcode"),
 		sessionMgr:  whatsClient.SessionManager,
-		maxAgeMins:  5, // QR code kedaluwarsa setelah 5 menit
+		maxAgeMins:  QrCodeExpirationMinutes,
 	}
 }
 
@@ -34,56 +38,63 @@ func (h *QRCodeHandler) GetStatus(c *fiber.Ctx) error {
 	// Jika WhatsApp sudah terhubung, berikan respons khusus
 	if state.IsConnected {
 		// WhatsApp sudah terhubung, tidak perlu QR code
-		response := model.NewQRCodeStatusResponse(false, false)
-
-		// Override pesan untuk kasus sudah terhubung
-		response.Message = "QR code tidak tersedia: WhatsApp sudah terhubung"
-		response.ConnectedStatus = true // Tambahkan informasi bahwa sudah terhubung
-
+		response := model.NewQRCodeStatusResponse(false, false, constants.MsgQrConnected)
+		response.ConnectedStatus = true
 		return c.Status(fiber.StatusOK).JSON(response)
 	}
 
-	// Tentukan status code yang sesuai
-	statusCode := fiber.StatusOK
-
-	// Jika WhatsApp tidak terhubung, maka QR code tidak tersedia
-	if !state.IsConnected {
-		statusCode = fiber.StatusServiceUnavailable
-	}
-
-	// Dapatkan QR handler dari session manager
-	qrHandler := h.sessionMgr.GetQRHandler()
+	// Jika WhatsApp tidak terhubung, periksa status QR code
+	qrHandler := h.WhatsApp.SessionManager.GetQRHandler()
 	if qrHandler == nil {
 		return h.SendError(c, "QR handler tidak tersedia", nil, fiber.StatusInternalServerError)
 	}
 
-	// Dapatkan data QR code
-	data, _ := qrHandler.GetQRCodeData()
-	hasQR := data != ""
-	isExpired := qrHandler.IsQRCodeExpired(h.maxAgeMins)
+	// Dapatkan timestamp QR code
+	timestamp := qrHandler.GetQRCodeTimestamp()
+	qrExists := !timestamp.IsZero()
+	expired := qrExists && qrHandler.IsQRCodeExpired(h.maxAgeMins)
 
-	response := model.NewQRCodeStatusResponse(hasQR && !isExpired, isExpired)
+	// QR dianggap tersedia jika QR ada DAN tidak kedaluwarsa
+	available := qrExists && !expired
 
-	// Return dengan status code yang sesuai
+	// Tentukan pesan berdasarkan status
+	var message string
+	if expired {
+		message = constants.MsgQrExpired
+	} else if !available {
+		message = constants.MsgQrNotAvailable
+	} else {
+		message = constants.MsgQrAvailable
+	}
+
+	// Siapkan response sesuai status
+	response := model.NewQRCodeStatusResponse(available, expired, message)
+
+	// Siapkan status code yang sesuai
+	statusCode := fiber.StatusOK
+	if !available || expired {
+		statusCode = fiber.StatusServiceUnavailable
+	}
+
 	return c.Status(statusCode).JSON(response)
 }
 
 // checkQRAvailability memeriksa apakah QR code tersedia berdasarkan status koneksi
 func (h *QRCodeHandler) checkQRAvailability(c *fiber.Ctx) (canContinue bool, err error) {
 	// Dapatkan status koneksi
-	state, err := h.GetConnectionState()
+	state, err := h.WhatsApp.GetConnectionStateSafe()
 	if err != nil {
 		return false, h.SendError(c, "Gagal mendapatkan status koneksi", err, fiber.StatusInternalServerError)
 	}
 
 	// Jika sudah terhubung, QR code tidak relevan
 	if state.IsConnected || h.WhatsApp.IsLoggedIn() {
-		return false, h.SendSuccess(c, model.NewQRCodeStatusResponse(false, false))
+		return false, h.SendSuccess(c, model.NewQRCodeStatusResponse(false, false, constants.MsgQrConnected))
 	}
 
 	// Jika tidak terhubung tetapi belum menjalankan reconnect
 	if !state.IsConnected && state.Status != client.StatusConnecting {
-		return false, h.SendSuccess(c, model.NewQRCodeStatusResponse(false, false))
+		return false, h.SendSuccess(c, model.NewQRCodeStatusResponse(false, false, constants.MsgQrNotConnected))
 	}
 
 	return true, nil
