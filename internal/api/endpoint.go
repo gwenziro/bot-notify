@@ -39,7 +39,7 @@ func (h *APIHandler) registerMessageEndpoints(api fiber.Router) {
 	send := api.Group("/send")
 	send.Post("/personal", h.msgHandler.SendPersonal)
 	send.Post("/group", h.msgHandler.SendGroup)
-	send.Post("/broadcast", h.msgHandler.Broadcast)
+	send.Post("/broadcast", h.broadcastHandler.SendBroadcast)
 }
 
 // registerGroupEndpoints mendaftarkan endpoint grup

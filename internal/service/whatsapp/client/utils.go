@@ -57,6 +57,7 @@ var (
 	FormatGroupID        = utils.FormatGroupID
 	FormatWhatsAppNumber = utils.FormatWhatsAppNumber
 	NormalizeJID         = utils.NormalizeJID
+	NormalizeGroupID     = utils.NormalizeGroupID
 	ValidatePhoneNumber  = utils.ValidatePhoneNumber
 	ValidateGroupID      = utils.ValidateGroupID
 )

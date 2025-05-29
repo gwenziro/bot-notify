@@ -152,3 +152,17 @@ func ValidateGroupID(id string) bool {
 
 	return len(id) > 5 // Minimal panjang ID grup
 }
+
+// NormalizeGroupID menormalisasi ID grup untuk perbandingan yang konsisten
+func NormalizeGroupID(id string) string {
+	// Hapus @g.us jika ada
+	id = strings.Split(id, "@")[0]
+
+	// Hapus semua karakter non-digit
+	return strings.Map(func(r rune) rune {
+		if r >= '0' && r <= '9' {
+			return r
+		}
+		return -1
+	}, id)
+}

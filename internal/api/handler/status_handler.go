@@ -18,7 +18,7 @@ type StatusHandler struct {
 func NewStatusHandler(whatsClient *client.Client) *StatusHandler {
 	return &StatusHandler{
 		BaseHandler: NewBaseHandler(whatsClient, "handler-status"),
-		version:     "1.0.0",
+		version:     constants.DefaultAppVersion,
 	}
 }
 

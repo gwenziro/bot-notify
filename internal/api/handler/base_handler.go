@@ -91,6 +91,35 @@ func (h *BaseHandler) ValidateRequest(c *fiber.Ctx, req interface{}, requiredFie
 	return nil
 }
 
+// ValidateInput memvalidasi input request dengan menggabungkan parsing dan validasi
+func (h *BaseHandler) ValidateInput(c *fiber.Ctx, req interface{}, validator func(interface{}) error) error {
+	if err := c.BodyParser(req); err != nil {
+		return h.SendError(c, constants.MsgInvalidRequest, err, fiber.StatusBadRequest)
+	}
+
+	if validator != nil {
+		if err := validator(req); err != nil {
+			return h.SendError(c, err.Error(), nil, fiber.StatusBadRequest)
+		}
+	}
+
+	return nil
+}
+
+// HandleError menangani error dengan logging dan respons yang konsisten
+func (h *BaseHandler) HandleError(c *fiber.Ctx, message string, err error, statusCode int) error {
+	logFields := utils.Fields{"path": c.Path()}
+
+	if err != nil {
+		logFields["error"] = err.Error()
+		h.Logger.WithFields(logFields).Error(message)
+	} else {
+		h.Logger.WithFields(logFields).Warn(message)
+	}
+
+	return c.Status(statusCode).JSON(model.NewBaseErrorResponse(message, err, statusCode))
+}
+
 // FormatConnectedSince memformat waktu koneksi dalam format Indonesia
 func (h *BaseHandler) FormatConnectedSince(state client.ConnectionState) string {
 	if !state.IsConnected {

@@ -13,17 +13,18 @@ import (
 // APIHandler bertanggung jawab untuk mengelola endpoint API
 type APIHandler struct {
 	// Handlers untuk berbagai domain
-	statusHandler  *handler.StatusHandler
-	connHandler    *handler.ConnectionHandler
-	msgHandler     *handler.MessageHandler
-	groupHandler   *handler.GroupHandler
-	qrHandler      *handler.QRCodeHandler
-	authMw         fiber.Handler
-	config         *config.Config
-	whatsApp       *client.Client
-	sessionStore   *session.Store
-	logger         utils.LogrusEntry
-	profileHandler *handler.ProfileHandler
+	statusHandler    *handler.StatusHandler
+	connHandler      *handler.ConnectionHandler
+	msgHandler       *handler.MessageHandler
+	broadcastHandler *handler.BroadcastHandler
+	groupHandler     *handler.GroupHandler
+	qrHandler        *handler.QRCodeHandler
+	profileHandler   *handler.ProfileHandler
+	authMw           fiber.Handler
+	config           *config.Config
+	whatsApp         *client.Client
+	sessionStore     *session.Store
+	logger           utils.LogrusEntry
 }
 
 // NewAPIHandler membuat instance baru APIHandler
@@ -48,21 +49,23 @@ func NewAPIHandler(cfg *config.Config, whatsClient *client.Client, sessionStore 
 	statusHandler := handler.NewStatusHandler(whatsClient)
 	connHandler := handler.NewConnectionHandler(whatsClient)
 	msgHandler := handler.NewMessageHandler(whatsClient)
+	broadcastHandler := handler.NewBroadcastHandler(whatsClient)
 	groupHandler := handler.NewGroupHandler(whatsClient)
 	qrHandler := handler.NewQRCodeHandler(whatsClient)
 	profileHandler := handler.NewProfileHandler(whatsClient)
 
 	return &APIHandler{
-		statusHandler:  statusHandler,
-		connHandler:    connHandler,
-		msgHandler:     msgHandler,
-		groupHandler:   groupHandler,
-		qrHandler:      qrHandler,
-		authMw:         apiAuthMw.RequireAuth(),
-		config:         cfg,
-		whatsApp:       whatsClient,
-		sessionStore:   sessionStore,
-		logger:         logger,
-		profileHandler: profileHandler,
+		statusHandler:    statusHandler,
+		connHandler:      connHandler,
+		msgHandler:       msgHandler,
+		broadcastHandler: broadcastHandler,
+		groupHandler:     groupHandler,
+		qrHandler:        qrHandler,
+		profileHandler:   profileHandler,
+		authMw:           apiAuthMw.RequireAuth(),
+		config:           cfg,
+		whatsApp:         whatsClient,
+		sessionStore:     sessionStore,
+		logger:           logger,
 	}
 }
