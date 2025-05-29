@@ -38,8 +38,8 @@ const (
 
 // Konstanta untuk pengiriman pesan
 const (
-	MsgSendSuccess        = "Notifikasi WhatsApp terkirim!"
-	MsgSendGroupSuccess   = "Notifikasi WhatsApp terkirim ke grup!"
+	MsgSendSuccess        = "Pesan WhatsApp terkirim!"
+	MsgSendGroupSuccess   = "Pesan WhatsApp terkirim ke grup!"
 	MsgSendFailure        = "Gagal mengirim pesan"
 	MsgInvalidPhoneNumber = "Format nomor telepon tidak valid"
 	MsgInvalidGroupID     = "Format ID grup tidak valid"

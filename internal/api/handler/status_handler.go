@@ -8,10 +8,10 @@ import (
 	"github.com/gwenziro/bot-notify/internal/utils"
 )
 
-// StatusHandler menangani endpoint status API
+// StatusHandler menangani endpoint status koneksi API
 type StatusHandler struct {
 	BaseHandler
-	version string
+	version string // Versi aplikasi untuk ping response
 }
 
 // NewStatusHandler membuat instance baru StatusHandler
@@ -23,52 +23,69 @@ func NewStatusHandler(whatsClient *client.Client) *StatusHandler {
 }
 
 // GetStatus mengembalikan status koneksi WhatsApp
+// Endpoint: GET /api/status
 func (h *StatusHandler) GetStatus(c *fiber.Ctx) error {
-	// Log untuk debugging
-	h.Logger.Debug("GetStatus dipanggil", utils.Fields{
-		"path": c.Path(),
-	})
+	// 1. Log informasi debug request
+	h.LogDebugRequest(c, "GetStatus")
 
-	// Periksa apakah whatsApp client nil
+	// 2. Periksa ketersediaan WhatsApp client
 	if h.WhatsApp == nil {
-		h.Logger.Error("whatsApp client is nil in GetStatus")
-		return h.SendError(c, "WhatsApp client not initialized", nil, fiber.StatusInternalServerError)
+		return h.SendError(c, constants.MsgClientNotAvailable, nil, fiber.StatusInternalServerError)
 	}
 
-	// Dapatkan status koneksi dengan pengecekan error
+	// 3. Dapatkan status koneksi
 	state, err := h.WhatsApp.GetConnectionStateSafe()
 	if err != nil {
-		h.Logger.WithError(err).Error("Gagal mendapatkan status koneksi")
-		return h.SendError(c, "Failed to get connection state", err, fiber.StatusInternalServerError)
+		return h.SendError(c, constants.MsgStatusFailed, err, fiber.StatusInternalServerError)
 	}
 
-	// Buat respons dengan status yang sesuai
-	message := "Status koneksi WhatsApp"
+	// 4. Tentukan pesan yang sesuai
+	var message string
 	if !state.IsConnected {
 		message = constants.MsgNotConnected
 	} else {
 		message = constants.MsgConnected
 	}
 
+	// 5. Buat respons
 	response := model.NewStatusResponse(message, string(state.Status), state.IsConnected)
 
-	// Hanya sertakan informasi detail jika terhubung
+	// 6. Sertakan informasi tambahan jika terhubung
 	if state.IsConnected {
 		response.ConnectionRetries = state.ConnectionRetries
 		response.LastActivity = utils.FormatTimeIndonesia(&state.LastActivity)
 	}
 
-	// Sesuaikan kode status HTTP
+	// 7. Tentukan status code HTTP
 	statusCode := fiber.StatusOK
 	if !state.IsConnected {
 		statusCode = fiber.StatusServiceUnavailable
 	}
 
+	// 8. Log hasil
+	h.LogSuccessResponse("Status koneksi berhasil diambil", utils.Fields{
+		"status":      state.Status,
+		"connected":   state.IsConnected,
+		"http_status": statusCode,
+	})
+
 	return c.Status(statusCode).JSON(response)
 }
 
 // TestConnection menguji koneksi API tanpa autentikasi
+// Endpoint: GET /ping
 func (h *StatusHandler) TestConnection(c *fiber.Ctx) error {
+	// 1. Log informasi debug request
+	h.LogDebugRequest(c, "TestConnection")
+
+	// 2. Buat respons ping
 	pingResponse := model.NewPingResponse("API berfungsi dengan baik", h.version)
+
+	// 3. Log hasil
+	h.LogSuccessResponse("Test koneksi berhasil", utils.Fields{
+		"version": h.version,
+	})
+
+	// 4. Kirim respons
 	return h.SendSuccess(c, pingResponse)
 }

@@ -79,8 +79,9 @@ func (c *Client) SendFormattedMessage(recipient types.JID, message string) error
 }
 
 // BroadcastMessage mengirim pesan ke beberapa target sekaligus
-func (c *Client) BroadcastMessage(personalNumbers []string, groupIDs []string, message string, delayMs int) []model.BroadcastResult {
+func (c *Client) BroadcastMessage(personalNumbers []string, groupIDs []string, message string, delayMs int) ([]model.BroadcastResult, time.Time) {
 	results := make([]model.BroadcastResult, 0, len(personalNumbers)+len(groupIDs))
+	var lastSentTime time.Time
 
 	// Debug log yang lebih jelas (tanpa menggabungkan array menjadi string)
 	c.logger.WithFields(utils.Fields{
@@ -122,7 +123,12 @@ func (c *Client) BroadcastMessage(personalNumbers []string, groupIDs []string, m
 		}).Info("Mengirim pesan broadcast")
 
 		// Kirim pesan dan ambil timestamp pengiriman
-		_, err := c.SendMessage(jid, message)
+		sentTime, err := c.SendMessage(jid, message)
+
+		// Update lastSentTime jika pengiriman berhasil
+		if err == nil {
+			lastSentTime = sentTime
+		}
 
 		// Catat hasil
 		result := model.BroadcastResult{
@@ -138,6 +144,8 @@ func (c *Client) BroadcastMessage(personalNumbers []string, groupIDs []string, m
 				"type":   "personal",
 			})
 		} else {
+			// Tambahkan waktu pengiriman jika berhasil
+			result.SentTime = utils.FormatTimeIndonesia(&sentTime)
 			c.logger.Info("Berhasil mengirim pesan broadcast personal", utils.Fields{
 				"target": number,
 			})
@@ -186,7 +194,12 @@ func (c *Client) BroadcastMessage(personalNumbers []string, groupIDs []string, m
 		}).Info("Mengirim pesan broadcast")
 
 		// Kirim pesan dan ambil timestamp pengiriman
-		_, err := c.SendMessage(jid, message)
+		sentTime, err := c.SendMessage(jid, message)
+
+		// Update lastSentTime jika pengiriman berhasil
+		if err == nil {
+			lastSentTime = sentTime
+		}
 
 		// Catat hasil
 		result := model.BroadcastResult{
@@ -202,6 +215,8 @@ func (c *Client) BroadcastMessage(personalNumbers []string, groupIDs []string, m
 				"type":   "group",
 			})
 		} else {
+			// Tambahkan waktu pengiriman jika berhasil
+			result.SentTime = utils.FormatTimeIndonesia(&sentTime)
 			c.logger.Info("Berhasil mengirim pesan broadcast grup", utils.Fields{
 				"target": groupID,
 			})
@@ -215,7 +230,12 @@ func (c *Client) BroadcastMessage(personalNumbers []string, groupIDs []string, m
 		}
 	}
 
-	return results
+	// Jika tidak ada pengiriman yang berhasil, gunakan waktu sekarang
+	if lastSentTime.IsZero() {
+		lastSentTime = time.Now()
+	}
+
+	return results, lastSentTime
 }
 
 // Helper function untuk mendapatkan elemen pertama array atau string kosong

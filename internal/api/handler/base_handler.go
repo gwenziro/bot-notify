@@ -10,13 +10,13 @@ import (
 	"github.com/gwenziro/bot-notify/internal/utils"
 )
 
-// BaseHandler berisi fungsionalitas umum untuk semua handler
+// BaseHandler berisi fungsionalitas umum untuk semua handler API
 type BaseHandler struct {
-	WhatsApp *client.Client
-	Logger   utils.LogrusEntry
+	WhatsApp *client.Client    // Klien WhatsApp untuk operasi pesan
+	Logger   utils.LogrusEntry // Logger untuk mencatat aktivitas
 }
 
-// NewBaseHandler membuat instance BaseHandler baru
+// NewBaseHandler membuat instance baru BaseHandler
 func NewBaseHandler(whatsClient *client.Client, module string) BaseHandler {
 	return BaseHandler{
 		WhatsApp: whatsClient,
@@ -51,7 +51,7 @@ func (h *BaseHandler) SendDisconnectedResponse(c *fiber.Ctx, customMessage strin
 	return false
 }
 
-// CheckWhatsAppConnection memeriksa dan mengirimkan respons disconnect jika perlu
+// CheckWhatsAppConnection memeriksa koneksi WhatsApp dan mengirimkan respons jika tidak terhubung
 func (h *BaseHandler) CheckWhatsAppConnection(c *fiber.Ctx, customMessage string) bool {
 	// Validasi client tidak nil
 	if h.WhatsApp == nil {
@@ -73,7 +73,7 @@ func (h *BaseHandler) CheckWhatsAppConnection(c *fiber.Ctx, customMessage string
 	return true
 }
 
-// ValidateRequest memvalidasi request body secara generik
+// ValidateRequest memvalidasi request body dan field yang diperlukan
 func (h *BaseHandler) ValidateRequest(c *fiber.Ctx, req interface{}, requiredFields map[string]func() string) error {
 	// Parse request body
 	if err := c.BodyParser(req); err != nil {
@@ -91,33 +91,35 @@ func (h *BaseHandler) ValidateRequest(c *fiber.Ctx, req interface{}, requiredFie
 	return nil
 }
 
-// ValidateInput memvalidasi input request dengan menggabungkan parsing dan validasi
-func (h *BaseHandler) ValidateInput(c *fiber.Ctx, req interface{}, validator func(interface{}) error) error {
+// ParseAndValidateBody melakukan parsing dan validasi request body
+func (h *BaseHandler) ParseAndValidateBody(c *fiber.Ctx, req interface{}) error {
 	if err := c.BodyParser(req); err != nil {
+		h.Logger.WithError(err).Error("Gagal parsing request body")
 		return h.SendError(c, constants.MsgInvalidRequest, err, fiber.StatusBadRequest)
 	}
-
-	if validator != nil {
-		if err := validator(req); err != nil {
-			return h.SendError(c, err.Error(), nil, fiber.StatusBadRequest)
-		}
-	}
-
 	return nil
 }
 
-// HandleError menangani error dengan logging dan respons yang konsisten
-func (h *BaseHandler) HandleError(c *fiber.Ctx, message string, err error, statusCode int) error {
-	logFields := utils.Fields{"path": c.Path()}
-
-	if err != nil {
-		logFields["error"] = err.Error()
-		h.Logger.WithFields(logFields).Error(message)
-	} else {
-		h.Logger.WithFields(logFields).Warn(message)
+// ValidateRequiredField memvalidasi field wajib dengan error handling yang konsisten
+func (h *BaseHandler) ValidateRequiredField(c *fiber.Ctx, fieldName string, fieldValue string) error {
+	if fieldValue == "" {
+		return h.SendError(c, fmt.Sprintf(constants.MsgMissingField, fieldName), nil, fiber.StatusBadRequest)
 	}
+	return nil
+}
 
-	return c.Status(statusCode).JSON(model.NewBaseErrorResponse(message, err, statusCode))
+// LogDebugRequest mencatat informasi debug tentang request
+func (h *BaseHandler) LogDebugRequest(c *fiber.Ctx, handlerName string) {
+	h.Logger.Debug(fmt.Sprintf("%s dipanggil", handlerName), utils.Fields{
+		"path":   c.Path(),
+		"method": c.Method(),
+		"ip":     c.IP(),
+	})
+}
+
+// LogSuccessResponse mencatat informasi tentang respons sukses
+func (h *BaseHandler) LogSuccessResponse(message string, fields utils.Fields) {
+	h.Logger.WithFields(fields).Info(message)
 }
 
 // FormatConnectedSince memformat waktu koneksi dalam format Indonesia

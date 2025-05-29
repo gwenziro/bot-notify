@@ -16,10 +16,11 @@ type BroadcastRequest struct {
 
 // BroadcastResult adalah model untuk hasil pengiriman ke satu target
 type BroadcastResult struct {
-	Target   string `json:"target"`          // Nomor/ID target penerima
-	Type     string `json:"type"`            // Tipe target: "personal" atau "group"
-	Success  bool   `json:"success"`         // Status keberhasilan pengiriman
-	ErrorMsg string `json:"error,omitempty"` // Pesan error jika gagal
+	Target   string `json:"target"`             // Nomor/ID target penerima
+	Type     string `json:"type"`               // Tipe target: "personal" atau "group"
+	Success  bool   `json:"success"`            // Status keberhasilan pengiriman
+	ErrorMsg string `json:"error,omitempty"`    // Pesan error jika gagal
+	SentTime string `json:"sentTime,omitempty"` // Waktu pengiriman pesan individu
 }
 
 // BroadcastResponse adalah model untuk hasil operasi broadcast

@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -11,7 +10,7 @@ import (
 	"github.com/gwenziro/bot-notify/internal/utils"
 )
 
-// BroadcastHandler menangani endpoint broadcast API
+// BroadcastHandler menangani endpoint broadcast pesan API
 type BroadcastHandler struct {
 	BaseHandler
 }
@@ -24,25 +23,29 @@ func NewBroadcastHandler(whatsClient *client.Client) *BroadcastHandler {
 }
 
 // SendBroadcast mengirim pesan ke banyak nomor/grup sekaligus
+// Endpoint: POST /api/send/broadcast
 func (h *BroadcastHandler) SendBroadcast(c *fiber.Ctx) error {
-	// 1. Validasi koneksi WhatsApp
+	// 1. Log informasi debug request
+	h.LogDebugRequest(c, "SendBroadcast")
+
+	// 2. Validasi koneksi WhatsApp
 	if !h.CheckWhatsAppConnection(c, constants.MsgBroadcastConnectionError) {
 		return nil
 	}
 
-	// 2. Parse dan validasi input
+	// 3. Parse dan validasi input
 	req, err := h.parseBroadcastRequest(c)
 	if err != nil {
 		return err
 	}
 
-	// 3. Proses target penerima
+	// 4. Proses target penerima
 	cleanedReq, err := h.processBroadcastTargets(c, req)
 	if err != nil {
 		return err
 	}
 
-	// 4. Kirim broadcast dan buat respons
+	// 5. Kirim broadcast dan buat respons
 	return h.executeBroadcast(c, cleanedReq)
 }
 
@@ -50,14 +53,9 @@ func (h *BroadcastHandler) SendBroadcast(c *fiber.Ctx) error {
 func (h *BroadcastHandler) parseBroadcastRequest(c *fiber.Ctx) (model.BroadcastRequest, error) {
 	var req model.BroadcastRequest
 
-	// Debug log raw request
-	bodyBytes := c.Body()
-	h.Logger.Debug(fmt.Sprintf("Request body raw: %s", string(bodyBytes)))
-
-	// Parse request
-	if err := c.BodyParser(&req); err != nil {
-		h.Logger.WithError(err).Error("Gagal parsing request body broadcast")
-		return req, h.SendError(c, constants.MsgInvalidRequest, err, fiber.StatusBadRequest)
+	// Parse request body
+	if err := h.ParseAndValidateBody(c, &req); err != nil {
+		return req, err
 	}
 
 	// Validasi pesan
@@ -66,8 +64,11 @@ func (h *BroadcastHandler) parseBroadcastRequest(c *fiber.Ctx) (model.BroadcastR
 	}
 
 	// Debug log parsed fields
-	h.Logger.Debug(fmt.Sprintf("Personal numbers raw: %+v", req.PersonalNumbers))
-	h.Logger.Debug(fmt.Sprintf("Group IDs raw: %+v", req.GroupIDs))
+	h.Logger.Debug("Request broadcast diparsing", utils.Fields{
+		"personal_count": len(req.PersonalNumbers),
+		"group_count":    len(req.GroupIDs),
+		"message_len":    len(req.Message),
+	})
 
 	return req, nil
 }
@@ -97,14 +98,6 @@ func (h *BroadcastHandler) processBroadcastTargets(c *fiber.Ctx, req model.Broad
 	cleanedReq := req
 	cleanedReq.PersonalNumbers = cleanedPersonalNumbers
 	cleanedReq.GroupIDs = cleanedGroupIDs
-
-	// Tambahkan log untuk verifikasi hasil cleaning
-	h.Logger.WithFields(utils.Fields{
-		"cleaned_personal_count": len(cleanedPersonalNumbers),
-		"cleaned_group_count":    len(cleanedGroupIDs),
-		"cleaned_personal":       cleanedPersonalNumbers,
-		"cleaned_groups":         cleanedGroupIDs,
-	}).Debug("Hasil pembersihan input")
 
 	// Hitung ulang total target
 	totalTargets := len(cleanedReq.PersonalNumbers) + len(cleanedReq.GroupIDs)
@@ -141,13 +134,8 @@ func (h *BroadcastHandler) executeBroadcast(c *fiber.Ctx, req model.BroadcastReq
 		"delay_ms":       req.DelayMs,
 	}).Info("Memulai pengiriman broadcast")
 
-	// Debug: cetak setiap nomor untuk memastikan parsing benar
-	for i, num := range req.PersonalNumbers {
-		h.Logger.Debug(fmt.Sprintf("Personal number #%d: %s", i+1, num))
-	}
-
-	// Lakukan broadcast dengan data yang sudah bersih
-	results := h.WhatsApp.BroadcastMessage(
+	// Lakukan broadcast dengan data yang sudah bersih dan dapatkan waktu pengiriman terakhir
+	results, lastSentTime := h.WhatsApp.BroadcastMessage(
 		req.PersonalNumbers,
 		req.GroupIDs,
 		req.Message,
@@ -166,19 +154,19 @@ func (h *BroadcastHandler) executeBroadcast(c *fiber.Ctx, req model.BroadcastReq
 	}
 
 	// Log hasil
-	h.Logger.WithFields(utils.Fields{
+	h.LogSuccessResponse("Broadcast selesai", utils.Fields{
 		"total":           len(results),
 		"success":         successCount,
 		"failed":          len(results) - successCount,
 		"processing_time": processingTime,
-	}).Info("Broadcast selesai")
+	})
 
 	// Buat respons
 	response := model.NewBroadcastResponse(
 		constants.MsgBroadcastSuccess,
 		results,
 		processingTime,
-		time.Now(),
+		lastSentTime,
 	)
 
 	return h.SendSuccess(c, response)

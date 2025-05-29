@@ -11,7 +11,7 @@ import (
 	"go.mau.fi/whatsmeow/types"
 )
 
-// GroupHandler menangani endpoint grup API
+// GroupHandler menangani endpoint grup WhatsApp API
 type GroupHandler struct {
 	BaseHandler
 }
@@ -23,8 +23,12 @@ func NewGroupHandler(whatsClient *client.Client) *GroupHandler {
 	}
 }
 
-// ListGroups mengembalikan daftar grup yang tersedia
+// ListGroups mengembalikan daftar grup WhatsApp yang tersedia
+// Endpoint: GET /api/groups
 func (h *GroupHandler) ListGroups(c *fiber.Ctx) error {
+	// 1. Log informasi debug request
+	h.LogDebugRequest(c, "ListGroups")
+
 	// Gunakan metode standar untuk memeriksa koneksi
 	if !h.CheckWhatsAppConnection(c, constants.MsgNotConnected) {
 		// Karena ListGroups mengembalikan array kosong saat tidak terhubung, kita perlu membuat respons khusus
@@ -44,18 +48,83 @@ func (h *GroupHandler) ListGroups(c *fiber.Ctx) error {
 	// Dapatkan daftar grup
 	groups, err := h.WhatsApp.GetGroups()
 	if err != nil {
-		h.Logger.WithError(err).Error("Gagal mendapatkan daftar grup")
 		return h.SendError(c, fmt.Sprintf(constants.MsgGroupDataRetrievalFailed, err), nil, fiber.StatusInternalServerError)
 	}
 
 	// Proses data grup
 	result := h.processGroups(groups, selfJID)
 
-	h.Logger.WithField("count", len(groups)).Info("Daftar grup berhasil diambil")
+	h.LogSuccessResponse("Daftar grup berhasil diambil", utils.Fields{
+		"count": len(groups),
+	})
+
 	return h.SendSuccess(c, model.NewGroupListResponse(
 		true, // Set success ke true saat berhasil
 		constants.MsgGroupsRetrieved,
 		result))
+}
+
+// GetParticipants mengembalikan daftar anggota grup WhatsApp
+// Endpoint: GET /api/groups/:id/participants
+func (h *GroupHandler) GetParticipants(c *fiber.Ctx) error {
+	// 1. Log informasi debug request
+	h.LogDebugRequest(c, "GetParticipants")
+
+	// Gunakan metode standar untuk memeriksa koneksi
+	if !h.CheckWhatsAppConnection(c, "Gagal mendapatkan daftar anggota grup: "+constants.MsgNotConnected) {
+		return nil
+	}
+
+	// Dapatkan groupID dari parameter
+	groupID := c.Params("id")
+	if groupID == "" {
+		return h.SendError(c, constants.MsgGroupIDRequired, nil, fiber.StatusBadRequest)
+	}
+
+	// Validasi format ID grup
+	if !utils.ValidateGroupID(groupID) {
+		return h.SendError(c, constants.MsgInvalidGroupID, nil, fiber.StatusBadRequest)
+	}
+
+	// Dapatkan JID perangkat sendiri
+	selfJID := h.WhatsApp.GetSelfID()
+	if selfJID == nil {
+		return h.SendError(c, fmt.Sprintf(constants.MsgFindIDFailed, "self"), nil, fiber.StatusInternalServerError)
+	}
+
+	// Dapatkan informasi grup
+	group, err := h.WhatsApp.GetGroupByID(groupID)
+	if err != nil {
+		return h.SendError(c, fmt.Sprintf(constants.MsgGroupDataRetrievalFailed, err), nil, fiber.StatusNotFound)
+	}
+
+	// Mendapatkan partisipan dengan info yang diperkaya
+	enrichedParticipants, err := h.WhatsApp.GetEnrichedParticipants(group.JID)
+	if err != nil {
+		h.Logger.WithError(err).Warn("Gagal mendapatkan informasi kontak partisipan", utils.Fields{
+			"group_id": groupID,
+		})
+		// Tetap gunakan participants normal jika gagal mendapatkan yang diperkaya
+		enrichedParticipants = group.Participants
+	}
+
+	// Proses partisipan dan cek apakah pengguna adalah admin
+	normalizedSelfJID := utils.NormalizeJID(selfJID.String())
+	participants, isAdmin := h.processParticipantsWithContacts(enrichedParticipants, normalizedSelfJID)
+
+	h.LogSuccessResponse("Daftar anggota grup berhasil diambil", utils.Fields{
+		"group_id": groupID,
+		"count":    len(participants),
+		"is_admin": isAdmin,
+	})
+
+	return h.SendSuccess(c, model.NewGroupParticipantsResponse(
+		constants.MsgGroupParticipantsRetrieved,
+		group.JID.String(),
+		group.Name,
+		isAdmin,
+		participants,
+	))
 }
 
 // processGroups mengkonversi daftar grup WhatsApp ke model API
@@ -98,69 +167,7 @@ func (h *GroupHandler) processGroups(groups []*types.GroupInfo, selfJID *types.J
 	return result
 }
 
-// GetParticipants mengembalikan daftar partisipan dari sebuah grup
-func (h *GroupHandler) GetParticipants(c *fiber.Ctx) error {
-	// Gunakan metode standar untuk memeriksa koneksi
-	if !h.CheckWhatsAppConnection(c, "Gagal mendapatkan daftar anggota grup: "+constants.MsgNotConnected) {
-		return nil
-	}
-
-	// Dapatkan groupID dari parameter
-	groupID := c.Params("id")
-	if groupID == "" {
-		return h.SendError(c, constants.MsgGroupIDRequired, nil, fiber.StatusBadRequest)
-	}
-
-	// Validasi format ID grup
-	if !utils.ValidateGroupID(groupID) {
-		return h.SendError(c, constants.MsgInvalidGroupID, nil, fiber.StatusBadRequest)
-	}
-
-	// Dapatkan JID perangkat sendiri
-	selfJID := h.WhatsApp.GetSelfID()
-	if selfJID == nil {
-		return h.SendError(c, fmt.Sprintf(constants.MsgFindIDFailed, "self"), nil, fiber.StatusInternalServerError)
-	}
-
-	// Dapatkan informasi grup
-	group, err := h.WhatsApp.GetGroupByID(groupID)
-	if err != nil {
-		h.Logger.WithError(err).Error("Gagal mendapatkan informasi grup", utils.Fields{
-			"group_id": groupID,
-		})
-		return h.SendError(c, fmt.Sprintf(constants.MsgGroupDataRetrievalFailed, err), nil, fiber.StatusNotFound)
-	}
-
-	// Mendapatkan partisipan dengan info yang diperkaya
-	enrichedParticipants, err := h.WhatsApp.GetEnrichedParticipants(group.JID)
-	if err != nil {
-		h.Logger.WithError(err).Warn("Gagal mendapatkan informasi kontak partisipan", utils.Fields{
-			"group_id": groupID,
-		})
-		// Tetap gunakan participants normal jika gagal mendapatkan yang diperkaya
-		enrichedParticipants = group.Participants
-	}
-
-	// Proses partisipan dan cek apakah pengguna adalah admin
-	normalizedSelfJID := utils.NormalizeJID(selfJID.String())
-	participants, isAdmin := h.processParticipantsWithContacts(enrichedParticipants, normalizedSelfJID)
-
-	h.Logger.WithFields(utils.Fields{
-		"group_id": groupID,
-		"count":    len(participants),
-		"is_admin": isAdmin,
-	}).Info("Daftar anggota grup berhasil diambil")
-
-	return h.SendSuccess(c, model.NewGroupParticipantsResponse(
-		constants.MsgGroupParticipantsRetrieved,
-		group.JID.String(),
-		group.Name,
-		isAdmin,
-		participants,
-	))
-}
-
-// processParticipantsWithContacts memproses partisipan grup dengan informasi kontak lengkap
+// processParticipantsWithContacts memproses partisipan grup dengan informasi kontak
 func (h *GroupHandler) processParticipantsWithContacts(participants []types.GroupParticipant, normalizedSelfJID string) ([]model.GroupParticipantInfo, bool) {
 	result := make([]model.GroupParticipantInfo, len(participants))
 	isAdmin := false
