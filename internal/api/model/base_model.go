@@ -13,7 +13,7 @@ type BaseResponse struct {
 	Time    string `json:"time"`    // Waktu respons dalam format Indonesia
 }
 
-// NewBaseResponse membuat respons dasar baru
+// NewBaseResponse membuat instance baru BaseResponse dengan nilai default
 func NewBaseResponse(success bool, message string) BaseResponse {
 	now := time.Now()
 	return BaseResponse{
@@ -23,14 +23,14 @@ func NewBaseResponse(success bool, message string) BaseResponse {
 	}
 }
 
-// BaseErrorResponse untuk respons error API
+// BaseErrorResponse adalah model untuk respons error API
 type BaseErrorResponse struct {
 	BaseResponse
 	Error string `json:"error,omitempty"` // Detail error jika ada
 	Code  int    `json:"code"`            // HTTP status code
 }
 
-// NewBaseErrorResponse membuat respons error baru
+// NewBaseErrorResponse membuat instance baru BaseErrorResponse dengan nilai default
 func NewBaseErrorResponse(message string, err error, code int) BaseErrorResponse {
 	errMsg := ""
 	if err != nil {

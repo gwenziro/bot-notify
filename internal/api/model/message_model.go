@@ -6,35 +6,33 @@ import (
 	"github.com/gwenziro/bot-notify/internal/utils"
 )
 
-// PersonalMessageRequest untuk request API kirim pesan personal
+// PersonalMessageRequest adalah model untuk request API kirim pesan personal
 type PersonalMessageRequest struct {
-	PhoneNumber string `json:"phoneNumber" validate:"required"`
-	Message     string `json:"message" validate:"required"`
+	PhoneNumber string `json:"phoneNumber" validate:"required"` // Nomor telepon penerima
+	Message     string `json:"message" validate:"required"`     // Pesan yang akan dikirim
 }
 
-// GroupMessageRequest untuk request API kirim pesan grup
+// GroupMessageRequest adalah model untuk request API kirim pesan grup
 type GroupMessageRequest struct {
-	GroupID string `json:"groupID" validate:"required"`
-	Message string `json:"message" validate:"required"`
+	GroupID string `json:"groupID" validate:"required"` // ID grup penerima
+	Message string `json:"message" validate:"required"` // Pesan yang akan dikirim
 }
 
-// MessageResponse untuk hasil operasi kirim pesan
+// MessageResponse adalah model untuk hasil operasi kirim pesan
 type MessageResponse struct {
 	BaseResponse
-	Recipient string `json:"recipient"`
-	Type      string `json:"type"`
-	SentTime  string `json:"sentTime,omitempty"`
+	Recipient string `json:"recipient"`          // ID/nomor penerima pesan
+	Type      string `json:"type"`               // Tipe penerima: "personal" atau "group"
+	SentTime  string `json:"sentTime,omitempty"` // Waktu pengiriman dalam format Indonesia
 }
 
-// NewMessageResponse membuat respons pesan baru
-func NewMessageResponse(message string, recipient string, messageType string) MessageResponse {
-	now := time.Now()
-
+// NewMessageResponse membuat instance baru MessageResponse
+func NewMessageResponse(message string, recipient string, messageType string, sentTime time.Time) MessageResponse {
 	return MessageResponse{
 		BaseResponse: NewBaseResponse(true, message),
 		Recipient:    recipient,
 		Type:         messageType,
-		SentTime:     utils.FormatTimeIndonesia(&now),
+		SentTime:     utils.FormatTimeIndonesia(&sentTime),
 	}
 }
 

@@ -1,17 +1,17 @@
 package model
 
-// QRCodeStatusResponse berisi informasi status QR code
+// QRCodeStatusResponse adalah model untuk informasi status QR code
 type QRCodeStatusResponse struct {
 	BaseResponse
-	Available       bool `json:"available"`
-	Expired         bool `json:"expired"`
-	ConnectedStatus bool `json:"connected,omitempty"`
+	Available       bool `json:"available"`           // Flag ketersediaan QR code
+	Expired         bool `json:"expired"`             // Flag kedaluwarsa QR code
+	ConnectedStatus bool `json:"connected,omitempty"` // Flag status koneksi WhatsApp
 }
 
-// NewQRCodeStatusResponse membuat respons status QR code baru
+// NewQRCodeStatusResponse membuat instance baru QRCodeStatusResponse
 func NewQRCodeStatusResponse(available bool, expired bool, message string) QRCodeStatusResponse {
-	// Tentukan status sukses berdasarkan status
-	success := available && !expired // Success=true hanya jika tersedia dan tidak expired
+	// Success true hanya jika QR code tersedia dan tidak kedaluwarsa
+	success := available && !expired
 
 	return QRCodeStatusResponse{
 		BaseResponse: NewBaseResponse(success, message),
@@ -20,12 +20,12 @@ func NewQRCodeStatusResponse(available bool, expired bool, message string) QRCod
 	}
 }
 
-// QRCodeErrorResponse untuk respons error terkait QR code
+// QRCodeErrorResponse adalah model untuk respons error terkait QR code
 type QRCodeErrorResponse struct {
 	BaseErrorResponse
 }
 
-// NewQRCodeErrorResponse membuat respons error QR code baru
+// NewQRCodeErrorResponse membuat instance baru QRCodeErrorResponse
 func NewQRCodeErrorResponse(message string, err error, code int) QRCodeErrorResponse {
 	return QRCodeErrorResponse{
 		BaseErrorResponse: NewBaseErrorResponse(message, err, code),

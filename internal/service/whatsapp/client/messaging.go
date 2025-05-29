@@ -13,9 +13,9 @@ import (
 )
 
 // SendMessage mengirim pesan teks ke nomor atau grup tertentu
-func (c *Client) SendMessage(recipient types.JID, message string) error {
+func (c *Client) SendMessage(recipient types.JID, message string) (time.Time, error) {
 	if c.waClient == nil || !c.connectionState.IsConnected {
-		return errors.New("klien WhatsApp belum terhubung")
+		return time.Time{}, errors.New("klien WhatsApp belum terhubung")
 	}
 
 	c.logger.WithFields(utils.Fields{
@@ -30,6 +30,9 @@ func (c *Client) SendMessage(recipient types.JID, message string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	// Catat waktu pengiriman sebenarnya
+	sendTime := time.Now()
+
 	// Kirim pesan dengan context timeout
 	_, err := c.waClient.SendMessage(ctx, recipient, &waE2E.Message{
 		Conversation: &message,
@@ -37,12 +40,12 @@ func (c *Client) SendMessage(recipient types.JID, message string) error {
 
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
-			return fmt.Errorf("timeout saat mengirim pesan: operasi melebihi 10 detik")
+			return time.Time{}, fmt.Errorf("timeout saat mengirim pesan: operasi melebihi 10 detik")
 		}
-		return fmt.Errorf("gagal mengirim pesan: %w", err)
+		return time.Time{}, fmt.Errorf("gagal mengirim pesan: %w", err)
 	}
 
-	return nil
+	return sendTime, nil
 }
 
 // SendFormattedMessage mengirim pesan dengan format khusus (bold, italic, dll)
@@ -118,8 +121,8 @@ func (c *Client) BroadcastMessage(personalNumbers []string, groupIDs []string, m
 			"type": "personal",
 		}).Info("Mengirim pesan broadcast")
 
-		// Kirim pesan
-		err := c.SendMessage(jid, message)
+		// Kirim pesan dan ambil timestamp pengiriman
+		_, err := c.SendMessage(jid, message)
 
 		// Catat hasil
 		result := model.BroadcastResult{
@@ -182,8 +185,8 @@ func (c *Client) BroadcastMessage(personalNumbers []string, groupIDs []string, m
 			"type": "group",
 		}).Info("Mengirim pesan broadcast")
 
-		// Kirim pesan
-		err := c.SendMessage(jid, message)
+		// Kirim pesan dan ambil timestamp pengiriman
+		_, err := c.SendMessage(jid, message)
 
 		// Catat hasil
 		result := model.BroadcastResult{

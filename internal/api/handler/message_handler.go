@@ -67,7 +67,8 @@ func (h *MessageHandler) SendGroup(c *fiber.Ctx) error {
 
 	// Kirim pesan hanya jika validasi berhasil
 	jid := client.ParseGroupID(req.GroupID)
-	if err := h.WhatsApp.SendMessage(jid, req.Message); err != nil {
+	sendTime, err := h.WhatsApp.SendMessage(jid, req.Message)
+	if err != nil {
 		h.Logger.WithError(err).Error("Gagal mengirim pesan grup")
 		return h.SendError(c, constants.MsgSendFailure, err, fiber.StatusInternalServerError)
 	}
@@ -76,7 +77,8 @@ func (h *MessageHandler) SendGroup(c *fiber.Ctx) error {
 	return h.SendSuccess(c, model.NewMessageResponse(
 		constants.MsgSendGroupSuccess,
 		jid.String(),
-		"group"))
+		"group",
+		sendTime))
 }
 
 // SendPersonal mengirim pesan ke nomor personal
@@ -115,7 +117,8 @@ func (h *MessageHandler) SendPersonal(c *fiber.Ctx) error {
 
 	// Kirim pesan hanya jika validasi berhasil
 	jid := client.ParsePhoneNumber(req.PhoneNumber)
-	if err := h.WhatsApp.SendMessage(jid, req.Message); err != nil {
+	sendTime, err := h.WhatsApp.SendMessage(jid, req.Message)
+	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			h.Logger.Error("Timeout saat mengirim pesan personal")
 			return h.SendError(c, constants.MsgTimeoutError, err, fiber.StatusGatewayTimeout)
@@ -128,7 +131,8 @@ func (h *MessageHandler) SendPersonal(c *fiber.Ctx) error {
 	return h.SendSuccess(c, model.NewMessageResponse(
 		constants.MsgSendSuccess,
 		jid.String(),
-		"personal"))
+		"personal",
+		sendTime))
 }
 
 // Broadcast mengirim pesan ke banyak nomor/grup sekaligus
@@ -251,7 +255,7 @@ func (h *MessageHandler) Broadcast(c *fiber.Ctx) error {
 		MsgBroadcastSuccess,
 		results,
 		processingTime,
-	)
+		time.Now()) // Untuk broadcast, kita gunakan waktu selesai broadcast
 
 	return h.SendSuccess(c, response)
 }

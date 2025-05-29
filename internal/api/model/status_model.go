@@ -1,23 +1,23 @@
 package model
 
-// ConnectionStatus berisi informasi status koneksi WhatsApp
+// ConnectionStatus adalah model untuk informasi status koneksi WhatsApp
 type ConnectionStatus struct {
-	Status            string `json:"status"`
-	IsConnected       bool   `json:"isConnected"`
-	ConnectionRetries int    `json:"connectionRetries,omitempty"`
-	LastActivity      string `json:"lastActivity,omitempty"`
+	Status            string `json:"status"`                      // Status koneksi sebagai string
+	IsConnected       bool   `json:"isConnected"`                 // Flag status koneksi
+	ConnectionRetries int    `json:"connectionRetries,omitempty"` // Jumlah percobaan koneksi
+	LastActivity      string `json:"lastActivity,omitempty"`      // Waktu aktivitas terakhir
 }
 
-// StatusResponse berisi respons dari endpoint status
+// StatusResponse adalah model untuk respons dari endpoint status
 type StatusResponse struct {
 	BaseResponse
-	Status            string `json:"status"`
-	IsConnected       bool   `json:"isConnected"`
-	ConnectionRetries int    `json:"connectionRetries,omitempty"`
-	LastActivity      string `json:"lastActivity,omitempty"`
+	Status            string `json:"status"`                      // Status koneksi sebagai string
+	IsConnected       bool   `json:"isConnected"`                 // Flag status koneksi
+	ConnectionRetries int    `json:"connectionRetries,omitempty"` // Jumlah percobaan koneksi
+	LastActivity      string `json:"lastActivity,omitempty"`      // Waktu aktivitas terakhir
 }
 
-// NewStatusResponse membuat respons status baru
+// NewStatusResponse membuat instance baru StatusResponse
 func NewStatusResponse(message string, status string, isConnected bool) StatusResponse {
 	return StatusResponse{
 		BaseResponse: NewBaseResponse(isConnected, message),
@@ -26,13 +26,13 @@ func NewStatusResponse(message string, status string, isConnected bool) StatusRe
 	}
 }
 
-// PingResponse berisi respons dari endpoint ping
+// PingResponse adalah model untuk respons dari endpoint ping
 type PingResponse struct {
 	BaseResponse
-	Version string `json:"version"`
+	Version string `json:"version"` // Versi API
 }
 
-// NewPingResponse membuat respons ping baru
+// NewPingResponse membuat instance baru PingResponse
 func NewPingResponse(message string, version string) PingResponse {
 	return PingResponse{
 		BaseResponse: NewBaseResponse(true, message),
