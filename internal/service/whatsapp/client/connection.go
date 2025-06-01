@@ -62,7 +62,6 @@ func (c *Client) Connect() error {
 			// Tunggu hingga terhubung atau timeout
 			for {
 				if client.IsConnected() {
-					c.logger.Info("WhatsApp berhasil terhubung!")
 					break
 				}
 

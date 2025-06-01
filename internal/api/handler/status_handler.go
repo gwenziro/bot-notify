@@ -56,11 +56,8 @@ func (h *StatusHandler) GetStatus(c *fiber.Ctx) error {
 		response.LastActivity = utils.FormatTimeIndonesia(&state.LastActivity)
 	}
 
-	// 7. Tentukan status code HTTP
+	// 7. Selalu kembalikan StatusOK (200) agar dashboard tetap bisa menampilkan status
 	statusCode := fiber.StatusOK
-	if !state.IsConnected {
-		statusCode = fiber.StatusServiceUnavailable
-	}
 
 	// 8. Log hasil
 	h.LogSuccessResponse("Status koneksi berhasil diambil", utils.Fields{

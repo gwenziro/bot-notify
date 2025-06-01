@@ -182,10 +182,6 @@ func (h *QRHandler) ProcessQRCode(qrCode string) error {
 	if qrCode == "" {
 		return fmt.Errorf("QR code kosong")
 	}
-
-	// 1. Tampilkan QR code di terminal
-	printQRToTerminal(qrCode)
-
 	// 2. Simpan QR code ke file
 	if err := h.SaveQRCode(qrCode); err != nil {
 		return fmt.Errorf("gagal menyimpan QR code: %w", err)
@@ -200,16 +196,4 @@ func (h *QRHandler) ProcessQRCode(qrCode string) error {
 // GetQRCodePath mengembalikan path file QR code
 func (h *QRHandler) GetQRCodePath() string {
 	return h.qrCodePath
-}
-
-// printQRToTerminal menampilkan QR code di terminal sebagai ASCII art
-func printQRToTerminal(qrCodeStr string) {
-
-	qr, err := qrcode.New(qrCodeStr, qrcode.Medium)
-	if err != nil {
-		return
-	}
-
-	// Tampilkan QR code sebagai ASCII art di terminal
-	fmt.Println(qr.ToSmallString(false))
 }

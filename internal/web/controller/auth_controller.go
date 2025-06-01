@@ -2,8 +2,6 @@ package controller
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"fmt"
 	"strconv"
 	"time"
@@ -14,6 +12,7 @@ import (
 	"github.com/gwenziro/bot-notify/internal/service/whatsapp/client"
 	"github.com/gwenziro/bot-notify/internal/storage"
 	"github.com/gwenziro/bot-notify/internal/utils"
+	"github.com/gwenziro/bot-notify/internal/web/entity"
 )
 
 // AuthController menangani autentikasi halaman web
@@ -49,28 +48,31 @@ func (c *AuthController) LoginPage(ctx *fiber.Ctx) error {
 		}
 	}
 
+	// Dapatkan data untuk halaman login
+	pageData := c.prepareLoginPageData(ctx)
+
+	// Tambahkan log untuk debugging
+	c.logger.Info("Rendering halaman login", utils.Fields{
+		"redirect": pageData.RedirectTo,
+		"error":    pageData.Error,
+	})
+
+	// Render halaman login
+	return ctx.Render("login", pageData)
+}
+
+// prepareLoginPageData menyiapkan data untuk halaman login
+func (c *AuthController) prepareLoginPageData(ctx *fiber.Ctx) entity.LoginPageData {
 	// Dapatkan parameter
 	redirect := ctx.Query("redirect", "/dashboard")
 	errorMsg := ctx.Query("error", "")
 
-	var errorText string
-	if errorMsg == "invalid_credentials" {
-		errorText = "Token akses tidak valid. Silakan coba lagi."
-	} else if errorMsg == "invalid_session" {
-		errorText = "Sesi Anda telah kedaluwarsa. Silakan login kembali."
-	} else if errorMsg == "too_many_attempts" {
-		errorText = "Terlalu banyak percobaan login gagal. Silakan coba lagi nanti."
-	} else if errorMsg == "session_timeout" {
-		errorText = "Sesi Anda telah kedaluwarsa karena tidak aktif terlalu lama."
-	} else if errorMsg == "security_concern" {
-		errorText = "Terdapat masalah keamanan dengan sesi Anda. Silakan login kembali."
-	} else if errorMsg == "invalid_request" {
-		errorText = "Permintaan tidak valid. Silakan coba lagi."
-	}
+	// Tentukan pesan error berdasarkan kode
+	errorText := c.getErrorMessage(errorMsg)
 
 	// Generate CSRF token dan simpan dalam sesi
-	csrfToken := generateRandomToken(32)
-	sess, err = c.sessionStore.Get(ctx)
+	csrfToken := utils.GenerateRandomToken(32)
+	sess, err := c.sessionStore.Get(ctx)
 	if err == nil {
 		sess.Set("csrf_token", csrfToken)
 		if err := sess.Save(); err != nil {
@@ -78,30 +80,94 @@ func (c *AuthController) LoginPage(ctx *fiber.Ctx) error {
 		}
 	}
 
-	// Tambahkan log untuk debugging
-	c.logger.Info("Rendering halaman login", utils.Fields{
-		"redirect": redirect,
-		"error":    errorMsg,
-	})
+	// Buat data halaman login
+	return entity.LoginPageData{
+		Title:       "Login - WhatsApp Bot Notify",
+		RedirectTo:  redirect,
+		Error:       errorText,
+		CsrfToken:   csrfToken,
+		AccessToken: utils.MaskToken(c.config.Auth.AccessToken),
+	}
+}
 
-	// Render halaman login
-	return ctx.Render("login", fiber.Map{
-		"Title":       "Login - WhatsApp Bot Notify",
-		"RedirectTo":  redirect,
-		"Error":       errorText,
-		"CsrfToken":   csrfToken,
-		"AccessToken": c.maskToken(c.config.Auth.AccessToken),
-	})
+// getErrorMessage menerjemahkan kode error menjadi pesan yang bisa dibaca
+func (c *AuthController) getErrorMessage(errorCode string) string {
+	switch errorCode {
+	case "invalid_credentials":
+		return "Token akses tidak valid. Silakan coba lagi."
+	case "invalid_session":
+		return "Sesi Anda telah kedaluwarsa. Silakan login kembali."
+	case "too_many_attempts":
+		return "Terlalu banyak percobaan login gagal. Silakan coba lagi nanti."
+	case "session_timeout":
+		return "Sesi Anda telah kedaluwarsa karena tidak aktif terlalu lama."
+	case "security_concern":
+		return "Terdapat masalah keamanan dengan sesi Anda. Silakan login kembali."
+	case "invalid_request":
+		return "Permintaan tidak valid. Silakan coba lagi."
+	default:
+		return ""
+	}
 }
 
 // ProcessLogin memproses login
 func (c *AuthController) ProcessLogin(ctx *fiber.Ctx) error {
 	// Verifikasi CSRF token
+	if !c.verifyCsrfToken(ctx) {
+		return ctx.Redirect("/login?error=invalid_request&redirect=" + ctx.FormValue("redirect", "/dashboard"))
+	}
+
+	// Validasi rate limiting
+	if !c.validateRateLimit(ctx) {
+		return ctx.Redirect("/login?error=too_many_attempts&redirect=" + ctx.FormValue("redirect", "/dashboard"))
+	}
+
+	// Dapatkan data login dari form
+	loginReq := entity.LoginRequest{
+		Token:      ctx.FormValue("token"),
+		RememberMe: ctx.FormValue("remember_me") == "on",
+		Redirect:   ctx.FormValue("redirect", "/dashboard"),
+	}
+
+	// Validasi token
+	if loginReq.Token != c.config.Auth.AccessToken {
+		c.incrementLoginAttempt(ctx)
+		c.logger.Warn("Percobaan login gagal", utils.Fields{
+			"ip": ctx.IP(),
+		})
+		return ctx.Redirect("/login?error=invalid_credentials&redirect=" + loginReq.Redirect)
+	}
+
+	// Token valid, reset percobaan
+	c.resetLoginAttempt(ctx)
+
+	// Buat sesi
+	if err := c.createSession(ctx, loginReq.Token); err != nil {
+		c.logger.WithError(err).Error("Gagal membuat sesi login")
+		return ctx.Status(fiber.StatusInternalServerError).SendString("Terjadi kesalahan saat menyimpan sesi")
+	}
+
+	// Set cookie auto-login jika "remember me" dicentang
+	if loginReq.RememberMe {
+		c.setAutoLoginCookie(ctx)
+	}
+
+	c.logger.Info("Login berhasil", utils.Fields{
+		"ip":          ctx.IP(),
+		"remember_me": loginReq.RememberMe,
+	})
+
+	// Redirect dengan script untuk set token di localStorage
+	return c.renderRedirectPage(ctx, loginReq.Token, loginReq.Redirect)
+}
+
+// verifyCsrfToken memeriksa validitas token CSRF
+func (c *AuthController) verifyCsrfToken(ctx *fiber.Ctx) bool {
 	csrfToken := ctx.FormValue("csrf_token")
 	sess, err := c.sessionStore.Get(ctx)
 	if err != nil {
 		c.logger.WithError(err).Error("Gagal mendapatkan sesi saat validasi CSRF")
-		return ctx.Redirect("/login?error=invalid_request&redirect=" + ctx.FormValue("redirect", "/dashboard"))
+		return false
 	}
 
 	storedToken := sess.Get("csrf_token")
@@ -109,63 +175,70 @@ func (c *AuthController) ProcessLogin(ctx *fiber.Ctx) error {
 		c.logger.Warn("CSRF token tidak valid", utils.Fields{
 			"ip": ctx.IP(),
 		})
-		return ctx.Redirect("/login?error=invalid_request&redirect=" + ctx.FormValue("redirect", "/dashboard"))
+		return false
 	}
 
 	// Hapus CSRF token setelah digunakan
 	sess.Delete("csrf_token")
 	sess.Save()
 
-	// Implementasi rate limiting sederhana dengan IP
+	return true
+}
+
+// validateRateLimit memeriksa apakah pengguna telah melebihi batas percobaan login
+func (c *AuthController) validateRateLimit(ctx *fiber.Ctx) bool {
 	ipKey := fmt.Sprintf("login_attempt:%s", ctx.IP())
-	bgCtx := context.Background() // Buat context untuk operasi storage
+	bgCtx := context.Background()
 
 	attemptData, err := c.store.Get(bgCtx, ipKey)
+	if err != nil {
+		return true // Asumsikan valid jika gagal mendapatkan data
+	}
 
-	attempts := 0
-	if err == nil && len(attemptData) > 0 {
-		attempts, _ = strconv.Atoi(string(attemptData))
-
-		// Jika melebihi 5 percobaan dalam 15 menit, tolak
+	if len(attemptData) > 0 {
+		attempts, _ := strconv.Atoi(string(attemptData))
 		if attempts >= 5 {
 			c.logger.Warn("Login rate limited", utils.Fields{
 				"ip":       ctx.IP(),
 				"attempts": attempts,
 			})
-			return ctx.Redirect("/login?error=too_many_attempts&redirect=" + ctx.FormValue("redirect", "/dashboard"))
+			return false
 		}
 	}
 
-	// Dapatkan token dari form
-	token := ctx.FormValue("token")
-	rememberMe := ctx.FormValue("remember_me") == "on"
-	redirect := ctx.FormValue("redirect", "/dashboard")
+	return true
+}
 
-	// Validasi token
-	if token != c.config.Auth.AccessToken {
-		// Catat percobaan gagal
+// incrementLoginAttempt menambahkan hitungan percobaan login gagal
+func (c *AuthController) incrementLoginAttempt(ctx *fiber.Ctx) {
+	ipKey := fmt.Sprintf("login_attempt:%s", ctx.IP())
+	bgCtx := context.Background()
+
+	attemptData, err := c.store.Get(bgCtx, ipKey)
+	attempts := 1
+	if err == nil && len(attemptData) > 0 {
+		attempts, _ = strconv.Atoi(string(attemptData))
 		attempts++
-		// Gunakan Set karena SetTTL tidak tersedia di interface Storage
-		err = c.store.Set(bgCtx, ipKey, []byte(strconv.Itoa(attempts)))
-		if err != nil {
-			c.logger.WithError(err).Warn("Gagal menyimpan percobaan login")
-		}
-
-		c.logger.Warn("Percobaan login gagal", utils.Fields{
-			"ip":       ctx.IP(),
-			"attempts": attempts,
-		})
-		return ctx.Redirect("/login?error=invalid_credentials&redirect=" + redirect)
 	}
 
-	// Token valid, reset percobaan
-	c.store.Delete(bgCtx, ipKey)
-
-	// Buat sesi
-	sess, err = c.sessionStore.Get(ctx)
+	err = c.store.Set(bgCtx, ipKey, []byte(strconv.Itoa(attempts)))
 	if err != nil {
-		c.logger.WithError(err).Error("Gagal mendapatkan sesi saat login")
-		return ctx.Status(fiber.StatusInternalServerError).SendString("Terjadi kesalahan sesi")
+		c.logger.WithError(err).Warn("Gagal menyimpan percobaan login")
+	}
+}
+
+// resetLoginAttempt menghapus hitungan percobaan login
+func (c *AuthController) resetLoginAttempt(ctx *fiber.Ctx) {
+	ipKey := fmt.Sprintf("login_attempt:%s", ctx.IP())
+	bgCtx := context.Background()
+	c.store.Delete(bgCtx, ipKey)
+}
+
+// createSession membuat sesi login baru
+func (c *AuthController) createSession(ctx *fiber.Ctx, token string) error {
+	sess, err := c.sessionStore.Get(ctx)
+	if err != nil {
+		return fmt.Errorf("gagal mendapatkan sesi: %w", err)
 	}
 
 	// Set token dan status autentikasi di sesi
@@ -177,42 +250,65 @@ func (c *AuthController) ProcessLogin(ctx *fiber.Ctx) error {
 	deviceFingerprint := fmt.Sprintf("%s|%s", ctx.IP(), ctx.Get("User-Agent"))
 	sess.Set("device_fingerprint", deviceFingerprint)
 
-	if err := sess.Save(); err != nil {
-		c.logger.WithError(err).Error("Gagal menyimpan sesi login")
-		return ctx.Status(fiber.StatusInternalServerError).SendString("Terjadi kesalahan saat menyimpan sesi")
+	return sess.Save()
+}
+
+// setAutoLoginCookie menetapkan cookie untuk auto-login
+func (c *AuthController) setAutoLoginCookie(ctx *fiber.Ctx) {
+	cookie := entity.AutoLoginCookie{
+		Name:     "auto_login",
+		Value:    c.config.Auth.AccessToken,
+		Path:     "/",
+		MaxAge:   c.config.Auth.CookieMaxAge,
+		Secure:   c.config.Server.BaseURL != "http://localhost:8080",
+		HTTPOnly: true,
+		SameSite: "Strict",
 	}
 
-	// Set cookie auto-login jika "remember me" dicentang
-	if rememberMe {
-		ctx.Cookie(&fiber.Cookie{
-			Name:     "auto_login",
-			Value:    token,
-			Path:     "/",
-			MaxAge:   c.config.Auth.CookieMaxAge,
-			Secure:   c.config.Server.BaseURL != "http://localhost:8080",
-			HTTPOnly: true,
-			SameSite: "Strict",
-		})
-	}
-
-	c.logger.Info("Login berhasil", utils.Fields{
-		"ip":          ctx.IP(),
-		"remember_me": rememberMe,
+	ctx.Cookie(&fiber.Cookie{
+		Name:     cookie.Name,
+		Value:    cookie.Value,
+		Path:     cookie.Path,
+		MaxAge:   cookie.MaxAge,
+		Secure:   cookie.Secure,
+		HTTPOnly: cookie.HTTPOnly,
+		SameSite: cookie.SameSite,
 	})
+}
 
-	// Tambahkan script untuk set token di localStorage untuk API calls
+// renderRedirectPage menampilkan halaman redirect dengan script untuk set token
+func (c *AuthController) renderRedirectPage(ctx *fiber.Ctx, token string, redirect string) error {
 	redirectHTML := fmt.Sprintf(`
 	<!DOCTYPE html>
 	<html>
-	<head><title>Redirecting...</title></head>
-	<body>
+	<head>
+		<title>Redirecting...</title>
 		<script>
-			// Set token for API calls
-			localStorage.setItem('access_token', '%s');
-			sessionStorage.setItem('authenticated', 'true');
-			// Redirect to requested page
+			// Fungsi untuk memastikan token disimpan dengan benar
+			function ensureTokenSaved(token) {
+				localStorage.setItem('access_token', token);
+				
+				// Verifikasi token tersimpan dengan benar
+				const savedToken = localStorage.getItem('access_token');
+				if (savedToken !== token) {
+					console.error('Token tidak tersimpan dengan benar di localStorage');
+					alert('Terjadi masalah saat menyimpan token autentikasi. Mohon reload halaman jika mengalami masalah.');
+				} else {
+					console.log('Token berhasil disimpan di localStorage');
+				}
+				
+				sessionStorage.setItem('authenticated', 'true');
+			}
+			
+			// Simpan token untuk API calls
+			ensureTokenSaved('%s');
+			
+			// Redirect ke halaman yang diminta
 			window.location.href = '%s';
 		</script>
+	</head>
+	<body>
+		<p>Redirecting to dashboard...</p>
 	</body>
 	</html>
 	`, token, redirect)
@@ -252,23 +348,4 @@ func (c *AuthController) Logout(ctx *fiber.Ctx) error {
 
 	// Redirect ke halaman login
 	return ctx.Redirect("/login")
-}
-
-// Fungsi helper untuk menghasilkan random token untuk CSRF
-func generateRandomToken(length int) string {
-	b := make([]byte, length/2)
-	if _, err := rand.Read(b); err != nil {
-		return ""
-	}
-	return hex.EncodeToString(b)
-}
-
-// maskToken menyembunyikan sebagian besar token dengan * untuk keamanan
-func (c *AuthController) maskToken(token string) string {
-	if len(token) <= 8 {
-		return "********"
-	}
-
-	// Tampilkan hanya 4 karakter pertama dan 4 terakhir
-	return token[:4] + "..." + token[len(token)-4:]
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/gwenziro/bot-notify/internal/config"
 	"github.com/gwenziro/bot-notify/internal/service/whatsapp/client"
 	"github.com/gwenziro/bot-notify/internal/utils"
+	"github.com/gwenziro/bot-notify/internal/web/entity"
 )
 
 // DocController menangani halaman dokumentasi
@@ -29,11 +30,20 @@ func NewDocController(cfg *config.Config, whatsClient *client.Client, logger uti
 func (c *DocController) DocumentationPage(ctx *fiber.Ctx) error {
 	c.logger.Debug("Rendering documentation page")
 
+	// Persiapkan data untuk halaman dokumentasi
+	docData := c.prepareDocumentationData()
+
+	// Render dokumentasi dengan data
+	return ctx.Render("documentation", docData)
+}
+
+// prepareDocumentationData menyiapkan data untuk halaman dokumentasi
+func (c *DocController) prepareDocumentationData() entity.DocumentationData {
 	// Dapatkan status koneksi WhatsApp untuk sidebar
 	connectionState := c.whatsApp.GetConnectionState()
 
 	// Persiapkan contoh code dengan token yang disamarkan
-	maskedToken := maskToken(c.config.Auth.AccessToken)
+	maskedToken := utils.MaskToken(c.config.Auth.AccessToken)
 
 	// Persiapkan data untuk template
 	baseURL := c.config.Server.BaseURL
@@ -42,16 +52,32 @@ func (c *DocController) DocumentationPage(ctx *fiber.Ctx) error {
 	}
 
 	// Siapkan endpoints dengan method sudah dalam lowercase
-	endpoints := []fiber.Map{
+	endpoints := c.getApiEndpoints()
+
+	// Buat data untuk template
+	return entity.DocumentationData{
+		Title:             "Dokumentasi API",
+		CurrentYear:       time.Now().Year(),
+		BaseURL:           baseURL,
+		MaskedToken:       maskedToken,
+		ActivePage:        "docs",
+		WhatsAppConnected: connectionState.IsConnected,
+		Endpoints:         endpoints,
+	}
+}
+
+// getApiEndpoints mengembalikan daftar endpoint API untuk dokumentasi
+func (c *DocController) getApiEndpoints() []entity.ApiEndpoint {
+	return []entity.ApiEndpoint{
 		{
-			"Name":        "Status",
-			"Endpoint":    "/api/status",
-			"Method":      "GET",
-			"MethodLower": "get", // Tambahkan ini
-			"Description": "Mendapatkan status koneksi WhatsApp",
-			"Example": `curl -X GET "{{.BaseURL}}/api/status" \\
+			Name:        "Status",
+			Endpoint:    "/api/status",
+			Method:      "GET",
+			MethodLower: "get",
+			Description: "Mendapatkan status koneksi WhatsApp",
+			Example: `curl -X GET "{{.BaseURL}}/api/status" \\
   -H "X-Access-Token: {{.MaskedToken}}"`,
-			"Response": `{
+			Response: `{
   "is_connected": true,
   "status": "connected",
   "device_name": "WhatsApp Web",
@@ -62,52 +88,52 @@ func (c *DocController) DocumentationPage(ctx *fiber.Ctx) error {
 }`,
 		},
 		{
-			"Name":        "Kirim Pesan Personal",
-			"Endpoint":    "/api/send/personal",
-			"Method":      "POST",
-			"MethodLower": "post", // Tambahkan ini
-			"Description": "Mengirim pesan ke nomor WhatsApp personal",
-			"Example": `curl -X POST "{{.BaseURL}}/api/send/personal" \\
+			Name:        "Kirim Pesan Personal",
+			Endpoint:    "/api/send/personal",
+			Method:      "POST",
+			MethodLower: "post",
+			Description: "Mengirim pesan ke nomor WhatsApp personal",
+			Example: `curl -X POST "{{.BaseURL}}/api/send/personal" \\
   -H "X-Access-Token: {{.MaskedToken}}" \\
   -H "Content-Type: application/json" \\
   -d '{
     "phone": "628123456789",
     "message": "Ini adalah pesan notifikasi"
   }'`,
-			"Response": `{
+			Response: `{
   "success": true,
   "message_id": "12345",
   "timestamp": "2025-05-25T23:20:15Z"
 }`,
 		},
 		{
-			"Name":        "Kirim Pesan Grup",
-			"Endpoint":    "/api/send/group",
-			"Method":      "POST",
-			"MethodLower": "post", // Tambahkan ini
-			"Description": "Mengirim pesan ke grup WhatsApp",
-			"Example": `curl -X POST "{{.BaseURL}}/api/send/group" \\
+			Name:        "Kirim Pesan Grup",
+			Endpoint:    "/api/send/group",
+			Method:      "POST",
+			MethodLower: "post",
+			Description: "Mengirim pesan ke grup WhatsApp",
+			Example: `curl -X POST "{{.BaseURL}}/api/send/group" \\
   -H "X-Access-Token: {{.MaskedToken}}" \\
   -H "Content-Type: application/json" \\
   -d '{
     "group_id": "120363123456789@g.us",
     "message": "Ini adalah pesan notifikasi grup"
   }'`,
-			"Response": `{
+			Response: `{
   "success": true,
   "message_id": "67890",
   "timestamp": "2025-05-25T23:22:30Z"
 }`,
 		},
 		{
-			"Name":        "Daftar Grup",
-			"Endpoint":    "/api/groups",
-			"Method":      "GET",
-			"MethodLower": "get", // Tambahkan ini
-			"Description": "Mendapatkan daftar grup WhatsApp",
-			"Example": `curl -X GET "{{.BaseURL}}/api/groups" \\
+			Name:        "Daftar Grup",
+			Endpoint:    "/api/groups",
+			Method:      "GET",
+			MethodLower: "get",
+			Description: "Mendapatkan daftar grup WhatsApp",
+			Example: `curl -X GET "{{.BaseURL}}/api/groups" \\
   -H "X-Access-Token: {{.MaskedToken}}"`,
-			"Response": `{
+			Response: `{
   "groups": [
     {
       "id": "120363123456789@g.us",
@@ -123,18 +149,4 @@ func (c *DocController) DocumentationPage(ctx *fiber.Ctx) error {
 }`,
 		},
 	}
-
-	// Buat data untuk template
-	data := fiber.Map{
-		"Title":             "Dokumentasi API",
-		"CurrentYear":       time.Now().Year(),
-		"BaseURL":           baseURL,
-		"MaskedToken":       maskedToken,
-		"ActivePage":        "docs",                      // Untuk highlight menu aktif di sidebar
-		"WhatsAppConnected": connectionState.IsConnected, // Untuk status di sidebar
-		"Endpoints":         endpoints,
-	}
-
-	// Render dokumentasi dengan data
-	return ctx.Render("documentation", data)
 }

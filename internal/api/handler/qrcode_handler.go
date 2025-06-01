@@ -80,11 +80,8 @@ func (h *QRCodeHandler) GetStatus(c *fiber.Ctx) error {
 	// Siapkan response sesuai status
 	response := model.NewQRCodeStatusResponse(available, expired, message)
 
-	// Siapkan status code yang sesuai
+	// PERUBAHAN: Selalu gunakan StatusOK (200) tanpa memandang status QR code
 	statusCode := fiber.StatusOK
-	if !available || expired {
-		statusCode = fiber.StatusServiceUnavailable
-	}
 
 	h.LogSuccessResponse("Status QR code berhasil diambil", utils.Fields{
 		"available": available,

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"os"
 	"path/filepath"
 	"strings"
@@ -74,6 +75,11 @@ func NewServer(opts ServerOptions) (*Server, error) {
 		// Tambahkan fungsi currentYear untuk penggunaan di template
 		engine.AddFunc("currentYear", func() string {
 			return time.Now().Format("2006")
+		})
+
+		// Tambahkan fungsi safeHTML untuk menampilkan HTML dalam template
+		engine.AddFunc("safeHTML", func(text string) template.HTML {
+			return template.HTML(text)
 		})
 
 		engine.AddFunc("json", func(v interface{}) (string, error) {

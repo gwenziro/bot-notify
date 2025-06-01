@@ -4,11 +4,20 @@ import (
 	"path/filepath"
 
 	"github.com/gofiber/fiber/v2/middleware/session"
+	"github.com/gwenziro/bot-notify/internal/api/handler"
 	"github.com/gwenziro/bot-notify/internal/config"
 	"github.com/gwenziro/bot-notify/internal/service/whatsapp/client"
 	"github.com/gwenziro/bot-notify/internal/utils"
 	"github.com/gwenziro/bot-notify/internal/web/controller"
 )
+
+// APIHandler berisi semua handler API
+type APIHandler struct {
+	statusHandler  *handler.StatusHandler
+	qrCodeHandler  *handler.QRCodeHandler
+	groupHandler   *handler.GroupHandler
+	messageHandler *handler.MessageHandler
+}
 
 // WebHandler menangani endpoint dan tampilan web
 type WebHandler struct {
@@ -24,6 +33,9 @@ type WebHandler struct {
 	dashboardController *controller.DashboardController
 	authController      *controller.AuthController
 	docController       *controller.DocController
+
+	// API handlers
+	apiHandler *APIHandler
 }
 
 // NewWebHandler membuat instance baru WebHandler
@@ -40,6 +52,14 @@ func NewWebHandler(cfg *config.Config, whatsClient *client.Client, sessionStore 
 	authController := controller.NewAuthController(cfg, whatsClient, sessionStore, logger)
 	docController := controller.NewDocController(cfg, whatsClient, logger)
 
+	// Inisialisasi API handler
+	apiHandler := &APIHandler{
+		statusHandler:  handler.NewStatusHandler(whatsClient),
+		qrCodeHandler:  handler.NewQRCodeHandler(whatsClient),
+		groupHandler:   handler.NewGroupHandler(whatsClient),
+		messageHandler: handler.NewMessageHandler(whatsClient),
+	}
+
 	return &WebHandler{
 		config:              cfg,
 		whatsApp:            whatsClient,
@@ -51,6 +71,7 @@ func NewWebHandler(cfg *config.Config, whatsClient *client.Client, sessionStore 
 		dashboardController: dashboardController,
 		authController:      authController,
 		docController:       docController,
+		apiHandler:          apiHandler,
 	}
 }
 

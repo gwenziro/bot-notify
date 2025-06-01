@@ -23,9 +23,23 @@ func (h *WebHandler) RegisterRoutes(app *fiber.App) {
 	dashboard := app.Group("/dashboard")
 	dashboard.Use(authMiddleware.RequireAuth())
 	dashboard.Get("/", h.dashboardController.DashboardPage)
+	dashboard.Post("/refresh-qr", h.dashboardController.RefreshQRCode)
+	dashboard.Post("/disconnect", h.dashboardController.DisconnectWhatsApp)
+
+	// New Connectivity route
+	connectivity := app.Group("/connectivity")
+	connectivity.Use(authMiddleware.RequireAuth())
 
 	// Documentation route - juga dilindungi auth
 	docs := app.Group("/docs")
 	docs.Use(authMiddleware.RequireAuth())
 	docs.Get("/", h.docController.DocumentationPage)
+
+	// API routes - tanpa middleware autentikasi khusus untuk sementara
+	api := app.Group("/api")
+
+	// Endpoint yang dibutuhkan oleh JavaScript dashboard
+	api.Get("/status", h.apiHandler.statusHandler.GetStatus)
+	api.Get("/qr/status", h.apiHandler.qrCodeHandler.GetStatus)
+	api.Get("/qr/image", h.apiHandler.qrCodeHandler.GetImage)
 }

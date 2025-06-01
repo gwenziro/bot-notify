@@ -15,11 +15,14 @@
   margin: 0 auto;
 }
 
-/* Header */
+/* Header - Reorder elements for badge position */
 .dashboard-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: sticky;
+  top: var(--space-3); /* Jarak dari atas saat sticky */
+  z-index: 100; /* Memastikan tetap di atas konten lain */
   margin-bottom: var(--space-5);
   padding: var(--space-4);
   background: var(--glass-bg);
@@ -28,33 +31,49 @@
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--glass-shadow);
+  transition: all 0.3s ease;
 }
 
+/* Efek ketika header sticky (scrolled) */
+.dashboard-header.scrolled {
+  background: rgba(14, 23, 45, 0.85); /* Lebih gelap saat di-scroll */
+  backdrop-filter: blur(16px); /* Blur lebih kuat */
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25), 0 0 15px var(--primary-glow);
+  border-color: rgba(138, 180, 248, 0.08);
+  padding-top: var(--space-3);
+  padding-bottom: var(--space-3);
+}
+
+/* Brand area stays on left */
 .logo-area {
   display: flex;
   align-items: center;
   gap: var(--space-3);
 }
 
-.logo {
-  width: 38px;
-  height: 38px;
-  filter: drop-shadow(0 0 8px var(--primary-glow));
-}
-
-.app-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  background: linear-gradient(to right, var(--primary-light), var(--primary));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  margin: 0;
+/* Actions grouped with status badge on right */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
 }
 
 .actions-area {
   display: flex;
   gap: var(--space-2);
+}
+
+/* Status Badge for header */
+.status-badge {
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: 0.875rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-right: var(--space-2);
 }
 
 /* Main Content */
@@ -73,7 +92,23 @@
   width: 100%;
 }
 
-/* Card Base Styles */
+/* Content rows dengan tinggi yang konsisten */
+.content-row {
+  display: flex;
+  gap: var(--space-5);
+  margin-bottom: var(--space-5);
+  width: 100%;
+}
+
+/* Section settings - Menggunakan height 100% */
+.content-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%; /* Pastikan section mengisi tinggi penuh */
+}
+
+/* Card Base Styles - Menyesuaikan tinggi card */
 .glass-card {
   background: var(--glass-bg);
   backdrop-filter: blur(12px);
@@ -83,11 +118,9 @@
   box-shadow: var(--glass-shadow);
   overflow: hidden;
   transition: transform var(--transition-normal) ease, box-shadow var(--transition-normal) ease;
-}
-
-.glass-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  height: 100%; /* Tinggi penuh untuk mengikuti parent */
 }
 
 .card-header {
@@ -96,33 +129,32 @@
   align-items: center;
   padding: var(--space-4) var(--space-5);
   border-bottom: 1px solid var(--glass-border);
+  flex-shrink: 0; /* Mencegah header menyusut */
 }
 
-.section-title,
-.subsection-title {
+.card-header-actions {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  margin: 0;
-  font-weight: 600;
-}
-
-.section-title {
-  font-size: 1.25rem;
-}
-
-.subsection-title {
-  font-size: 1.1rem;
-  margin-bottom: var(--space-3);
-}
-
-.section-title i,
-.subsection-title i {
-  color: var(--primary);
 }
 
 .card-body {
   padding: var(--space-5);
+  flex: 1; /* Mengisi sisa ruang dalam card */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Perubahan untuk about section agar konten menyesuaikan ruang */
+.about-section .card-body {
+  justify-content: space-between;
+}
+
+.info-description {
+  color: var(--text-secondary);
+  margin-bottom: var(--space-4);
+  line-height: 1.6;
+  flex-grow: 1; /* Mengisi ruang antara deskripsi dan info-details */
 }
 
 /* Status Badge */
@@ -167,12 +199,11 @@
   box-shadow: 0 0 8px var(--danger-glow);
 }
 
-/* Connected Info */
+/* Connected Info - diperbarui untuk layout baru */
 .connected-info {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
+  justify-content: space-between;
   gap: var(--space-5);
 }
 
@@ -242,6 +273,19 @@
   color: var(--primary);
 }
 
+/* Adding styles for QR code error state */
+.qr-container .qr-loading i.fa-exclamation-circle,
+.qr-container .qr-loading i.fa-exclamation-triangle,
+.qr-container .qr-loading i.fa-clock {
+    color: var(--warning);
+    font-size: 2.5rem;
+    margin-bottom: var(--space-2);
+}
+
+.qr-container .qr-loading i.fa-exclamation-triangle {
+    color: var(--danger);
+}
+
 .qr-image {
   max-width: 100%;
   max-height: 100%;
@@ -255,7 +299,7 @@
 /* Stats Grid */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: var(--space-4);
 }
 
@@ -266,12 +310,25 @@
   padding: var(--space-4) var(--space-5);
 }
 
+/* Perbaikan untuk statistik - menjadi row */
+.stat-item {
+  display: flex;
+  flex-direction: row; /* Horizontal layout */
+  align-items: center; /* Vertikal center */
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--glass-border);
+}
+
 .stat-icon {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 50px;
   height: 50px;
+  min-width: 50px; /* Mencegah ikon menyusut */
   font-size: 1.5rem;
   border-radius: var(--radius-lg);
   background: linear-gradient(135deg, var(--primary-light), var(--primary));
@@ -292,52 +349,13 @@
 }
 
 .stat-value {
-  font-size: 1.75rem;
-  font-weight: 700;
-  margin: 0 0 var(--space-2);
-}
-
-.stat-trend {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+  line-height: 1.5;
   display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  font-size: 0.875rem;
-}
-
-.stat-trend.positive {
-  color: var(--success);
-}
-
-.stat-trend.negative {
-  color: var(--danger);
-}
-
-.stat-info {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-}
-
-.stat-progress {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.progress-bar {
-  flex: 1;
-  height: 6px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: var(--radius-full);
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(to right, var(--primary), var(--primary-light));
-  border-radius: var(--radius-full);
+  flex-direction: column;
+  justify-content: center;
 }
 
 /* Activity List */
@@ -420,9 +438,10 @@
 }
 
 .info-details {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* 3 kolom sejajar */
+  gap: var(--space-4);
+  margin-top: var(--space-4);
 }
 
 .info-item {
@@ -608,41 +627,204 @@
   margin-top: var(--space-4);
 }
 
+/* Last activity emphasis */
+#last-activity {
+    position: relative;
+}
+
+#last-activity.recent {
+    color: var(--success);
+}
+
+/* Style for disabled buttons */
+.btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* Connected Profile */
+.connected-profile {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.profile-pic {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--primary);
+  box-shadow: 0 0 15px var(--primary-glow);
+  background-color: rgba(255, 255, 255, 0.1); /* Background color saat loading */
+}
+
+/* Fallback image styling */
+.fallback-img {
+  padding: 10px;
+  object-fit: contain;
+  background: linear-gradient(135deg, var(--primary-light), var(--primary));
+}
+
+.profile-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-name {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0 var(--space-1);
+}
+
+.profile-number {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* Layout baru dengan content rows */
+.content-row {
+  display: flex;
+  gap: var(--space-5);
+  margin-bottom: var(--space-5);
+  width: 100%;
+}
+
+/* Section settings */
+.content-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%; /* Pastikan section mengisi tinggi penuh */
+}
+
+.stats-section, .api-usage-section {
+  width: 100%;
+}
+
+/* Hapus main-layout yang lama karena diganti dengan content-row */
+.main-layout {
+  display: none;
+}
+
+/* Style untuk API examples */
+.api-examples {
+  display: flex;
+  flex-direction: column; /* Vertikal layout */
+  gap: var(--space-5);
+  margin-bottom: var(--space-4);
+}
+
+.api-example-group {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.api-example-group:not(:last-child) {
+  margin-bottom: var(--space-4);
+}
+
+.example-title {
+  font-size: 1rem;
+  margin-bottom: var(--space-2);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.example-title::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: var(--primary);
+  border-radius: 50%;
+}
+
+.api-doc-link {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-4);
+}
+
+/* Info link style */
+.info-link {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color var(--transition-fast) ease;
+}
+
+.info-link:hover {
+  color: var(--primary-light);
+  text-decoration: underline;
+}
+
 /* Responsive adjustments */
-@media (max-width: 768px) {
-  .dashboard-container {
-    padding: var(--space-3);
+@media (max-width: 1200px) {
+  .api-examples {
+    grid-template-columns: repeat(2, 1fr);
   }
-  
-  .dashboard-header,
-  .dashboard-footer {
-    padding: var(--space-3) var(--space-4);
-  }
-  
-  .card-header {
-    padding: var(--space-3) var(--space-4);
-  }
-  
-  .card-body {
-    padding: var(--space-4);
-  }
-  
-  .connected-info {
+}
+
+@media (max-width: 992px) {
+  .content-row {
     flex-direction: column;
-    gap: var(--space-4);
   }
   
-  .connection-actions {
+  .contact-info-section, .about-section {
     width: 100%;
-    justify-content: center;
+  }
+  
+  .api-examples {
+    grid-template-columns: 1fr;
+  }
+  
+  .info-details {
+    grid-template-columns: 1fr; /* Stack pada mobile */
+    gap: var(--space-3);
   }
   
   .stats-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr); /* 2 kolom pada tablet */
+  }
+}
+
+@media (max-width: 1024px) {
+  .main-layout {
+    grid-template-columns: 1fr; /* Stack on medium screens */
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-header {
+    flex-wrap: wrap;
+    gap: var(--space-3);
   }
   
-  .info-grid {
-    grid-template-columns: 1fr;
+  .logo-area {
+    flex: 1;
+  }
+  
+  .header-actions {
+    width: 100%;
+    justify-content: flex-end;
+    margin-top: var(--space-2);
+  }
+  
+  .actions-area {
+    flex-shrink: 0;
+  }
+  
+  .stats-grid {
+    grid-template-columns: 1fr; /* 1 kolom pada mobile */
+  }
+  
+  .stat-item {
+    padding: var(--space-2);
   }
 }
 
@@ -660,12 +842,12 @@
 
 @keyframes slideInRight {
   from {
+    transform: translateX(100%);
     opacity: 0;
-    transform: translateX(20px);
   }
   to {
-    opacity: 1;
     transform: translateX(0);
+    opacity: 1;
   }
 }
 
@@ -690,4 +872,84 @@
 
 .pulse {
   animation: pulse 1.5s infinite;
+}
+
+/* Style khusus untuk nilai waktu dengan dua baris */
+.stat-value br {
+  margin-bottom: 4px;
+  display: block;
+  content: "";
+}
+
+/* Tambahkan sedikit lebih banyak ruang untuk stat-value */
+.stat-value {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Brand link styling - Perbaikan untuk mengatasi styling bawaan browser */
+.brand-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  text-decoration: none !important; /* Hapus underline */
+  color: inherit !important; /* Gunakan warna teks default */
+  transition: transform var(--transition-fast) ease;
+  position: relative; /* Untuk efek hover */
+  overflow: visible; /* Pastikan efek tidak terpotong */
+}
+
+.brand-link:hover {
+  transform: scale(1.05);
+  text-decoration: none !important; /* Tetap hapus underline pada hover */
+}
+
+/* Reset properti link styling bawaan browser */
+.brand-link:visited,
+.brand-link:active,
+.brand-link:focus {
+  color: inherit !important;
+  text-decoration: none !important;
+  outline: none !important;
+}
+
+/* Pastikan logo dan teks berada dalam satu baris horizontal */
+.logo {
+  width: 38px;
+  height: 38px;
+  filter: drop-shadow(0 0 8px var(--primary-glow));
+  display: block; /* Penting untuk layout yang konsisten */
+  flex-shrink: 0; /* Mencegah logo menyusut */
+}
+
+.app-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  background: linear-gradient(to right, var(--primary-light), var(--primary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  margin: 0;
+  display: block; /* Penting untuk layout yang konsisten */
+  line-height: 1.2; /* Pastikan tinggi line yang konsisten */
+}
+
+/* Notifikasi styling */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.notification {
+  transition: all 0.3s ease;
 }

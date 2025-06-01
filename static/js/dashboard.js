@@ -1,462 +1,617 @@
 /**
- * Dashboard JavaScript
- * Handles dashboard functionality and real-time updates
+ * Dashboard JS - Handles all dashboard interactions
  */
 
-console.log('%c🔄 Dashboard.js loaded at ' + new Date().toISOString(), 'color: #0a939f; font-weight: bold; font-size: 14px;');
-
-// Global variables
-let statusCheckInterval;
-let isPageActive = true;
-let connectionStatus = {
-    isConnected: false,
-    status: '',
-    retries: 0
-};
-
-// Initialize dashboard on load
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Dashboard initialized');
+    // Elements
+    const refreshBtn = document.getElementById('refresh-btn');
+    const refreshQrBtn = document.getElementById('refresh-qr-btn');
+    const disconnectBtn = document.getElementById('disconnect-btn');
+    const copyApiBtn = document.getElementById('copy-api-btn');
+    const connectionBadge = document.getElementById('connection-badge');
+    const qrContainer = document.getElementById('qr-container');
+    const qrCode = document.getElementById('qr-code');
+    const qrLoading = document.getElementById('qr-loading');
+    const connectedView = document.getElementById('connected-view');
+    const qrView = document.getElementById('qr-view');
+    const serverTime = document.getElementById('server-time');
     
-    // Setup event listeners
-    setupEventListeners();
+    // Update server time every second
+    function updateServerTime() {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString('id-ID', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        });
+        serverTime.textContent = timeString;
+    }
     
-    // Initial status check
-    checkStatus();
-    
-    // Setup status polling with smart behavior
-    setupSmartPolling();
-    
-    // Setup visibility change detection
-    handleVisibilityChange();
-    
-    // Initialize server time
+    // Initialize server time and update every second
     updateServerTime();
     setInterval(updateServerTime, 1000);
-});
-
-/**
- * Set up all event listeners for dashboard
- */
-function setupEventListeners() {
-    // Refresh button click
-    const refreshBtn = document.getElementById('refresh-btn');
-    if (refreshBtn) {
-        refreshBtn.addEventListener('click', function() {
-            // Show spinning animation
-            this.classList.add('spinning');
-            
-            // Perform immediate status check
-            checkStatus().then(() => {
-                // Remove spinning animation after 1 second
-                setTimeout(() => {
-                    this.classList.remove('spinning');
-                }, 1000);
-            });
-        });
-    }
     
-    // Disconnect button click
-    const disconnectBtn = document.getElementById('disconnect-btn');
-    if (disconnectBtn) {
-        disconnectBtn.addEventListener('click', function() {
-            if (confirm('Apakah Anda yakin ingin memutuskan koneksi WhatsApp?')) {
-                disconnectWhatsApp();
-            }
-        });
-    }
-    
-    // Refresh QR button click
-    const refreshQrBtn = document.getElementById('refresh-qr-btn');
-    if (refreshQrBtn) {
-        refreshQrBtn.addEventListener('click', function() {
-            refreshQRCode();
-        });
-    }
-    
-    // Clear activity button click
-    const clearActivityBtn = document.getElementById('clear-activity-btn');
-    if (clearActivityBtn) {
-        clearActivityBtn.addEventListener('click', function() {
-            clearActivityList();
-        });
-    }
-    
-    // Copy API button click
-    const copyApiBtn = document.getElementById('copy-api-btn');
-    if (copyApiBtn) {
-        copyApiBtn.addEventListener('click', function() {
-            const codeBlock = document.querySelector('.code-block code');
-            if (codeBlock) {
-                navigator.clipboard.writeText(codeBlock.textContent)
-                    .then(() => {
-                        const originalIcon = this.innerHTML;
-                        this.innerHTML = '<i class="fas fa-check"></i>';
-                        setTimeout(() => {
-                            this.innerHTML = originalIcon;
-                        }, 2000);
-                    })
-                    .catch(err => {
-                        console.error('Failed to copy: ', err);
-                    });
-            }
-        });
-    }
-}
-
-/**
- * Check WhatsApp connection status
- * @returns {Promise} Promise that resolves when status check is complete
- */
-function checkStatus() {
-    console.log('Checking status at ' + new Date().toISOString());
-    
-    return fetch('/api/status', {
-        method: 'GET',
-        credentials: 'same-origin',
-        headers: {
-            'Accept': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(response => {
-        if (!response.ok) {
-            if (response.status === 500) {
-                throw new Error(`Server error (500) - server may be initializing, will retry later`);
-            }
-            
-            if (response.headers.get('content-type')?.includes('text/html')) {
-                throw new Error('Authentication required - received HTML instead of JSON');
-            }
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        // Pastikan content-type adalah application/json
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-            console.warn('Response is not JSON:', contentType);
-            throw new Error('Invalid response format: expected JSON');
-        }
-        
-        if (response.redirected) {
-            console.warn('Response was redirected to', response.url);
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log('Status data received:', data);
-        
-        // Save previous state to detect changes
-        const prevStatus = connectionStatus.status;
-        const prevConnected = connectionStatus.isConnected;
-        
-        // Update connection status
-        connectionStatus = {
-            isConnected: data.details?.is_connected || false,
-            status: data.details?.status || 'disconnected',
-            retries: data.details?.connection_retries || 0
-        };
-        
-        // Update UI based on status
-        updateStatusUI(connectionStatus);
-        
-        // If connection status changed, add activity
-        if (prevStatus !== connectionStatus.status || prevConnected !== connectionStatus.isConnected) {
-            const message = connectionStatus.isConnected ? 
-                'WhatsApp berhasil terhubung' : 
-                `WhatsApp terputus (${connectionStatus.status})`;
-            
-            addActivity({
-                type: connectionStatus.isConnected ? 'connected' : 'disconnected',
-                icon: connectionStatus.isConnected ? 'plug' : 'plug',
-                text: message,
-                time: 'Baru saja'
-            });
-            
-            // If connection status changed, prompt user to reload
-            if (prevConnected !== connectionStatus.isConnected) {
-                setTimeout(() => {
-                    if (confirm('Status koneksi berubah. Muat ulang halaman untuk melihat semua fitur?')) {
-                        window.location.reload();
-                    }
-                }, 1000);
-            }
-        }
-        
-        return data;
-    })
-    .catch(error => {
-        console.error('Error checking status:', error);
-        
-        // Different error handling based on error type
-        if (error.message.includes('Authentication required')) {
-            console.warn('Authentication issue with API - will retry later');
-        } else if (error.message.includes('Server error (500)')) {
-            console.warn('Server is initializing - will retry later');
-        } else {
-            console.error('Error details:', error);
-        }
-        
-        // If we can't reach the server, mark as disconnected
-        connectionStatus = {
-            isConnected: false,
-            status: 'error',
-            retries: 0
-        };
-        updateStatusUI(connectionStatus);
-        
-        // Return rejected promise to allow retry handling
-        return Promise.reject(error);
-    });
-}
-
-/**
- * Update UI elements based on connection status
- */
-function updateStatusUI(status) {
-    const connectionBadge = document.getElementById('connection-badge');
-    const connectionStatus = document.getElementById('connection-status');
-    const qrView = document.getElementById('qr-view');
-    const connectedView = document.getElementById('connected-view');
-    
-    // Only update DOM elements if they exist
-    if (connectionBadge) {
-        connectionBadge.textContent = status.isConnected ? 'Terhubung' : 'Terputus';
-        connectionBadge.className = `status-badge ${status.isConnected ? 'connected' : 'disconnected'}`;
-    }
-    
-    if (connectionStatus) {
-        connectionStatus.textContent = status.status;
-    }
-    
-    // Show/hide appropriate view based on connection
-    if (qrView && connectedView) {
-        if (status.isConnected) {
-            qrView.style.display = 'none';
-            connectedView.style.display = 'block';
-        } else {
-            qrView.style.display = 'block';
-            connectedView.style.display = 'none';
-            // If disconnected, try to load QR code
-            loadQRCode();
-        }
-    }
-    
-    // Update retry count if element exists
-    const retryCount = document.getElementById('retry-count');
-    if (retryCount) {
-        retryCount.textContent = status.retries;
-    }
-    
-    // Update retry info based on count
-    const retryInfo = document.getElementById('retry-info');
-    if (retryInfo && status.retries !== undefined) {
-        if (status.retries === 0) {
-            retryInfo.textContent = 'Koneksi stabil';
-        } else if (status.retries < 3) {
-            retryInfo.textContent = 'Beberapa masalah koneksi';
-        } else {
-            retryInfo.textContent = 'Koneksi tidak stabil';
-        }
-    }
-}
-
-/**
- * Add new activity to activity list
- * @param {Object} activity Activity to add
- */
-function addActivity(activity) {
-    const activityList = document.getElementById('activity-list');
-    if (!activityList) return;
-    
-    // Create activity item
-    const item = document.createElement('li');
-    item.className = 'activity-item';
-    
-    // Add animation class
-    item.classList.add('fade-in');
-    
-    // Create icon container
-    const iconContainer = document.createElement('div');
-    iconContainer.className = `activity-icon ${activity.type}`;
-    
-    // Create icon
-    const icon = document.createElement('i');
-    icon.className = `fas fa-${activity.icon}`;
-    iconContainer.appendChild(icon);
-    
-    // Create content container
-    const contentContainer = document.createElement('div');
-    contentContainer.className = 'activity-content';
-    
-    // Create text
-    const text = document.createElement('span');
-    text.className = 'activity-text';
-    text.textContent = activity.text;
-    contentContainer.appendChild(text);
-    
-    // Create time
-    const time = document.createElement('span');
-    time.className = 'activity-time';
-    time.textContent = activity.time;
-    contentContainer.appendChild(time);
-    
-    // Add elements to item
-    item.appendChild(iconContainer);
-    item.appendChild(contentContainer);
-    
-    // Add item to list at the top
-    activityList.insertBefore(item, activityList.firstChild);
-    
-    // Limit list to 10 items
-    while (activityList.children.length > 10) {
-        activityList.removeChild(activityList.lastChild);
-    }
-}
-
-/**
- * Clear activity list
- */
-function clearActivityList() {
-    const activityList = document.getElementById('activity-list');
-    if (activityList) {
-        activityList.innerHTML = '';
-        
-        // Add system message about clearing
-        addActivity({
-            type: 'system',
-            icon: 'trash',
-            text: 'Daftar aktivitas dibersihkan',
-            time: 'Baru saja'
-        });
-    }
-}
-
-/**
- * Load QR code if disconnected
- */
-function loadQRCode() {
-    const qrContainer = document.getElementById('qr-container');
-    const qrLoading = document.getElementById('qr-loading');
-    const qrImage = document.getElementById('qr-code');
-    
-    if (!qrContainer || !qrLoading || !qrImage) return;
-    
-    // Show loading
-    qrLoading.classList.remove('hidden');
-    qrImage.classList.add('hidden');
-    
-    // Get QR code
-    fetch('/api/qr/image')
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        })
+    // Function to check QR status
+    function checkQRStatus() {
+        fetch('/api/qr/status')
+        .then(response => response.json())
         .then(data => {
-            if (data.success && data.qr_data) {
-                // Update QR image
-                qrImage.src = `data:image/png;base64,${data.qr_data}`;
-                
-                // Hide loading, show QR
-                qrLoading.classList.add('hidden');
-                qrImage.classList.remove('hidden');
-                
-                // Add activity
-                addActivity({
-                    type: 'system',
-                    icon: 'qrcode',
-                    text: 'QR code baru dimuat',
-                    time: 'Baru saja'
-                });
+            console.log('QR status:', data);
+            
+            if (data.available) {
+                // QR code is available, update the image with cache-busting
+                if (qrCode) {
+                    const qrUrl = `/api/qr/image?t=${Date.now()}`;
+                    qrCode.src = qrUrl;
+                    qrCode.style.display = 'block';
+                    qrLoading && (qrLoading.style.display = 'none');
+                }
             } else {
-                // Show error in loading div
-                qrLoading.innerHTML = '<i class="fas fa-exclamation-circle"></i><span>QR Code tidak tersedia</span>';
+                // QR code is not available or expired
+                if (qrLoading) {
+                    if (data.expired) {
+                        qrLoading.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>QR Code kedaluwarsa, memuat ulang...</span>';
+                        qrLoading.style.display = 'flex';
+                        qrCode && (qrCode.style.display = 'none');
+                        
+                        // Jika QR code kedaluwarsa, otomatis refresh QR code
+                        // Delay sedikit untuk mencegah terlalu banyak request berturut-turut
+                        setTimeout(() => {
+                            refreshQRCode();
+                        }, 1000);
+                    } else {
+                        qrLoading.innerHTML = '<i class="fas fa-clock"></i><span>Menunggu QR Code...</span>';
+                        qrLoading.style.display = 'flex';
+                        qrCode && (qrCode.style.display = 'none');
+                    }
+                }
             }
         })
         .catch(error => {
-            console.error('Error loading QR code:', error);
-            qrLoading.innerHTML = '<i class="fas fa-exclamation-circle"></i><span>Gagal memuat QR Code</span>';
+            console.error('Error checking QR status:', error);
         });
-}
-
-/**
- * Refresh QR code
- */
-function refreshQRCode() {
-    // First trigger reconnect
-    fetch('/api/reconnect', { method: 'POST' })
+    }
+    
+    // Tambahkan flag untuk mencegah terlalu banyak pemanggilan refreshQRCode bersamaan
+    let isRefreshingQR = false;
+    
+    // Function to refresh the QR code
+    function refreshQRCode() {
+        // Mencegah multiple refresh requests
+        if (isRefreshingQR) {
+            console.log('QR refresh already in progress, skipping');
+            return;
+        }
+        
+        isRefreshingQR = true;
+        
+        if (refreshQrBtn) {
+            refreshQrBtn.disabled = true;
+            refreshQrBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Memuat...</span>';
+        }
+        
+        // Show loading state
+        if (qrContainer && qrLoading) {
+            qrCode && (qrCode.style.display = 'none');
+            qrLoading.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Memuat Kode QR...</span>';
+            qrLoading.style.display = 'flex';
+        }
+        
+        // Call API to refresh QR code
+        fetch('/dashboard/refresh-qr', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
         .then(response => response.json())
         .then(data => {
-            addActivity({
-                type: 'system',
-                icon: 'sync',
-                text: 'Meminta QR code baru',
-                time: 'Baru saja'
-            });
+            console.log('QR refresh response:', data);
             
-            // Wait a moment then try to load the QR code
-            setTimeout(loadQRCode, 2000);
+            if (data.success) {
+                // Check if QR is available immediately
+                checkQRStatus();
+                
+                // Schedule regular QR checks
+                startQRStatusChecks();
+            } else {
+                // Show error message
+                if (qrLoading) {
+                    qrLoading.innerHTML = `<i class="fas fa-exclamation-triangle"></i><span>${data.message || 'Gagal memuat QR code'}</span>`;
+                }
+            }
+            
+            // Re-enable the button
+            if (refreshQrBtn) {
+                refreshQrBtn.disabled = false;
+                refreshQrBtn.innerHTML = '<i class="fas fa-sync"></i><span>Segarkan QR</span>';
+            }
+            
+            // Reset flag
+            isRefreshingQR = false;
         })
         .catch(error => {
             console.error('Error refreshing QR code:', error);
+            
+            // Show error message
+            if (qrLoading) {
+                qrLoading.innerHTML = '<i class="fas fa-exclamation-triangle"></i><span>Terjadi kesalahan saat memuat QR code</span>';
+            }
+            
+            // Re-enable the button
+            if (refreshQrBtn) {
+                refreshQrBtn.disabled = false;
+                refreshQrBtn.innerHTML = '<i class="fas fa-sync"></i><span>Segarkan QR</span>';
+            }
+            
+            // Reset flag
+            isRefreshingQR = false;
         });
-}
-
-/**
- * Disconnect WhatsApp
- */
-function disconnectWhatsApp() {
-    fetch('/api/disconnect', { method: 'POST' })
+    }
+    
+    // Modifikasi fungsi startQRStatusChecks untuk mendukung auto-refresh
+    let qrCheckInterval;
+    let autoRefreshEnabled = true; // Flag untuk mengaktifkan auto-refresh
+    
+    function startQRStatusChecks() {
+        // Clear any existing interval
+        if (qrCheckInterval) {
+            clearInterval(qrCheckInterval);
+        }
+        
+        // Check every 3 seconds
+        qrCheckInterval = setInterval(() => {
+            // Also check if we've already connected
+            fetchConnectionStatus(true);
+            
+            // Only check QR if we're still on the QR view
+            if (qrView && qrView.style.display !== 'none') {
+                checkQRStatus();
+            } else {
+                // Stop checking if we're no longer on QR view
+                clearInterval(qrCheckInterval);
+            }
+        }, 3000);
+    }
+    
+    // Function to disconnect WhatsApp
+    function disconnectWhatsApp() {
+        if (disconnectBtn) {
+            disconnectBtn.disabled = true;
+            disconnectBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Memutuskan...</span>';
+        }
+        
+        fetch('/dashboard/disconnect', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
         .then(response => response.json())
         .then(data => {
-            addActivity({
-                type: 'disconnected',
-                icon: 'power-off',
-                text: 'WhatsApp diputuskan secara manual',
-                time: 'Baru saja'
-            });
+            console.log('Disconnect response:', data);
             
-            // Check status to update UI
-            setTimeout(checkStatus, 1000);
+            if (data.success) {
+                // Update UI to show disconnected state
+                if (connectionBadge) {
+                    connectionBadge.textContent = 'Terputus';
+                    connectionBadge.classList.remove('connected');
+                    connectionBadge.classList.add('disconnected');
+                }
+                
+                // Switch to QR view
+                if (connectedView && qrView) {
+                    connectedView.style.display = 'none';
+                    qrView.style.display = 'flex';
+                }
+                
+                // Start QR refresh
+                refreshQRCode();
+            } else {
+                // Show error
+                alert('Gagal memutuskan WhatsApp: ' + (data.message || 'Error tidak diketahui'));
+                
+                // Re-enable the button
+                if (disconnectBtn) {
+                    disconnectBtn.disabled = false;
+                    disconnectBtn.innerHTML = '<i class="fas fa-power-off"></i><span>Putuskan Koneksi</span>';
+                }
+            }
         })
         .catch(error => {
             console.error('Error disconnecting WhatsApp:', error);
+            alert('Terjadi kesalahan saat memutuskan WhatsApp');
+            
+            // Re-enable the button
+            if (disconnectBtn) {
+                disconnectBtn.disabled = false;
+                disconnectBtn.innerHTML = '<i class="fas fa-power-off"></i><span>Putuskan Koneksi</span>';
+            }
         });
-}
-
-/**
- * Update server time display
- */
-function updateServerTime() {
-    const serverTimeElement = document.getElementById('server-time');
-    if (!serverTimeElement) return;
+    }
     
-    const now = new Date();
-    const hours = now.getHours().toString().padStart(2, '0');
-    const minutes = now.getMinutes().toString().padStart(2, '0');
-    const seconds = now.getSeconds().toString().padStart(2, '0');
+    // Function to check connection status
+    function fetchConnectionStatus(silent = false) {
+        fetch('/api/status')
+        .then(response => response.json())
+        .then(data => {
+            if (!silent) {
+                console.log('Connection status:', data);
+            }
+            
+            // If connection state changed, reload the page to update all elements
+            const isCurrentlyConnected = connectionBadge && connectionBadge.classList.contains('connected');
+            
+            if (data.isConnected !== isCurrentlyConnected) {
+                window.location.reload();
+            }
+        })
+        .catch(error => {
+            if (!silent) {
+                console.error('Error fetching connection status:', error);
+            }
+        });
+    }
     
-    serverTimeElement.textContent = `${hours}:${minutes}:${seconds}`;
-}
-
-// Add spinning animation for refresh button
-const style = document.createElement('style');
-style.textContent = `
-    .spinning {
-        animation: spin 1s linear infinite;
+    // Function to copy API example to clipboard
+    function copyApiExample() {
+        const codeBlock = document.querySelector('.code-block code');
+        if (!codeBlock) return;
+        
+        const text = codeBlock.textContent;
+        
+        // Create temporary textarea to copy from
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        
+        try {
+            document.execCommand('copy');
+            // Change button icon temporarily
+            if (copyApiBtn) {
+                copyApiBtn.innerHTML = '<i class="fas fa-check"></i>';
+                setTimeout(() => {
+                    copyApiBtn.innerHTML = '<i class="fas fa-copy"></i>';
+                }, 2000);
+            }
+        } catch (err) {
+            console.error('Could not copy text: ', err);
+        }
+        
+        document.body.removeChild(textarea);
     }
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
+    
+    // Attach event listeners
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+            window.location.reload();
+        });
     }
-    .fade-in {
-        animation: fadeIn 0.5s ease-in-out;
+    
+    if (refreshQrBtn) {
+        refreshQrBtn.addEventListener('click', refreshQRCode);
     }
-    @keyframes fadeIn {
-        0% { opacity: 0; transform: translateY(-10px); }
-        100% { opacity: 1; transform: translateY(0); }
+    
+    if (disconnectBtn) {
+        disconnectBtn.addEventListener('click', disconnectWhatsApp);
     }
-`;
-document.head.appendChild(style);
+    
+    if (copyApiBtn) {
+        copyApiBtn.addEventListener('click', copyApiExample);
+    }
+    
+    // Start QR status checks if we're on QR view
+    if (qrView && qrView.style.display !== 'none') {
+        startQRStatusChecks();
+    }
+    
+    // Periodically check connection status (every 10 seconds)
+    setInterval(() => {
+        fetchConnectionStatus(true);
+    }, 10000);
+    
+    // Auto-refresh QR jika berada di halaman QR view dan QR tidak tersedia/kedaluwarsa
+    // Perbaiki error dengan menambahkan pengecekan null untuk qrCode
+    if (qrView && qrView.style.display !== 'none') {
+        // Hanya coba akses style jika qrCode tidak null
+        if ((qrCode && !qrCode.style.display) || (qrCode && qrCode.style.display === 'none')) {
+            console.log('Auto-refreshing QR on page load');
+            setTimeout(refreshQRCode, 500);
+        } else if (!qrCode) {
+            // Jika qrCode tidak ada sama sekali, juga refresh
+            console.log('QR element not found, refreshing QR');
+            setTimeout(refreshQRCode, 500);
+        }
+    }
+    
+    // Tambahkan event listener untuk sticky header
+    document.addEventListener('DOMContentLoaded', function() {
+        // Setup sticky header
+        const header = document.querySelector('.dashboard-header');
+        const headerObserver = new IntersectionObserver(
+            ([entry]) => {
+                if (!entry.isIntersecting) {
+                    header.classList.add('scrolled');
+                } else {
+                    header.classList.remove('scrolled');
+                }
+            },
+            { threshold: 0.1 } // Trigger ketika 10% header tidak terlihat
+        );
+        
+        // Buat dummy element sebagai "trigger point"
+        const headerTrigger = document.createElement('div');
+        headerTrigger.style.height = '1px';
+        headerTrigger.style.width = '100%';
+        headerTrigger.style.position = 'absolute';
+        headerTrigger.style.top = '0';
+        headerTrigger.style.left = '0';
+        headerTrigger.style.zIndex = '-1';
+        document.body.prepend(headerTrigger);
+        
+        // Observe trigger element
+        headerObserver.observe(headerTrigger);
+        
+        // Setup copy buttons for API examples
+        const copyButtons = document.querySelectorAll('.copy-btn');
+        copyButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const codeType = this.getAttribute('data-code');
+                const codeElement = document.getElementById(`${codeType}-code`);
+                const codeText = codeElement.textContent;
+                
+                navigator.clipboard.writeText(codeText).then(() => {
+                    // Temporarily change icon to show success
+                    const icon = this.querySelector('i');
+                    icon.classList.remove('fa-copy');
+                    icon.classList.add('fa-check');
+                    
+                    // Change back after 2 seconds
+                    setTimeout(() => {
+                        icon.classList.remove('fa-check');
+                        icon.classList.add('fa-copy');
+                    }, 2000);
+                });
+            });
+        });
+        
+        // Penanganan tombol disconnect
+        const disconnectBtn = document.getElementById('disconnect-btn');
+        if (disconnectBtn) {
+            disconnectBtn.addEventListener('click', function() {
+                // Ubah tampilan tombol menjadi loading state
+                const originalText = disconnectBtn.innerHTML;
+                disconnectBtn.disabled = true;
+                disconnectBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Memutuskan...</span>';
+                
+                // Panggil endpoint disconnect
+                fetch('/dashboard/disconnect', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Gagal memutuskan koneksi');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Disconnect response:', data);
+                    if (data.success) {
+                        // Tampilkan notifikasi sukses
+                        showNotification('Koneksi WhatsApp berhasil diputuskan', 'success');
+                        
+                        // Reload halaman setelah 1 detik
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    } else {
+                        // Tampilkan pesan error
+                        showNotification(data.message || 'Gagal memutuskan koneksi', 'error');
+                        
+                        // Kembalikan tombol ke state awal
+                        disconnectBtn.disabled = false;
+                        disconnectBtn.innerHTML = originalText;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error disconnecting:', error);
+                    showNotification('Terjadi kesalahan: ' + error.message, 'error');
+                    
+                    // Kembalikan tombol ke state awal
+                    disconnectBtn.disabled = false;
+                    disconnectBtn.innerHTML = originalText;
+                });
+            });
+        }
+    });
+    
+    // Fungsi untuk menampilkan notifikasi
+    function showNotification(message, type = 'info') {
+        // Cek apakah container notifikasi sudah ada
+        let notifContainer = document.getElementById('notification-container');
+        
+        // Jika belum ada, buat container baru
+        if (!notifContainer) {
+            notifContainer = document.createElement('div');
+            notifContainer.id = 'notification-container';
+            notifContainer.style.position = 'fixed';
+            notifContainer.style.top = '20px';
+            notifContainer.style.right = '20px';
+            notifContainer.style.zIndex = '1000';
+            document.body.appendChild(notifContainer);
+        }
+        
+        // Buat elemen notifikasi
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.style.padding = '12px 16px';
+        notification.style.marginBottom = '10px';
+        notification.style.borderRadius = '4px';
+        notification.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+        notification.style.display = 'flex';
+        notification.style.alignItems = 'center';
+        notification.style.justifyContent = 'space-between';
+        notification.style.minWidth = '300px';
+        notification.style.animation = 'slideInRight 0.3s ease-out forwards';
+        
+        // Set warna berdasarkan tipe
+        if (type === 'success') {
+            notification.style.backgroundColor = 'rgba(14, 204, 141, 0.15)';
+            notification.style.color = 'var(--success)';
+            notification.style.border = '1px solid rgba(14, 204, 141, 0.3)';
+        } else if (type === 'error') {
+            notification.style.backgroundColor = 'rgba(229, 62, 62, 0.15)';
+            notification.style.color = 'var(--danger)';
+            notification.style.border = '1px solid rgba(229, 62, 62, 0.3)';
+        } else {
+            notification.style.backgroundColor = 'rgba(49, 130, 206, 0.15)';
+            notification.style.color = 'var(--info)';
+            notification.style.border = '1px solid rgba(49, 130, 206, 0.3)';
+        }
+        
+        // Isi konten notifikasi
+        notification.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
+                <span>${message}</span>
+            </div>
+            <button class="close-notification" style="background: none; border: none; cursor: pointer; color: inherit;">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        
+        // Tambahkan notifikasi ke container
+        notifContainer.appendChild(notification);
+        
+        // Tambahkan event listener untuk tombol close
+        notification.querySelector('.close-notification').addEventListener('click', function() {
+            notification.style.opacity = '0';
+            notification.style.transform = 'translateX(20px)';
+            setTimeout(() => {
+                notifContainer.removeChild(notification);
+            }, 300);
+        });
+        
+        // Hapus notifikasi setelah 5 detik
+        setTimeout(() => {
+            if (notification.parentNode === notifContainer) {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateX(20px)';
+                setTimeout(() => {
+                    if (notification.parentNode === notifContainer) {
+                        notifContainer.removeChild(notification);
+                    }
+                }, 300);
+            }
+        }, 5000);
+    }
+    
+    // Tambahkan event listener untuk tombol Putuskan
+    document.addEventListener('DOMContentLoaded', function() {
+        // Setup sticky header
+        const header = document.querySelector('.dashboard-header');
+        const headerObserver = new IntersectionObserver(
+            ([entry]) => {
+                if (!entry.isIntersecting) {
+                    header.classList.add('scrolled');
+                } else {
+                    header.classList.remove('scrolled');
+                }
+            },
+            { threshold: 0.1 } // Trigger ketika 10% header tidak terlihat
+        );
+        
+        // Buat dummy element sebagai "trigger point"
+        const headerTrigger = document.createElement('div');
+        headerTrigger.style.height = '1px';
+        headerTrigger.style.width = '100%';
+        headerTrigger.style.position = 'absolute';
+        headerTrigger.style.top = '0';
+        headerTrigger.style.left = '0';
+        headerTrigger.style.zIndex = '-1';
+        document.body.prepend(headerTrigger);
+        
+        // Observe trigger element
+        headerObserver.observe(headerTrigger);
+        
+        // Setup copy buttons for API examples
+        const copyButtons = document.querySelectorAll('.copy-btn');
+        copyButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const codeType = this.getAttribute('data-code');
+                const codeElement = document.getElementById(`${codeType}-code`);
+                const codeText = codeElement.textContent;
+                
+                navigator.clipboard.writeText(codeText).then(() => {
+                    // Temporarily change icon to show success
+                    const icon = this.querySelector('i');
+                    icon.classList.remove('fa-copy');
+                    icon.classList.add('fa-check');
+                    
+                    // Change back after 2 seconds
+                    setTimeout(() => {
+                        icon.classList.remove('fa-check');
+                        icon.classList.add('fa-copy');
+                    }, 2000);
+                });
+            });
+        });
+        
+        // Penanganan tombol disconnect
+        const disconnectBtn = document.getElementById('disconnect-btn');
+        if (disconnectBtn) {
+            disconnectBtn.addEventListener('click', function() {
+                // Ubah tampilan tombol menjadi loading state
+                const originalText = disconnectBtn.innerHTML;
+                disconnectBtn.disabled = true;
+                disconnectBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Memutuskan...</span>';
+                
+                // Panggil endpoint disconnect
+                fetch('/dashboard/disconnect', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Gagal memutuskan koneksi');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Disconnect response:', data);
+                    if (data.success) {
+                        // Tampilkan notifikasi sukses
+                        showNotification('Koneksi WhatsApp berhasil diputuskan', 'success');
+                        
+                        // Reload halaman setelah 1 detik
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    } else {
+                        // Tampilkan pesan error
+                        showNotification(data.message || 'Gagal memutuskan koneksi', 'error');
+                        
+                        // Kembalikan tombol ke state awal
+                        disconnectBtn.disabled = false;
+                        disconnectBtn.innerHTML = originalText;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error disconnecting:', error);
+                    showNotification('Terjadi kesalahan: ' + error.message, 'error');
+                    
+                    // Kembalikan tombol ke state awal
+                    disconnectBtn.disabled = false;
+                    disconnectBtn.innerHTML = originalText;
+                });
+            });
+        }
+    });
+});

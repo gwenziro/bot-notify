@@ -40,19 +40,20 @@ func FormatTimeShort(t *time.Time) string {
 }
 
 // FormatTimeIndonesia memformat waktu ke format yang umum di Indonesia
+// dengan pemisahan tanggal dan waktu
 func FormatTimeIndonesia(t *time.Time) string {
 	if t == nil || t.IsZero() {
 		return ""
 	}
 
-	// Format: "27 Mei 2025 08:03:10"
+	// Format: "27 Mei 2025<br>08:03:10"
 	bulanIndonesia := []string{
 		"Januari", "Februari", "Maret", "April", "Mei", "Juni",
 		"Juli", "Agustus", "September", "Oktober", "November", "Desember",
 	}
 
 	month := bulanIndonesia[t.Month()-1]
-	return fmt.Sprintf("%d %s %d %02d:%02d:%02d",
+	return fmt.Sprintf("%d %s %d, %02d:%02d:%02d",
 		t.Day(), month, t.Year(), t.Hour(), t.Minute(), t.Second())
 }
 
@@ -104,4 +105,28 @@ func FormatTimeRelative(t time.Time) string {
 	// Dalam tahun: >= 1 tahun
 	years := int(diff.Hours() / 24 / 365)
 	return fmt.Sprintf("%d tahun yang lalu", years)
+}
+
+// FormatUptime menghasilkan string uptime yang mudah dibaca
+func FormatUptime(duration time.Duration) string {
+	// Validasi durasi - batasi untuk mencegah nilai yang tidak masuk akal
+	if duration < 0 || duration > 365*24*time.Hour {
+		return "Waktu tidak valid"
+	}
+
+	seconds := int(duration.Seconds()) % 60
+	minutes := int(duration.Minutes()) % 60
+	hours := int(duration.Hours()) % 24
+	days := int(duration.Hours() / 24)
+
+	// Format yang lebih mudah dibaca
+	if days > 0 {
+		return fmt.Sprintf("%d hari %d jam %d menit", days, hours, minutes)
+	} else if hours > 0 {
+		return fmt.Sprintf("%d jam %d menit %d detik", hours, minutes, seconds)
+	} else if minutes > 0 {
+		return fmt.Sprintf("%d menit %d detik", minutes, seconds)
+	}
+
+	return fmt.Sprintf("%d detik", seconds)
 }

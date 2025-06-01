@@ -26,287 +26,315 @@
         <!-- Header -->
         <header class="dashboard-header">
             <div class="logo-area">
-                <img src="https://img.icons8.com/3d-fluency/94/bot.png" alt="Bot Notify" class="logo">
-                <h1 class="app-title">Bot Notify</h1>
-            </div>
-            <div class="actions-area">
-                <button id="refresh-btn" class="btn-icon" title="Segarkan data">
-                    <i class="fas fa-sync-alt"></i>
-                </button>
-                <a href="/logout" class="btn-icon" title="Keluar">
-                    <i class="fas fa-sign-out-alt"></i>
+                <a href="/" class="brand-link">
+                    <img src="https://img.icons8.com/3d-fluency/94/bot.png" alt="Bot Notify" class="logo">
+                    <h1 class="app-title">Bot Notify</h1>
                 </a>
+            </div>
+
+            <div class="header-actions">
+                <div class="status-badge {{if .IsConnected}}connected{{else}}disconnected{{end}}" id="connection-badge">
+                    {{if .IsConnected}}Terhubung{{else}}Terputus{{end}}
+                </div>
+
+                <div class="actions-area">
+                    <button id="refresh-btn" class="btn-icon" title="Segarkan data">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                    <a href="/logout" class="btn-icon" title="Keluar">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </a>
+                </div>
             </div>
         </header>
 
-        <!-- Main content -->
+        <!-- Main content dengan layout baru -->
         <main class="dashboard-content">
-            <!-- Status card -->
-            <section class="status-section">
-                <div class="glass-card status-card">
-                    <div class="card-header">
-                        <h2 class="section-title">
-                            <i class="fas fa-wifi"></i>
-                            Status WhatsApp
-                        </h2>
-                        <div class="status-badge {{if .IsConnected}}connected{{else}}disconnected{{end}}"
-                            id="connection-badge">
-                            {{if .IsConnected}}Terhubung{{else}}Terputus{{end}}
-                        </div>
-                    </div>
+            <!-- Baris 1: Informasi Kontak dan Tentang Bot Notify -->
+            <div class="content-row">
+                <!-- Section Informasi Kontak (sebelumnya Status WhatsApp) -->
+                <section class="content-section contact-info-section">
+                    <div class="glass-card">
+                        <div class="card-header">
+                            <h2 class="section-title">
+                                <i class="fas fa-address-card"></i>
+                                Informasi Kontak
+                            </h2>
 
-                    <div class="card-body">
-                        {{if .IsConnected}}
-                        <!-- Connected state -->
-                        <div class="connected-info" id="connected-view">
-                            <div class="connection-details">
-                                <div class="detail-item">
-                                    <span class="detail-label">Status Koneksi:</span>
-                                    <span class="detail-value" id="connection-status">{{.ConnectionStatus}}</span>
-                                </div>
-                                <div class="detail-item">
-                                    <span class="detail-label">Terhubung sejak:</span>
-                                    <span class="detail-value" id="connected-since">
-                                        {{if .ConnectedSinceFormatted}}
-                                            {{.ConnectedSinceFormatted}}
-                                        {{else}}
-                                            -
-                                        {{end}}
-                                    </span>
-                                </div>
-                                <div class="detail-item">
-                                    <span class="detail-label">Nomor WhatsApp:</span>
-                                    <span class="detail-value" id="device-name">
-                                        {{if .DeviceName}}
-                                            {{.DeviceName}}
-                                        {{else}}
-                                            -
-                                        {{end}}
-                                    </span>
-                                </div>
-                                <div class="detail-item">
-                                    <span class="detail-label">Nama Kontak:</span>
-                                    <span class="detail-value" id="contact-name">
-                                        {{if .ContactName}}
-                                            {{.ContactName}}
-                                        {{else}}
-                                            -
-                                        {{end}}
-                                    </span>
-                                </div>
-                            </div>
-                            <div class="connection-actions">
-                                <button id="disconnect-btn" class="btn btn-danger">
-                                    <i class="fas fa-power-off"></i>
-                                    <span>Putuskan Koneksi</span>
-                                </button>
-                            </div>
+                            {{if .IsConnected}}
+                            <button id="disconnect-btn" class="btn btn-danger">
+                                <i class="fas fa-power-off"></i>
+                                <span>Putuskan</span>
+                            </button>
+                            {{end}}
                         </div>
-                        {{else}}
-                        <!-- Disconnected state -->
-                        <div class="qr-connection" id="qr-view">
-                            <p class="qr-instructions">
-                                Silakan pindai kode QR berikut dengan WhatsApp di ponsel Anda untuk menghubungkan Bot:
-                            </p>
-                            <div class="qr-container" id="qr-container">
-                                <div class="qr-loading" id="qr-loading">
-                                    <i class="fas fa-spinner fa-spin"></i>
-                                    <span>Memuat Kode QR...</span>
+
+                        <div class="card-body">
+                            {{if .IsConnected}}
+                            <!-- Connected state - informasi profil -->
+                            <div class="connected-info" id="connected-view">
+                                <div class="connected-profile">
+                                    {{if .ProfilePictureURL}}
+                                    <img src="{{.ProfilePictureURL}}" alt="Profile Picture" class="profile-pic">
+                                    {{else}}
+                                    <div class="profile-pic-placeholder">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                    {{end}}
+                                    <div class="profile-info">
+                                        <h3 class="profile-name">{{.ContactName}}</h3>
+                                        <p class="profile-number">{{.PhoneNumber}}</p>
+                                    </div>
                                 </div>
-                                <img id="qr-code" class="qr-image hidden" src="" alt="QR Code WhatsApp">
                             </div>
-                            <div class="qr-actions">
-                                <button id="refresh-qr-btn" class="btn btn-primary">
-                                    <i class="fas fa-sync"></i>
-                                    <span>Segarkan QR</span>
-                                </button>
+                            {{else}}
+                            <!-- Disconnected state - QR code view tetap sama -->
+                            <div class="qr-connection" id="qr-view">
+                                <p class="qr-instructions">
+                                    {{if .QRCodeMessage}}
+                                    {{.QRCodeMessage}}
+                                    {{else}}
+                                    Silakan pindai kode QR berikut dengan WhatsApp di ponsel Anda untuk menghubungkan
+                                    Bot:
+                                    {{end}}
+                                </p>
+                                <div class="qr-container" id="qr-container">
+                                    {{if .QRCodeAvailable}}
+                                    <img id="qr-code" class="qr-image" src="{{.QRCodeURL}}" alt="QR Code WhatsApp">
+                                    {{else}}
+                                    <div class="qr-loading" id="qr-loading">
+                                        {{if .QRCodeExpired}}
+                                        <i class="fas fa-exclamation-circle"></i>
+                                        <span>QR Code kedaluwarsa</span>
+                                        {{else}}
+                                        <i class="fas fa-spinner fa-spin"></i>
+                                        <span>Memuat Kode QR...</span>
+                                        {{end}}
+                                    </div>
+                                    {{end}}
+                                </div>
+                                <div class="qr-actions">
+                                    <button id="refresh-qr-btn" class="btn btn-primary">
+                                        <i class="fas fa-sync"></i>
+                                        <span>Segarkan QR</span>
+                                    </button>
+                                </div>
                             </div>
+                            {{end}}
                         </div>
-                        {{end}}
                     </div>
-                </div>
-            </section>
+                </section>
+
+                <!-- Section Tentang Bot Notify -->
+                <section class="content-section about-section">
+                    <div class="glass-card">
+                        <div class="card-header">
+                            <h2 class="section-title">
+                                <i class="fas fa-info-circle"></i>
+                                Tentang Bot Notify
+                            </h2>
+                        </div>
+                        <div class="card-body">
+                            <p class="info-description">
+                                Bot Notify adalah layanan untuk mengirimkan pesan notifikasi WhatsApp secara otomatis
+                                ketika form disubmit atau event tertentu terjadi di sistem Anda.
+                            </p>
+                            <div class="info-details">
+                                <div class="info-item">
+                                    <div class="info-icon">
+                                        <i class="fas fa-code-branch"></i>
+                                    </div>
+                                    <div class="info-content">
+                                        <span class="info-label">Versi</span>
+                                        <span class="info-value">1.0.0</span>
+                                    </div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-icon">
+                                        <i class="fas fa-server"></i>
+                                    </div>
+                                    <div class="info-content">
+                                        <span class="info-label">Status Server</span>
+                                        <span class="info-value status-active">Aktif</span>
+                                    </div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-icon">
+                                        <i class="fas fa-book"></i>
+                                    </div>
+                                    <div class="info-content">
+                                        <span class="info-label">Dokumentasi</span>
+                                        <a href="/docs" class="info-link">Selengkapnya</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
 
             {{if .IsConnected}}
-            <!-- Stats section -->
-            <section class="stats-section">
-                <div class="stats-grid">
-                    <!-- Messages sent -->
-                    <div class="glass-card stat-card">
-                        <div class="stat-icon">
-                            <i class="fas fa-paper-plane"></i>
+            <!-- Baris 2: Statistik -->
+            <div class="content-row">
+                <section class="content-section stats-section">
+                    <div class="glass-card">
+                        <div class="card-header">
+                            <h2 class="section-title">
+                                <i class="fas fa-chart-line"></i>
+                                Statistik Koneksi
+                            </h2>
                         </div>
-                        <div class="stat-content">
-                            <h3 class="stat-label">Pesan Terkirim</h3>
-                            <p class="stat-value" id="messages-sent">{{.MessagesSent}}</p>
-                            <div class="stat-trend positive">
-                                <i class="fas fa-arrow-up"></i>
-                                <span id="messages-trend">+12%</span>
+                        <div class="card-body">
+                            <div class="stats-grid">
+                                <!-- Durasi Terhubung -->
+                                <div class="stat-item">
+                                    <div class="stat-icon">
+                                        <i class="fas fa-clock"></i>
+                                    </div>
+                                    <div class="stat-content">
+                                        <h3 class="stat-label">Durasi Terhubung</h3>
+                                        <p class="stat-value" id="connection-duration">
+                                            {{if .ConnectionDuration}}
+                                            {{.ConnectionDuration}}
+                                            {{else}}
+                                            Baru saja
+                                            {{end}}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- Terhubung Sejak -->
+                                <div class="stat-item">
+                                    <div class="stat-icon">
+                                        <i class="fas fa-calendar-check"></i>
+                                    </div>
+                                    <div class="stat-content">
+                                        <h3 class="stat-label">Terhubung Sejak</h3>
+                                        <p class="stat-value" id="connected-since">
+                                            {{if .ConnectedSinceFormatted}}
+                                            {{.ConnectedSinceFormatted | safeHTML}}
+                                            {{else}}
+                                            Baru saja
+                                            {{end}}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- Aktivitas Terakhir -->
+                                <div class="stat-item">
+                                    <div class="stat-icon">
+                                        <i class="fas fa-history"></i>
+                                    </div>
+                                    <div class="stat-content">
+                                        <h3 class="stat-label">Aktivitas Terakhir</h3>
+                                        <p class="stat-value" id="last-activity">
+                                            {{if .LastActivityFormatted}}
+                                            {{.LastActivityFormatted | safeHTML}}
+                                            {{else}}
+                                            -
+                                            {{end}}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- Messages sent -->
+                                <div class="stat-item">
+                                    <div class="stat-icon">
+                                        <i class="fas fa-paper-plane"></i>
+                                    </div>
+                                    <div class="stat-content">
+                                        <h3 class="stat-label">Pesan Terkirim</h3>
+                                        <p class="stat-value" id="messages-sent">{{.MessagesSent}}</p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
-
-                    <!-- Groups available -->
-                    <div class="glass-card stat-card">
-                        <div class="stat-icon">
-                            <i class="fas fa-users"></i>
-                        </div>
-                        <div class="stat-content">
-                            <h3 class="stat-label">Grup Tersedia</h3>
-                            <p class="stat-value" id="groups-count">{{.GroupsCount}}</p>
-                            <div class="stat-info">
-                                <i class="fas fa-info-circle"></i>
-                                <span id="groups-info">{{if gt .GroupsCount 0}}Grup siap{{else}}Tidak ada grup{{end}}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- System uptime -->
-                    <div class="glass-card stat-card">
-                        <div class="stat-icon">
-                            <i class="fas fa-clock"></i>
-                        </div>
-                        <div class="stat-content">
-                            <h3 class="stat-label">Uptime</h3>
-                            <p class="stat-value" id="uptime-value">{{.Uptime}}</p>
-                            <div class="stat-progress">
-                                <div class="progress-bar">
-                                    <div class="progress-fill" style="width: 12%"></div>
-                                </div>
-                                <span id="uptime-percent">12%</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Connection retries -->
-                    <div class="glass-card stat-card">
-                        <div class="stat-icon">
-                            <i class="fas fa-sync"></i>
-                        </div>
-                        <div class="stat-content">
-                            <h3 class="stat-label">Percobaan Koneksi</h3>
-                            <p class="stat-value" id="retry-count">{{.ConnectionRetries}}</p>
-                            <div class="stat-info">
-                                <i class="fas fa-heartbeat"></i>
-                                <span id="retry-info">Koneksi stabil</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Activity section -->
-            <section class="activity-section">
-                <div class="glass-card activity-card">
-                    <div class="card-header">
-                        <h2 class="section-title">
-                            <i class="fas fa-history"></i>
-                            Aktivitas Terbaru
-                        </h2>
-                        <button id="clear-activity-btn" class="btn-icon" title="Bersihkan aktivitas">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                    <div class="card-body">
-                        <ul id="activity-list" class="activity-list">
-                            <li class="activity-item">
-                                <div class="activity-icon connected">
-                                    <i class="fas fa-plug"></i>
-                                </div>
-                                <div class="activity-content">
-                                    <span class="activity-text">WhatsApp terhubung</span>
-                                    <span class="activity-time">Baru saja</span>
-                                </div>
-                            </li>
-                            <li class="activity-item">
-                                <div class="activity-icon message">
-                                    <i class="fas fa-paper-plane"></i>
-                                </div>
-                                <div class="activity-content">
-                                    <span class="activity-text">Pesan terkirim ke +628123456789</span>
-                                    <span class="activity-time">10 menit yang lalu</span>
-                                </div>
-                            </li>
-                            <li class="activity-item">
-                                <div class="activity-icon system">
-                                    <i class="fas fa-server"></i>
-                                </div>
-                                <div class="activity-content">
-                                    <span class="activity-text">Sistem dimulai</span>
-                                    <span class="activity-time">1 jam yang lalu</span>
-                                </div>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </section>
+                </section>
+            </div>
             {{end}}
 
-            <!-- API info section -->
-            <section class="api-section">
-                <div class="glass-card info-card">
-                    <div class="card-header">
-                        <h2 class="section-title">
-                            <i class="fas fa-code"></i>
-                            Integrasi API
-                        </h2>
-                    </div>
-                    <div class="card-body">
-                        <div class="info-grid">
-                            <div class="info-column">
-                                <h3 class="subsection-title">Tentang Bot Notify</h3>
-                                <p class="info-description">
-                                    Bot Notify adalah layanan untuk mengirimkan pesan notifikasi WhatsApp secara otomatis
-                                    ketika form disubmit atau event tertentu terjadi di sistem Anda.
-                                </p>
-                                <div class="info-details">
-                                    <div class="info-item">
-                                        <div class="info-icon">
-                                            <i class="fas fa-code-branch"></i>
-                                        </div>
-                                        <div class="info-content">
-                                            <span class="info-label">Versi</span>
-                                            <span class="info-value">1.0.0</span>
-                                        </div>
-                                    </div>
-                                    <div class="info-item">
-                                        <div class="info-icon">
-                                            <i class="fas fa-server"></i>
-                                        </div>
-                                        <div class="info-content">
-                                            <span class="info-label">Status Server</span>
-                                            <span class="info-value status-active">Aktif</span>
-                                        </div>
-                                    </div>
-                                </div>
+            <!-- Baris 3: Contoh Penggunaan API -->
+            <div class="content-row">
+                <section class="content-section api-usage-section">
+                    <div class="glass-card">
+                        <div class="card-header">
+                            <h2 class="section-title">
+                                <i class="fas fa-code"></i>
+                                Contoh Penggunaan API
+                            </h2>
+                            <div class="card-header-actions">
+                                <a href="/docs" class="btn btn-primary">
+                                    <i class="fas fa-book"></i>
+                                    <span>Dokumentasi API Lengkap</span>
+                                </a>
                             </div>
-
-                            <div class="info-column">
-                                <h3 class="subsection-title">Contoh Penggunaan API</h3>
-                                <div class="code-example">
-                                    <div class="code-header">
-                                        <span>Contoh Request API</span>
-                                        <button id="copy-api-btn" class="btn-icon" title="Salin kode">
-                                            <i class="fas fa-copy"></i>
-                                        </button>
-                                    </div>
-                                    <pre class="code-block"><code>curl -X POST "{{.BaseURL}}/api/send/personal" \
+                        </div>
+                        <div class="card-body">
+                            <div class="api-examples">
+                                <div class="api-example-group">
+                                    <h3 class="example-title">Kirim Pesan Personal</h3>
+                                    <div class="code-example">
+                                        <div class="code-header">
+                                            <span>Contoh Request API</span>
+                                            <button class="btn-icon copy-btn" title="Salin kode" data-code="personal">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                        </div>
+                                        <pre class="code-block" id="personal-code"><code>curl -X POST "{{.BaseURL}}/api/send/personal" \
   -H "X-Access-Token: {{.MaskedToken}}" \
   -H "Content-Type: application/json" \
   -d '{
     "phone": "6281234567890",
     "message": "Ini adalah pesan notifikasi"
   }'</code></pre>
+                                    </div>
                                 </div>
-                                <a href="/docs" class="btn btn-outline btn-sm mt-4">
-                                    <i class="fas fa-book"></i>
-                                    <span>Dokumentasi Lengkap</span>
-                                </a>
+
+                                <div class="api-example-group">
+                                    <h3 class="example-title">Kirim Pesan Grup</h3>
+                                    <div class="code-example">
+                                        <div class="code-header">
+                                            <span>Contoh Request API</span>
+                                            <button class="btn-icon copy-btn" title="Salin kode" data-code="group">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                        </div>
+                                        <pre class="code-block" id="group-code"><code>curl -X POST "{{.BaseURL}}/api/send/group" \
+  -H "X-Access-Token: {{.MaskedToken}}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "groupId": "120363144182570365@g.us",
+    "message": "Ini adalah pesan grup"
+  }'</code></pre>
+                                    </div>
+                                </div>
+
+                                <div class="api-example-group">
+                                    <h3 class="example-title">Broadcast Pesan</h3>
+                                    <div class="code-example">
+                                        <div class="code-header">
+                                            <span>Contoh Request API</span>
+                                            <button class="btn-icon copy-btn" title="Salin kode" data-code="broadcast">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                        </div>
+                                        <pre class="code-block" id="broadcast-code"><code>curl -X POST "{{.BaseURL}}/api/broadcast" \
+  -H "X-Access-Token: {{.MaskedToken}}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "personalNumbers": ["628123456789", "628987654321"],
+    "groupIds": ["120363144182570365@g.us"],
+    "message": "Ini adalah pesan broadcast",
+    "delayMs": 1000
+  }'</code></pre>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            </section>
+                </section>
+            </div>
         </main>
 
         <!-- Footer -->
