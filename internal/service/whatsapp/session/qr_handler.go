@@ -213,3 +213,38 @@ func printQRToTerminal(qrCodeStr string) {
 	// Tampilkan QR code sebagai ASCII art di terminal
 	fmt.Println(qr.ToSmallString(false))
 }
+
+// GetQRCodeStatus mendapatkan status QR code untuk ditampilkan di dashboard
+func (h *QRHandler) GetQRCodeStatus() (available bool, expired bool, path string, message string, showReconnect bool) {
+	// Default values
+	available = false
+	expired = false
+	path = ""
+	message = ""
+	showReconnect = false
+
+	// Periksa ketersediaan QR code
+	qrTimestamp := h.GetQRCodeTimestamp()
+	available = !qrTimestamp.IsZero()
+
+	if available {
+		// Periksa kedaluwarsa (30 detik = 0.5 menit)
+		expired = h.IsQRCodeExpired(30.0 / 60.0)
+
+		if !expired {
+			// QR code tersedia dan belum kedaluwarsa
+			path = "/api/qr/image" // Menggunakan endpoint API
+			message = "Pindai QR code ini dengan WhatsApp di ponsel Anda"
+		} else {
+			// QR code sudah kedaluwarsa
+			message = "QR code sudah kedaluwarsa. Silakan klik tombol 'Reconnect' untuk mendapatkan QR code baru."
+			showReconnect = true
+		}
+	} else {
+		// QR code belum tersedia
+		message = "Menunggu QR code... Klik tombol 'Reconnect' jika QR code tidak muncul."
+		showReconnect = true
+	}
+
+	return
+}

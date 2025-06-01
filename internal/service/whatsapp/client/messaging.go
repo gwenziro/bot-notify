@@ -12,35 +12,40 @@ import (
 	"go.mau.fi/whatsmeow/types"
 )
 
-// SendMessage mengirim pesan teks ke nomor atau grup tertentu
-func (c *Client) SendMessage(recipient types.JID, message string) (time.Time, error) {
-	if c.waClient == nil || !c.connectionState.IsConnected {
-		return time.Time{}, errors.New("klien WhatsApp belum terhubung")
+// sendBaseMessage adalah fungsi dasar untuk mengirim berbagai jenis pesan
+// Parameters:
+// - recipient: JID penerima
+// - content: konten pesan (map ke waE2E.Message)
+// - timeout: durasi timeout dalam detik (0 untuk default 10 detik)
+// Returns:
+// - waktu pengiriman jika berhasil
+// - error jika gagal
+func (c *Client) sendBaseMessage(recipient types.JID, content *waE2E.Message, timeout time.Duration) (time.Time, error) {
+	if err := c.validateConnection(); err != nil {
+		return time.Time{}, err
 	}
 
 	c.logger.WithFields(utils.Fields{
-		"to":             recipient.String(),
-		"message_length": len(message),
+		"to":   recipient.String(),
+		"type": getMessageType(content),
 	}).Info("Mengirim pesan")
 
 	// Update aktivitas
 	c.UpdateLastActivity()
 
-	// Tambahkan timeout 10 detik untuk operasi pengiriman pesan
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	// Buat context dengan timeout
+	ctx, cancel := c.createTimeoutContext(timeout)
 	defer cancel()
 
 	// Catat waktu pengiriman sebenarnya
 	sendTime := time.Now()
 
 	// Kirim pesan dengan context timeout
-	_, err := c.waClient.SendMessage(ctx, recipient, &waE2E.Message{
-		Conversation: &message,
-	})
+	_, err := c.waClient.SendMessage(ctx, recipient, content)
 
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
-			return time.Time{}, fmt.Errorf("timeout saat mengirim pesan: operasi melebihi 10 detik")
+			return time.Time{}, fmt.Errorf("timeout saat mengirim pesan: operasi melebihi batas waktu")
 		}
 		return time.Time{}, fmt.Errorf("gagal mengirim pesan: %w", err)
 	}
@@ -48,52 +53,82 @@ func (c *Client) SendMessage(recipient types.JID, message string) (time.Time, er
 	return sendTime, nil
 }
 
-// SendFormattedMessage mengirim pesan dengan format khusus (bold, italic, dll)
-func (c *Client) SendFormattedMessage(recipient types.JID, message string) error {
-	if c.waClient == nil || !c.connectionState.IsConnected {
-		return errors.New("klien WhatsApp belum terhubung")
+// getMessageType menentukan tipe pesan untuk logging
+func getMessageType(msg *waE2E.Message) string {
+	if msg.Conversation != nil {
+		return "text"
+	} else if msg.ExtendedTextMessage != nil {
+		return "formatted"
+	} else {
+		return "other"
 	}
+}
 
-	c.logger.WithFields(utils.Fields{
-		"to":             recipient.String(),
-		"message_length": len(message),
-		"type":           "formatted",
-	}).Info("Mengirim pesan terformat")
+// SendMessage mengirim pesan teks ke nomor atau grup tertentu
+// Returns:
+// - waktu pengiriman jika berhasil
+// - error jika gagal
+func (c *Client) SendMessage(recipient types.JID, message string) (time.Time, error) {
+	return c.sendBaseMessage(recipient, &waE2E.Message{
+		Conversation: &message,
+	}, 10*time.Second)
+}
 
-	// Update aktivitas
-	c.UpdateLastActivity()
-
-	// Konversi ke ExtendedTextMessage untuk dukungan format
-	_, err := c.waClient.SendMessage(context.Background(), recipient, &waE2E.Message{
+// SendFormattedMessage mengirim pesan dengan format khusus (bold, italic, dll)
+// Returns:
+// - nil jika berhasil
+// - error jika gagal
+func (c *Client) SendFormattedMessage(recipient types.JID, message string) error {
+	_, err := c.sendBaseMessage(recipient, &waE2E.Message{
 		ExtendedTextMessage: &waE2E.ExtendedTextMessage{
 			Text: &message,
 			// Bisa ditambahkan opsi pemformatan lainnya
 		},
-	})
-
-	if err != nil {
-		return fmt.Errorf("gagal mengirim pesan terformat: %w", err)
-	}
-
-	return nil
+	}, 10*time.Second)
+	return err
 }
 
 // BroadcastMessage mengirim pesan ke beberapa target sekaligus
+// Parameters:
+// - personalNumbers: daftar nomor telepon target
+// - groupIDs: daftar ID grup target
+// - message: pesan yang akan dikirim
+// - delayMs: delay antara pengiriman (millisecond)
+// Returns:
+// - hasil broadcast untuk setiap target
+// - waktu pengiriman terakhir
 func (c *Client) BroadcastMessage(personalNumbers []string, groupIDs []string, message string, delayMs int) ([]model.BroadcastResult, time.Time) {
 	results := make([]model.BroadcastResult, 0, len(personalNumbers)+len(groupIDs))
 	var lastSentTime time.Time
 
-	// Debug log yang lebih jelas (tanpa menggabungkan array menjadi string)
+	// Debug log yang lebih jelas
 	c.logger.WithFields(utils.Fields{
 		"personal_count":     len(personalNumbers),
 		"group_count":        len(groupIDs),
 		"message_length":     len(message),
-		"first_personal_num": getFirstOrEmpty(personalNumbers),
-		"first_group_id":     getFirstOrEmpty(groupIDs),
+		"first_personal_num": utils.GetFirstOrEmpty(personalNumbers),
+		"first_group_id":     utils.GetFirstOrEmpty(groupIDs),
 	}).Debug("Menerima permintaan broadcast")
 
 	// Kirim ke nomor personal (satu per satu)
-	for i, number := range personalNumbers {
+	results = append(results, c.broadcastToPersonal(personalNumbers, message, delayMs, &lastSentTime)...)
+
+	// Kirim ke grup
+	results = append(results, c.broadcastToGroups(groupIDs, message, delayMs, &lastSentTime)...)
+
+	// Jika tidak ada pengiriman yang berhasil, gunakan waktu sekarang
+	if lastSentTime.IsZero() {
+		lastSentTime = time.Now()
+	}
+
+	return results, lastSentTime
+}
+
+// broadcastToPersonal mengirim pesan ke daftar nomor personal
+func (c *Client) broadcastToPersonal(numbers []string, message string, delayMs int, lastSentTime *time.Time) []model.BroadcastResult {
+	results := make([]model.BroadcastResult, 0, len(numbers))
+
+	for i, number := range numbers {
 		// Log dengan index untuk clarity
 		c.logger.WithFields(utils.Fields{
 			"index":  i,
@@ -114,7 +149,18 @@ func (c *Client) BroadcastMessage(personalNumbers []string, groupIDs []string, m
 		}
 
 		// Parse nomor telepon ke JID
-		jid := ParsePhoneNumber(number)
+		jidString := utils.FormatWhatsAppNumber(number)
+		jid, parseErr := types.ParseJID(jidString)
+		if parseErr != nil {
+			c.logger.WithError(parseErr).Warn("Gagal parsing JID", utils.Fields{"number": number})
+			results = append(results, model.BroadcastResult{
+				Target:   number,
+				Type:     "personal",
+				Success:  false,
+				ErrorMsg: "Gagal parsing JID: " + parseErr.Error(),
+			})
+			continue
+		}
 
 		// Catat mulai pengiriman
 		c.logger.WithFields(utils.Fields{
@@ -126,8 +172,8 @@ func (c *Client) BroadcastMessage(personalNumbers []string, groupIDs []string, m
 		sentTime, err := c.SendMessage(jid, message)
 
 		// Update lastSentTime jika pengiriman berhasil
-		if err == nil {
-			lastSentTime = sentTime
+		if err == nil && lastSentTime != nil {
+			*lastSentTime = sentTime
 		}
 
 		// Catat hasil
@@ -154,12 +200,18 @@ func (c *Client) BroadcastMessage(personalNumbers []string, groupIDs []string, m
 		results = append(results, result)
 
 		// Delay untuk mencegah throttling
-		if delayMs > 0 && len(personalNumbers) > 1 {
+		if delayMs > 0 && i < len(numbers)-1 {
 			time.Sleep(time.Duration(delayMs) * time.Millisecond)
 		}
 	}
 
-	// Kirim ke grup
+	return results
+}
+
+// broadcastToGroups mengirim pesan ke daftar grup
+func (c *Client) broadcastToGroups(groupIDs []string, message string, delayMs int, lastSentTime *time.Time) []model.BroadcastResult {
+	results := make([]model.BroadcastResult, 0, len(groupIDs))
+
 	for i, groupID := range groupIDs {
 		// Lewati jika ID grup kosong
 		if groupID == "" {
@@ -178,14 +230,19 @@ func (c *Client) BroadcastMessage(personalNumbers []string, groupIDs []string, m
 			continue
 		}
 
-		// Log grup yang sedang diproses untuk debugging
-		c.logger.WithFields(utils.Fields{
-			"group_id": groupID,
-			"type":     "group",
-		}).Info("Memproses target broadcast grup")
-
 		// Parse ID grup ke JID
-		jid := ParseGroupID(groupID)
+		jidString := utils.FormatGroupID(groupID)
+		jid, parseErr := types.ParseJID(jidString)
+		if parseErr != nil {
+			c.logger.WithError(parseErr).Warn("Gagal parsing JID grup", utils.Fields{"group_id": groupID})
+			results = append(results, model.BroadcastResult{
+				Target:   groupID,
+				Type:     "group",
+				Success:  false,
+				ErrorMsg: "Gagal parsing JID: " + parseErr.Error(),
+			})
+			continue
+		}
 
 		// Catat mulai pengiriman
 		c.logger.WithFields(utils.Fields{
@@ -197,8 +254,8 @@ func (c *Client) BroadcastMessage(personalNumbers []string, groupIDs []string, m
 		sentTime, err := c.SendMessage(jid, message)
 
 		// Update lastSentTime jika pengiriman berhasil
-		if err == nil {
-			lastSentTime = sentTime
+		if err == nil && lastSentTime != nil {
+			*lastSentTime = sentTime
 		}
 
 		// Catat hasil
@@ -230,18 +287,5 @@ func (c *Client) BroadcastMessage(personalNumbers []string, groupIDs []string, m
 		}
 	}
 
-	// Jika tidak ada pengiriman yang berhasil, gunakan waktu sekarang
-	if lastSentTime.IsZero() {
-		lastSentTime = time.Now()
-	}
-
-	return results, lastSentTime
-}
-
-// Helper function untuk mendapatkan elemen pertama array atau string kosong
-func getFirstOrEmpty(arr []string) string {
-	if len(arr) > 0 {
-		return arr[0]
-	}
-	return ""
+	return results
 }

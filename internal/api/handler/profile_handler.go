@@ -42,41 +42,44 @@ func (h *ProfileHandler) GetProfile(c *fiber.Ctx) error {
 		))
 	}
 
-	// 3. Dapatkan informasi perangkat dan status koneksi
-	deviceInfo := h.WhatsApp.GetDeviceInfo()
+	// 3. Dapatkan status koneksi
 	state := h.WhatsApp.GetConnectionState()
 
-	// 4. Persiapkan data profil
+	// 4. Dapatkan informasi kontak dasar
+	selfID := h.WhatsApp.GetSelfID()
+	phoneNumber := ""
+	if selfID != nil {
+		phoneNumber = utils.FormatWhatsAppNumber(selfID.String())
+	}
+
+	// 5. Dapatkan nama kontak menggunakan service layer
+	name := phoneNumber // Default ke nomor telepon
+	if selfID != nil {
+		// Gunakan fungsi GetContactName dari service
+		contactName := h.WhatsApp.GetContactName(*selfID, phoneNumber)
+		if contactName != "" {
+			name = contactName
+		}
+	}
+
+	// 6. Coba dapatkan URL foto profil jika tersedia
+	pictureURL := ""
+	profilePic, _ := h.WhatsApp.GetContactPictureURL(nil)
+	if profilePic != "" {
+		pictureURL = profilePic
+	}
+
+	// 7. Siapkan profil dengan informasi kontak saja (tanpa info perangkat)
 	profile := model.ProfileInfo{
 		IsConnected:    state.IsConnected,
 		IsLoggedIn:     h.WhatsApp.IsLoggedIn(),
 		ConnectedSince: h.FormatConnectedSince(state),
+		PhoneNumber:    phoneNumber,
+		Name:           name,
+		PictureURL:     pictureURL,
 	}
 
-	// 5. Isi data profil dari deviceInfo
-	if id, ok := deviceInfo["id"].(string); ok {
-		profile.ID = id
-		profile.PhoneNumber = client.FormatWhatsAppNumber(id)
-	}
-
-	if pushName, ok := deviceInfo["push_name"].(string); ok && pushName != "" {
-		profile.Name = pushName
-	} else {
-		profile.Name = profile.PhoneNumber
-	}
-
-	if status, ok := deviceInfo["status"].(string); ok {
-		profile.Status = status
-	}
-
-	// 6. Tambahkan URL foto profil jika tersedia
-	if h.WhatsApp.IsLoggedIn() && h.WhatsApp.GetSelfID() != nil {
-		if pictureURL, err := h.WhatsApp.GetProfilePictureURL(); err == nil && pictureURL != "" {
-			profile.PictureURL = pictureURL
-		}
-	}
-
-	// 7. Log dan kirim respons sukses
+	// 8. Log dan kirim respons sukses
 	h.LogSuccessResponse("Informasi profil WhatsApp berhasil diambil", utils.Fields{
 		"phone":       profile.PhoneNumber,
 		"name":        profile.Name,

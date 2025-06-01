@@ -38,7 +38,7 @@ func (m *APIAuthMiddleware) RequireAuth() fiber.Handler {
 		}
 
 		// Jika masih tidak ada token, coba dari session
-		if token == "" {
+		if token == "" && m.sessionStore != nil {
 			sess, err := m.sessionStore.Get(c)
 			if err == nil {
 				authToken := sess.Get("auth_token")
@@ -49,6 +49,14 @@ func (m *APIAuthMiddleware) RequireAuth() fiber.Handler {
 				}
 			}
 		}
+
+		// Tambahkan logging untuk debug
+		m.logger.Debug("Validating API token", utils.Fields{
+			"token_length": len(token),
+			"has_token":    token != "",
+			"path":         c.Path(),
+			"headers":      c.GetReqHeaders(),
+		})
 
 		// Jika token masih kosong, kembalikan error 401
 		if token == "" {

@@ -5,6 +5,7 @@ import (
 
 	"github.com/gofiber/fiber/v2/middleware/session"
 	"github.com/gwenziro/bot-notify/internal/config"
+	"github.com/gwenziro/bot-notify/internal/service/website"
 	"github.com/gwenziro/bot-notify/internal/service/whatsapp/client"
 	"github.com/gwenziro/bot-notify/internal/utils"
 	"github.com/gwenziro/bot-notify/internal/web/controller"
@@ -20,10 +21,11 @@ type WebHandler struct {
 	sessionStore *session.Store
 
 	// Controller untuk berbagai halaman
-	homeController      *controller.HomeController
-	dashboardController *controller.DashboardController
-	authController      *controller.AuthController
-	docController       *controller.DocController
+	homeController       *controller.HomeController
+	dashboardController  *controller.DashboardController
+	authController       *controller.AuthController
+	docController        *controller.DocController
+	connectionController *controller.ConnectionController
 }
 
 // NewWebHandler membuat instance baru WebHandler
@@ -34,23 +36,28 @@ func NewWebHandler(cfg *config.Config, whatsClient *client.Client, sessionStore 
 
 	logger := utils.ForModule("web")
 
+	// Buat instance StatisticsService untuk dashboard
+	statsService := website.NewStatisticsService()
+
 	// Inisialisasi controller
 	homeController := controller.NewHomeController(cfg, whatsClient, logger)
-	dashboardController := controller.NewDashboardController(cfg, whatsClient, logger)
+	dashboardController := controller.NewDashboardController(cfg, whatsClient, statsService, logger)
 	authController := controller.NewAuthController(cfg, whatsClient, sessionStore, logger)
 	docController := controller.NewDocController(cfg, whatsClient, logger)
+	connectionController := controller.NewConnectionController(cfg, whatsClient, logger)
 
 	return &WebHandler{
-		config:              cfg,
-		whatsApp:            whatsClient,
-		logger:              logger,
-		viewsPath:           viewsPath,
-		staticPath:          staticPath,
-		sessionStore:        sessionStore,
-		homeController:      homeController,
-		dashboardController: dashboardController,
-		authController:      authController,
-		docController:       docController,
+		config:               cfg,
+		whatsApp:             whatsClient,
+		logger:               logger,
+		viewsPath:            viewsPath,
+		staticPath:           staticPath,
+		sessionStore:         sessionStore,
+		homeController:       homeController,
+		dashboardController:  dashboardController,
+		authController:       authController,
+		docController:        docController,
+		connectionController: connectionController,
 	}
 }
 

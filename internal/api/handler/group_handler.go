@@ -181,17 +181,10 @@ func (h *GroupHandler) processParticipantsWithContacts(participants []types.Grou
 		}
 
 		// Format nomor telepon untuk display
-		phoneNumber := client.FormatWhatsAppNumber(participant.JID.String())
+		phoneNumber := utils.FormatWhatsAppNumber(participant.JID.String())
 
-		// Pilih nama kontak yang terbaik untuk ditampilkan
-		contactName := participant.DisplayName
-		pushName := "" // Simpan pushName terpisah jika tersedia dari store
-
-		// Tentukan nama kontak terbaik untuk ditampilkan
-		displayName := contactName
-		if displayName == "" {
-			displayName = phoneNumber // Fallback ke nomor jika tidak ada nama
-		}
+		// Gunakan fungsi GetContactName dari service alih-alih akses langsung
+		contactName := h.WhatsApp.GetContactName(participant.JID, "")
 
 		// Tambahkan ke model
 		result[i] = model.GroupParticipantInfo{
@@ -199,8 +192,6 @@ func (h *GroupHandler) processParticipantsWithContacts(participants []types.Grou
 			PhoneNumber:  phoneNumber,
 			IsAdmin:      participant.IsAdmin,
 			IsSuperAdmin: participant.IsSuperAdmin,
-			DisplayName:  displayName,
-			PushName:     pushName,
 			ContactName:  contactName,
 		}
 	}

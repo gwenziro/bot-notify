@@ -6,8 +6,6 @@ type GroupParticipantInfo struct {
 	PhoneNumber  string `json:"phoneNumber,omitempty"`  // Nomor telepon terformat
 	IsAdmin      bool   `json:"isAdmin"`                // Flag status admin
 	IsSuperAdmin bool   `json:"isSuperAdmin,omitempty"` // Flag status super admin
-	DisplayName  string `json:"displayName,omitempty"`  // Nama untuk ditampilkan
-	PushName     string `json:"pushName,omitempty"`     // Nama dari server WhatsApp
 	ContactName  string `json:"contactName,omitempty"`  // Nama dari kontak
 }
 

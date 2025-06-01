@@ -1,15 +1,12 @@
 package handler
 
 import (
-	"context"
-	"errors"
-	"time"
-
 	"github.com/gofiber/fiber/v2"
 	"github.com/gwenziro/bot-notify/internal/api/constants"
 	"github.com/gwenziro/bot-notify/internal/api/model"
 	"github.com/gwenziro/bot-notify/internal/service/whatsapp/client"
 	"github.com/gwenziro/bot-notify/internal/utils"
+	"go.mau.fi/whatsmeow/types"
 )
 
 // MessageHandler menangani endpoint pengiriman pesan API
@@ -56,7 +53,12 @@ func (h *MessageHandler) SendGroup(c *fiber.Ctx) error {
 	}
 
 	// 6. Proses pengiriman pesan
-	jid := client.ParseGroupID(req.GroupID)
+	jidString := utils.FormatGroupID(req.GroupID)
+	jid, err := types.ParseJID(jidString)
+	if err != nil {
+		return h.SendError(c, constants.MsgSendFailure, err, fiber.StatusInternalServerError)
+	}
+
 	sendTime, err := h.WhatsApp.SendMessage(jid, req.Message)
 	if err != nil {
 		return h.SendError(c, constants.MsgSendFailure, err, fiber.StatusInternalServerError)
@@ -105,23 +107,19 @@ func (h *MessageHandler) SendPersonal(c *fiber.Ctx) error {
 	if !utils.ValidatePhoneNumber(req.PhoneNumber) {
 		return h.SendError(c, constants.MsgInvalidPhoneNumber, nil, fiber.StatusBadRequest)
 	}
-
-	// 6. Setup timeout context
-	ctx, cancel := context.WithTimeout(c.Context(), 15*time.Second)
-	defer cancel()
-	c.SetUserContext(ctx)
-
-	// 7. Proses pengiriman pesan
-	jid := client.ParsePhoneNumber(req.PhoneNumber)
-	sendTime, err := h.WhatsApp.SendMessage(jid, req.Message)
+	// 6. Proses pengiriman pesan
+	jidString := utils.FormatPhoneNumber(req.PhoneNumber)
+	jid, err := types.ParseJID(jidString)
 	if err != nil {
-		if errors.Is(err, context.DeadlineExceeded) {
-			return h.SendError(c, constants.MsgTimeoutError, err, fiber.StatusGatewayTimeout)
-		}
 		return h.SendError(c, constants.MsgSendFailure, err, fiber.StatusInternalServerError)
 	}
 
-	// 8. Log dan kirim respons sukses
+	sendTime, err := h.WhatsApp.SendMessage(jid, req.Message)
+	if err != nil {
+		return h.SendError(c, constants.MsgSendFailure, err, fiber.StatusInternalServerError)
+	}
+
+	// 7. Log dan kirim respons sukses
 	h.LogSuccessResponse("Pesan personal berhasil dikirim", utils.Fields{
 		"phone":   req.PhoneNumber,
 		"msg_len": len(req.Message),

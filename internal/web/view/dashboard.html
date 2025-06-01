@@ -62,7 +62,7 @@
                             <div class="connection-details">
                                 <div class="detail-item">
                                     <span class="detail-label">Status Koneksi:</span>
-                                    <span class="detail-value" id="connection-status">{{.ConnectionStatus}}</span>
+                                    <span class="detail-value" id="connection-status">{{.ConnectionState.Status}}</span>
                                 </div>
                                 <div class="detail-item">
                                     <span class="detail-label">Terhubung sejak:</span>
@@ -77,8 +77,8 @@
                                 <div class="detail-item">
                                     <span class="detail-label">Nomor WhatsApp:</span>
                                     <span class="detail-value" id="device-name">
-                                        {{if .DeviceName}}
-                                            {{.DeviceName}}
+                                        {{if .PhoneNumber}}
+                                            {{.PhoneNumber}}
                                         {{else}}
                                             -
                                         {{end}}
@@ -109,11 +109,21 @@
                                 Silakan pindai kode QR berikut dengan WhatsApp di ponsel Anda untuk menghubungkan Bot:
                             </p>
                             <div class="qr-container" id="qr-container">
+                                {{if .QRCodeAvailable}}
+                                    {{if .QRCodeExpired}}
+                                    <div class="qr-loading" id="qr-loading">
+                                        <i class="fas fa-exclamation-circle"></i>
+                                        <span>QR Code kedaluwarsa. Silakan muat ulang.</span>
+                                    </div>
+                                    {{else}}
+                                    <img id="qr-code" class="qr-image" src="{{.QRCodePath}}" alt="QR Code WhatsApp">
+                                    {{end}}
+                                {{else}}
                                 <div class="qr-loading" id="qr-loading">
                                     <i class="fas fa-spinner fa-spin"></i>
-                                    <span>Memuat Kode QR...</span>
+                                    <span>{{.QRCodeMessage}}</span>
                                 </div>
-                                <img id="qr-code" class="qr-image hidden" src="" alt="QR Code WhatsApp">
+                                {{end}}
                             </div>
                             <div class="qr-actions">
                                 <button id="refresh-qr-btn" class="btn btn-primary">
@@ -146,21 +156,6 @@
                         </div>
                     </div>
 
-                    <!-- Groups available -->
-                    <div class="glass-card stat-card">
-                        <div class="stat-icon">
-                            <i class="fas fa-users"></i>
-                        </div>
-                        <div class="stat-content">
-                            <h3 class="stat-label">Grup Tersedia</h3>
-                            <p class="stat-value" id="groups-count">{{.GroupsCount}}</p>
-                            <div class="stat-info">
-                                <i class="fas fa-info-circle"></i>
-                                <span id="groups-info">{{if gt .GroupsCount 0}}Grup siap{{else}}Tidak ada grup{{end}}</span>
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- System uptime -->
                     <div class="glass-card stat-card">
                         <div class="stat-icon">
@@ -178,6 +173,21 @@
                         </div>
                     </div>
 
+                    <!-- Connected duration -->
+                    <div class="glass-card stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-plug"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 class="stat-label">Terhubung Selama</h3>
+                            <p class="stat-value" id="connected-duration">{{.ConnectedDuration}}</p>
+                            <div class="stat-info">
+                                <i class="fas fa-heartbeat"></i>
+                                <span id="connection-info">Koneksi stabil</span>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Connection retries -->
                     <div class="glass-card stat-card">
                         <div class="stat-icon">
@@ -191,52 +201,6 @@
                                 <span id="retry-info">Koneksi stabil</span>
                             </div>
                         </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Activity section -->
-            <section class="activity-section">
-                <div class="glass-card activity-card">
-                    <div class="card-header">
-                        <h2 class="section-title">
-                            <i class="fas fa-history"></i>
-                            Aktivitas Terbaru
-                        </h2>
-                        <button id="clear-activity-btn" class="btn-icon" title="Bersihkan aktivitas">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                    <div class="card-body">
-                        <ul id="activity-list" class="activity-list">
-                            <li class="activity-item">
-                                <div class="activity-icon connected">
-                                    <i class="fas fa-plug"></i>
-                                </div>
-                                <div class="activity-content">
-                                    <span class="activity-text">WhatsApp terhubung</span>
-                                    <span class="activity-time">Baru saja</span>
-                                </div>
-                            </li>
-                            <li class="activity-item">
-                                <div class="activity-icon message">
-                                    <i class="fas fa-paper-plane"></i>
-                                </div>
-                                <div class="activity-content">
-                                    <span class="activity-text">Pesan terkirim ke +628123456789</span>
-                                    <span class="activity-time">10 menit yang lalu</span>
-                                </div>
-                            </li>
-                            <li class="activity-item">
-                                <div class="activity-icon system">
-                                    <i class="fas fa-server"></i>
-                                </div>
-                                <div class="activity-content">
-                                    <span class="activity-text">Sistem dimulai</span>
-                                    <span class="activity-time">1 jam yang lalu</span>
-                                </div>
-                            </li>
-                        </ul>
                     </div>
                 </div>
             </section>
@@ -323,8 +287,14 @@
         </footer>
     </div>
 
+    <!-- Sebelum Scripts -->
+    <script>
+        // Siapkan token untuk API calls
+        const apiToken = "{{.APIToken}}";
+        console.log("API Token set:", apiToken ? "YES (masked for security)" : "NO");
+    </script>
     <!-- Scripts -->
     <script src="/static/js/dashboard.js"></script>
-</body>
 
+</body>
 </html>

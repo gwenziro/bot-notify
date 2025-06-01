@@ -2,9 +2,11 @@ package controller
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/gwenziro/bot-notify/internal/api/constants"
 	"github.com/gwenziro/bot-notify/internal/config"
 	"github.com/gwenziro/bot-notify/internal/service/whatsapp/client"
 	"github.com/gwenziro/bot-notify/internal/utils"
+	"github.com/gwenziro/bot-notify/internal/web/model"
 )
 
 // HomeController menangani halaman beranda web
@@ -27,10 +29,10 @@ func NewHomeController(cfg *config.Config, whatsClient *client.Client, logger ut
 func (c *HomeController) HomePage(ctx *fiber.Ctx) error {
 	c.logger.Debug("Rendering halaman beranda")
 
-	// Render template dengan penanganan error yang lebih baik
-	return ctx.Render("index", fiber.Map{
-		"Title":       "WhatsApp Bot Notify",
-		"Description": "Aplikasi notifikasi WhatsApp",
-		"Version":     "1.0.0",
-	})
+	// Buat model home
+	homeModel := model.NewHomeModel(constants.DefaultAppVersion)
+	homeModel.Description = "Aplikasi notifikasi WhatsApp"
+
+	// Render template dengan model yang disederhanakan
+	return ctx.Render("index", homeModel)
 }

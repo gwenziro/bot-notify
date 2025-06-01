@@ -1,209 +1,151 @@
 package controller
 
 import (
-	"fmt"
-	"sync"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gwenziro/bot-notify/internal/config"
+	"github.com/gwenziro/bot-notify/internal/service/website"
 	"github.com/gwenziro/bot-notify/internal/service/whatsapp/client"
 	"github.com/gwenziro/bot-notify/internal/utils"
-	"go.mau.fi/whatsmeow/types"
+	"github.com/gwenziro/bot-notify/internal/web/model"
 )
 
-// DashboardController menangani halaman dashboard
+// DashboardController menangani halaman dashboard WhatsApp
 type DashboardController struct {
 	config       *config.Config
 	whatsApp     *client.Client
 	logger       utils.LogrusEntry
+	statsService *website.StatisticsService
 	startTime    time.Time
-	messagesSent int
-
-	// Cache untuk mengurangi panggilan ke GetGroups()
-	groupsCache      []*types.GroupInfo
-	groupsCacheTime  time.Time
-	groupsCacheMutex sync.RWMutex
-	groupsCacheTTL   time.Duration
 }
 
 // NewDashboardController membuat instance baru DashboardController
-func NewDashboardController(cfg *config.Config, whatsClient *client.Client, logger utils.LogrusEntry) *DashboardController {
+func NewDashboardController(
+	cfg *config.Config,
+	whatsClient *client.Client,
+	statsService *website.StatisticsService,
+	logger utils.LogrusEntry,
+) *DashboardController {
 	return &DashboardController{
-		config:         cfg,
-		whatsApp:       whatsClient,
-		logger:         logger.WithField("component", "dashboard-controller"),
-		startTime:      time.Now(),
-		messagesSent:   0,
-		groupsCacheTTL: 5 * time.Minute, // Cache grup selama 5 menit
+		config:       cfg,
+		whatsApp:     whatsClient,
+		logger:       logger.WithField("component", "dashboard-controller"),
+		statsService: statsService,
+		startTime:    time.Now(),
 	}
-}
-
-// IncrementMessageCounter menambah counter pesan terkirim
-func (c *DashboardController) IncrementMessageCounter() {
-	c.messagesSent++
-}
-
-// GetMessageCount mengembalikan jumlah pesan terkirim
-func (c *DashboardController) GetMessageCount() int {
-	return c.messagesSent
-}
-
-// formatUptime menghasilkan string uptime yang mudah dibaca
-func formatUptime(duration time.Duration) string {
-	days := int(duration.Hours() / 24)
-	hours := int(duration.Hours()) % 24
-	minutes := int(duration.Minutes()) % 60
-	seconds := int(duration.Seconds()) % 60
-
-	if days > 0 {
-		return fmt.Sprintf("%dd %dh %dm %ds", days, hours, minutes, seconds)
-	}
-
-	return fmt.Sprintf("%dh %dm %ds", hours, minutes, seconds)
-}
-
-// getGroupsWithCache mendapatkan daftar grup dengan cache untuk menghindari panggilan berulang
-func (c *DashboardController) getGroupsWithCache() (int, error) {
-	// Gunakan read lock untuk memeriksa cache
-	c.groupsCacheMutex.RLock()
-	cacheValid := !c.groupsCacheTime.IsZero() && time.Since(c.groupsCacheTime) < c.groupsCacheTTL
-	groupCount := len(c.groupsCache)
-	c.groupsCacheMutex.RUnlock()
-
-	// Jika cache masih valid, gunakan saja
-	if cacheValid {
-		c.logger.Debug("Menggunakan cache grup yang sudah ada")
-		return groupCount, nil
-	}
-
-	// Cache tidak valid, perlu mengambil data baru dengan write lock
-	c.groupsCacheMutex.Lock()
-	defer c.groupsCacheMutex.Unlock()
-
-	// Periksa lagi apakah cache sudah diperbarui oleh goroutine lain
-	if !c.groupsCacheTime.IsZero() && time.Since(c.groupsCacheTime) < c.groupsCacheTTL {
-		return len(c.groupsCache), nil
-	}
-
-	// Ambil data grup baru
-	c.logger.Info("Memperbarui cache grup")
-	groups, err := c.whatsApp.GetGroups()
-	if err != nil {
-		return 0, err
-	}
-
-	// Perbarui cache
-	c.groupsCache = groups
-	c.groupsCacheTime = time.Now()
-
-	return len(groups), nil
 }
 
 // DashboardPage menampilkan halaman dashboard utama
 func (c *DashboardController) DashboardPage(ctx *fiber.Ctx) error {
 	c.logger.Debug("Rendering dashboard page")
 
-	// Dapatkan status koneksi WhatsApp
+	// 1. Dapatkan status koneksi WhatsApp
 	connectionState := c.whatsApp.GetConnectionState()
 
-	// Hitung uptime aplikasi
-	uptime := formatUptime(time.Since(c.startTime))
+	// 2. Hitung uptime aplikasi (waktu sejak aplikasi dimulai)
+	uptime := utils.FormatUptime(time.Since(c.startTime))
 
-	// Dapatkan data statistik tambahan jika terhubung
-	var groupsCount int
-	messagesSent := c.messagesSent
+	// 3. Persiapkan model dasar
+	dashboardModel := model.NewDashboardModel(connectionState, uptime)
 
-	// Tambahkan variabel untuk informasi perangkat
-	var deviceInfo map[string]interface{}
-	deviceName := "WhatsApp Web" // Default untuk nomor
-	contactName := ""            // Default untuk nama kontak
+	// 4. Dapatkan jumlah pesan terkirim dari service, bukan dari controller
+	dashboardModel.MessagesSent = c.statsService.GetMessageCount()
 
-	if connectionState.IsConnected {
-		// Gunakan cache untuk menghindari pengambilan grup berulang
-		var err error
-		groupsCount, err = c.getGroupsWithCache()
-		if err != nil {
-			c.logger.Warn("Gagal mendapatkan jumlah grup", utils.Fields{
-				"error": err.Error(),
-			})
-			// Tetap lanjutkan meskipun error, hanya jumlah grup akan 0
-		}
-
-		// Ambil informasi perangkat
-		deviceInfo = c.whatsApp.GetDeviceInfo()
-
-		// Ambil nomor WhatsApp yang diformat
-		if formattedJID, ok := deviceInfo["formatted_jid"].(string); ok && formattedJID != "" {
-			deviceName = formattedJID
-		} else if jid, ok := deviceInfo["id"].(string); ok && jid != "" {
-			// Format JID menjadi nomor telepon yang lebih mudah dibaca jika formatted_jid tidak ada
-			deviceName = client.FormatWhatsAppNumber(jid)
-		}
-
-		// Ambil nama kontak WhatsApp (push_name)
-		if pushName, ok := deviceInfo["push_name"].(string); ok && pushName != "" {
-			contactName = pushName
-		}
-
-		c.logger.Debug("Device info retrieved", utils.Fields{
-			"number":       deviceName,
-			"contact_name": contactName,
-		})
-	}
-
-	// Format waktu untuk tampilan yang lebih baik
-	connectedSinceFormatted := utils.FormatTimeShort(&connectionState.LastActivity)
-
-	// Persiapkan data untuk template
+	// 5. Persiapkan data untuk template
 	baseURL := c.config.Server.BaseURL
 	if baseURL == "" {
 		baseURL = "http://localhost:8080"
 	}
+	dashboardModel.BaseURL = baseURL
 
-	// Mask token untuk contoh API
-	maskedToken := maskToken(c.config.Auth.AccessToken)
+	// Tambahkan token akses untuk API calls dari JavaScript
+	dashboardModel.APIToken = c.config.Auth.AccessToken
+	dashboardModel.MaskedToken = utils.MaskToken(c.config.Auth.AccessToken)
 
-	// Buat data untuk template
-	data := fiber.Map{
-		"Title":                   "Dashboard",
-		"CurrentYear":             time.Now().Year(),
-		"IsConnected":             connectionState.IsConnected,
-		"ConnectionStatus":        string(connectionState.Status),
-		"ConnectedSince":          connectionState.LastActivity, // Tetap kirim waktu asli
-		"ConnectedSinceFormatted": connectedSinceFormatted,      // Tambahkan format yang lebih baik
-		"ConnectionRetries":       connectionState.ConnectionRetries,
-		"DeviceName":              deviceName,  // Nomor WhatsApp
-		"ContactName":             contactName, // Nama kontak WhatsApp
-		"DeviceInfo":              deviceInfo,
-		"MessagesSent":            messagesSent,
-		"GroupsCount":             groupsCount,
-		"Uptime":                  uptime,
-		"BaseURL":                 baseURL,
-		"MaskedToken":             maskedToken,
-		"ConnectionState":         connectionState,
-		"ActivePage":              "dashboard",
-		"WhatsAppConnected":       connectionState.IsConnected,
+	// 6. Jika terhubung, dapatkan statistik detail
+	if connectionState.IsConnected {
+		// 6.1 Data "Terhubung Sejak"
+		// Gunakan ConnectedSince dari connectionState jika tersedia, atau LastActivity jika tidak
+		connectTime := connectionState.ConnectedSince
+		if connectTime.IsZero() {
+			connectTime = connectionState.LastActivity
+		}
+		dashboardModel.ConnectedSince = connectTime
+		dashboardModel.ConnectedSinceFormatted = utils.FormatTimeShort(&connectTime)
+
+		// 6.2 Data "Terhubung Selama"
+		// Hitung durasi dari waktu terhubung hingga sekarang
+		connectedDuration := time.Since(connectTime)
+		dashboardModel.ConnectedDuration = utils.FormatUptime(connectedDuration)
+
+		// 6.3 Data "Aktivitas Terakhir"
+		dashboardModel.LastActivity = connectionState.LastActivity
+		dashboardModel.LastActivityFormatted = utils.FormatTimeShort(&connectionState.LastActivity)
+
+		// 6.4 Data kontak WhatsApp
+		selfID := c.whatsApp.GetSelfID()
+		if selfID != nil {
+			// Format JID menjadi nomor telepon yang lebih mudah dibaca
+			dashboardModel.PhoneNumber = utils.FormatWhatsAppNumber(selfID.String())
+
+			// Gunakan fungsi GetContactName untuk mendapatkan nama kontak
+			dashboardModel.ContactName = c.whatsApp.GetContactName(*selfID, dashboardModel.PhoneNumber)
+		}
+
+		// Log informasi yang berhasil diambil
+		c.logger.Debug("Dashboard statistics retrieved", utils.Fields{
+			"app_uptime":         uptime,
+			"connected_since":    dashboardModel.ConnectedSinceFormatted,
+			"connected_duration": dashboardModel.ConnectedDuration,
+			"last_activity":      dashboardModel.LastActivityFormatted,
+			"messages_sent":      dashboardModel.MessagesSent,
+		})
+	} else {
+		// 7. Jika tidak terhubung, persiapkan QR code
+		c.prepareQRCodeInfo(&dashboardModel, connectionState)
 	}
 
-	// Tambahkan log untuk debugging dengan level yang lebih rendah
-	c.logger.Debug("Dashboard data prepared", utils.Fields{
-		"is_connected":     connectionState.IsConnected,
-		"connection_state": connectionState.Status,
-		"groups_count":     groupsCount,
-		"messages_sent":    messagesSent,
-	})
-
-	// Render dashboard dengan data
-	return ctx.Render("dashboard", data)
+	// 8. Render dashboard dengan model
+	return ctx.Render("dashboard", dashboardModel)
 }
 
-// maskToken menyembunyikan sebagian token untuk keamanan
-func maskToken(token string) string {
-	if len(token) <= 8 {
-		return "********"
+// prepareQRCodeInfo menyiapkan informasi QR code untuk dashboard
+func (c *DashboardController) prepareQRCodeInfo(dashboardModel *model.DashboardModel, connectionState client.ConnectionState) {
+	// Default - QR code tidak tersedia
+	dashboardModel.QRCodeAvailable = false
+	dashboardModel.QRCodeExpired = false
+	dashboardModel.QRCodePath = ""
+	dashboardModel.ShowReconnectButton = true
+
+	// Jika WhatsApp sudah terhubung, tidak perlu QR code
+	if connectionState.IsConnected {
+		dashboardModel.QRCodeMessage = "WhatsApp sudah terhubung"
+		dashboardModel.ShowReconnectButton = false
+		return
 	}
 
-	// Tampilkan hanya 4 karakter pertama dan 4 terakhir
-	return token[:4] + "..." + token[len(token)-4:]
+	// Dapatkan QR handler dari session manager
+	qrHandler := c.whatsApp.SessionManager.GetQRHandler()
+	if qrHandler == nil {
+		dashboardModel.QRCodeMessage = "QR handler tidak tersedia"
+		return
+	}
+
+	// Ambil status QR code dari handler
+	available, expired, path, message, showReconnect := qrHandler.GetQRCodeStatus()
+
+	dashboardModel.QRCodeAvailable = available
+	dashboardModel.QRCodeExpired = expired
+	dashboardModel.QRCodePath = path
+	dashboardModel.QRCodeMessage = message
+	dashboardModel.ShowReconnectButton = showReconnect
+
+	// Log status QR code
+	c.logger.Debug("QR code status for dashboard", utils.Fields{
+		"available":      available,
+		"expired":        expired,
+		"has_path":       path != "",
+		"show_reconnect": showReconnect,
+	})
 }

@@ -24,8 +24,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initial status check
     checkStatus();
     
-    // Setup status polling with smart behavior
-    setupSmartPolling();
+    // Setup polling interval (every 5 seconds)
+    statusCheckInterval = setInterval(checkStatus, 5000);
     
     // Setup visibility change detection
     handleVisibilityChange();
@@ -105,6 +105,21 @@ function setupEventListeners() {
 }
 
 /**
+ * Handle page visibility changes to optimize polling
+ */
+function handleVisibilityChange() {
+    document.addEventListener('visibilitychange', function() {
+        isPageActive = !document.hidden;
+        console.log('Page visibility changed, active:', isPageActive);
+        
+        // If page becomes visible again, check status immediately
+        if (isPageActive) {
+            checkStatus();
+        }
+    });
+}
+
+/**
  * Check WhatsApp connection status
  * @returns {Promise} Promise that resolves when status check is complete
  */
@@ -116,6 +131,7 @@ function checkStatus() {
         credentials: 'same-origin',
         headers: {
             'Accept': 'application/json',
+            'X-Access-Token': apiToken, // Use the token passed from the server
             'X-Requested-With': 'XMLHttpRequest'
         }
     })
@@ -131,7 +147,7 @@ function checkStatus() {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         
-        // Pastikan content-type adalah application/json
+        // Make sure content-type is application/json
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
             console.warn('Response is not JSON:', contentType);
@@ -160,42 +176,20 @@ function checkStatus() {
         // Update UI based on status
         updateStatusUI(connectionStatus);
         
-        // If connection status changed, add activity
-        if (prevStatus !== connectionStatus.status || prevConnected !== connectionStatus.isConnected) {
-            const message = connectionStatus.isConnected ? 
-                'WhatsApp berhasil terhubung' : 
-                `WhatsApp terputus (${connectionStatus.status})`;
-            
-            addActivity({
-                type: connectionStatus.isConnected ? 'connected' : 'disconnected',
-                icon: connectionStatus.isConnected ? 'plug' : 'plug',
-                text: message,
-                time: 'Baru saja'
-            });
-            
-            // If connection status changed, prompt user to reload
-            if (prevConnected !== connectionStatus.isConnected) {
-                setTimeout(() => {
-                    if (confirm('Status koneksi berubah. Muat ulang halaman untuk melihat semua fitur?')) {
-                        window.location.reload();
-                    }
-                }, 1000);
-            }
+        // If connection status changed, prompt user to reload
+        if (prevConnected !== connectionStatus.isConnected) {
+            setTimeout(() => {
+                if (confirm('Status koneksi berubah. Muat ulang halaman untuk melihat semua fitur?')) {
+                    window.location.reload();
+                }
+            }, 1000);
         }
         
         return data;
     })
     .catch(error => {
         console.error('Error checking status:', error);
-        
-        // Different error handling based on error type
-        if (error.message.includes('Authentication required')) {
-            console.warn('Authentication issue with API - will retry later');
-        } else if (error.message.includes('Server error (500)')) {
-            console.warn('Server is initializing - will retry later');
-        } else {
-            console.error('Error details:', error);
-        }
+        console.error('Error details:', error);
         
         // If we can't reach the server, mark as disconnected
         connectionStatus = {
@@ -347,7 +341,11 @@ function loadQRCode() {
     qrImage.classList.add('hidden');
     
     // Get QR code
-    fetch('/api/qr/image')
+    fetch('/api/qr/image', {
+        headers: {
+            'X-Access-Token': apiToken // Use the token passed from the server
+        }
+    })
         .then(response => {
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -362,14 +360,6 @@ function loadQRCode() {
                 // Hide loading, show QR
                 qrLoading.classList.add('hidden');
                 qrImage.classList.remove('hidden');
-                
-                // Add activity
-                addActivity({
-                    type: 'system',
-                    icon: 'qrcode',
-                    text: 'QR code baru dimuat',
-                    time: 'Baru saja'
-                });
             } else {
                 // Show error in loading div
                 qrLoading.innerHTML = '<i class="fas fa-exclamation-circle"></i><span>QR Code tidak tersedia</span>';
@@ -386,16 +376,15 @@ function loadQRCode() {
  */
 function refreshQRCode() {
     // First trigger reconnect
-    fetch('/api/reconnect', { method: 'POST' })
+    fetch('/api/reconnect', {
+        method: 'POST',
+        headers: {
+            'X-Access-Token': apiToken, // Use the token passed from the server
+            'Content-Type': 'application/json'
+        }
+    })
         .then(response => response.json())
         .then(data => {
-            addActivity({
-                type: 'system',
-                icon: 'sync',
-                text: 'Meminta QR code baru',
-                time: 'Baru saja'
-            });
-            
             // Wait a moment then try to load the QR code
             setTimeout(loadQRCode, 2000);
         })

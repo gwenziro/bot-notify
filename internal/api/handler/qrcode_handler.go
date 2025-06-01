@@ -10,7 +10,7 @@ import (
 )
 
 // QR code expiration time constant
-const QrCodeExpirationMinutes = 25.0 / 60.0 // 25 detik dinyatakan dalam menit
+const QrCodeExpirationMinutes = 120.0 / 60.0 // 25 detik dinyatakan dalam menit
 
 // QRCodeHandler menangani endpoint QR code untuk koneksi WhatsApp
 type QRCodeHandler struct {

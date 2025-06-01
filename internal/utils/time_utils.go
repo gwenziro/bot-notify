@@ -105,3 +105,18 @@ func FormatTimeRelative(t time.Time) string {
 	years := int(diff.Hours() / 24 / 365)
 	return fmt.Sprintf("%d tahun yang lalu", years)
 }
+
+// FormatUptime menghasilkan string uptime yang mudah dibaca
+// Format: "1d 2h 3m 4s" atau "2h 3m 4s"
+func FormatUptime(duration time.Duration) string {
+	days := int(duration.Hours() / 24)
+	hours := int(duration.Hours()) % 24
+	minutes := int(duration.Minutes()) % 60
+	seconds := int(duration.Seconds()) % 60
+
+	if days > 0 {
+		return fmt.Sprintf("%dd %dh %dm %ds", days, hours, minutes, seconds)
+	}
+
+	return fmt.Sprintf("%dh %dm %ds", hours, minutes, seconds)
+}

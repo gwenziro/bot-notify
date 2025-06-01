@@ -1,149 +1,51 @@
 package client
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"time"
 
+	"github.com/gwenziro/bot-notify/internal/service/whatsapp"
 	"github.com/gwenziro/bot-notify/internal/utils"
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/types"
 )
 
-// GetGroups mengembalikan daftar grup yang tersedia
-func (c *Client) GetGroups() ([]*types.GroupInfo, error) {
-	if c.waClient == nil || !c.connectionState.IsConnected {
-		return nil, errors.New("klien WhatsApp belum terhubung")
-	}
-
-	c.logger.Info("Mengambil daftar grup")
-	c.UpdateLastActivity()
-
-	groups, err := c.waClient.GetJoinedGroups()
-	if err != nil {
-		return nil, fmt.Errorf("gagal mendapatkan daftar grup: %w", err)
-	}
-
-	return groups, nil
-}
-
-// GetGroupByID mencari grup berdasarkan ID
-func (c *Client) GetGroupByID(groupID string) (*types.GroupInfo, error) {
-	if c.waClient == nil || !c.connectionState.IsConnected {
-		return nil, errors.New("klien WhatsApp belum terhubung")
-	}
-
-	// Konversi ID ke JID
-	jid := ParseGroupID(groupID)
-
-	// Ambil info grup
-	group, err := c.waClient.GetGroupInfo(jid)
-	if err != nil {
-		return nil, fmt.Errorf("gagal mendapatkan info grup %s: %w", groupID, err)
-	}
-
-	return group, nil
-}
-
-// GetContactInfo mendapatkan informasi kontak berdasarkan nomor telepon atau JID
-func (c *Client) GetContactInfo(identifier string) (*types.ContactInfo, error) {
-	// Validasi koneksi
+// GetContactPictureURL mendapatkan URL foto profil kontak atau diri sendiri
+// Parameters:
+// - jid: JID kontak (nil untuk foto diri sendiri)
+// Returns:
+// - URL foto profil
+// - error jika gagal
+func (c *Client) GetContactPictureURL(jid *types.JID) (string, error) {
 	if err := c.validateConnection(); err != nil {
-		return nil, err
+		return "", err
 	}
 
-	c.UpdateLastActivity()
-
-	// Ambil kontak dari store
-	ctx := context.Background()
-	contact, err := c.waClient.Store.Contacts.GetContact(ctx, ParsePhoneNumber(identifier))
-	if err != nil {
-		return nil, fmt.Errorf("gagal mendapatkan info kontak %s: %w", identifier, err)
+	if !c.waClient.IsLoggedIn() {
+		return "", errors.New("tidak dalam keadaan login")
 	}
 
-	return &contact, nil
-}
-
-// validateConnection adalah helper untuk memvalidasi koneksi
-func (c *Client) validateConnection() error {
-	if c.waClient == nil || !c.connectionState.IsConnected {
-		return errors.New("klien WhatsApp belum terhubung")
+	// Jika JID tidak disediakan, gunakan ID diri sendiri
+	targetJID := jid
+	if targetJID == nil {
+		selfID := c.waClient.Store.ID
+		if selfID == nil {
+			return "", whatsapp.ErrSelfIDNotAvailable
+		}
+		targetJID = selfID
 	}
 
-	if c.waClient.Store == nil || c.waClient.Store.Contacts == nil {
-		return errors.New("penyimpanan kontak WhatsApp tidak tersedia")
-	}
-
-	return nil
-}
-
-// IsLoggedIn memeriksa apakah pengguna sudah login
-func (c *Client) IsLoggedIn() bool {
-	if c.waClient == nil {
-		return false
-	}
-
-	return c.waClient.Store.ID != nil
-}
-
-// GetConnectionInfo mendapatkan informasi lengkap tentang koneksi
-func (c *Client) GetConnectionInfo() map[string]interface{} {
-	state := c.connectionState
-
-	return map[string]interface{}{
-		"status":      state.Status,
-		"connected":   state.IsConnected,
-		"last_active": state.LastActivity,
-		"retry_count": state.ConnectionRetries,
-		"logged_in":   c.IsLoggedIn(),
-		"device_info": c.GetDeviceInfo(),
-	}
-}
-
-// GetConnectionStateSafe mengembalikan state koneksi dengan pengecekan null
-func (c *Client) GetConnectionStateSafe() (ConnectionState, error) {
-	// Cek untuk mencegah nil dereference
-	if c == nil {
-		return ConnectionState{
-			Status:            StatusDisconnected,
-			IsConnected:       false,
-			ConnectionRetries: 0,
-			LastActivity:      time.Now(),
-			Timestamp:         time.Now(),
-		}, fmt.Errorf("client adalah nil")
-	}
-
-	// Deep copy untuk mencegah race condition
-	state := ConnectionState{
-		Status:            c.connectionState.Status,
-		IsConnected:       c.connectionState.IsConnected,
-		ConnectionRetries: c.connectionState.ConnectionRetries,
-		LastActivity:      c.connectionState.LastActivity,
-		Timestamp:         c.connectionState.Timestamp,
-	}
-
-	return state, nil
-}
-
-// GetProfilePictureURL mendapatkan URL foto profil akun WhatsApp terhubung
-func (c *Client) GetProfilePictureURL() (string, error) {
-	if c.waClient == nil || !c.waClient.IsLoggedIn() {
-		return "", fmt.Errorf("client tidak terhubung atau login")
-	}
-
-	// Dapatkan ID kita sendiri
-	selfID := c.waClient.Store.ID
-	if selfID == nil {
-		return "", fmt.Errorf("id akun tidak tersedia")
-	}
+	// Buat timeout context
+	_, cancel := c.createTimeoutContext(10 * time.Second)
+	defer cancel()
 
 	// Gunakan API whatsmeow untuk mendapatkan foto profil
-	profilePic, err := c.waClient.GetProfilePictureInfo(selfID.ToNonAD(), &whatsmeow.GetProfilePictureParams{
+	profilePic, err := c.waClient.GetProfilePictureInfo(targetJID.ToNonAD(), &whatsmeow.GetProfilePictureParams{
 		Preview: false,
 	})
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("gagal mendapatkan info foto profil: %w", err)
 	}
 
 	if profilePic == nil || profilePic.URL == "" {
@@ -153,66 +55,38 @@ func (c *Client) GetProfilePictureURL() (string, error) {
 	return profilePic.URL, nil
 }
 
-// GetDeviceInfo mengembalikan informasi tentang perangkat WhatsApp yang terhubung
-func (c *Client) GetDeviceInfo() map[string]interface{} {
-	// Validasi dasar
-	if c == nil || c.waClient == nil || c.waClient.Store == nil || c.waClient.Store.ID == nil {
-		return map[string]interface{}{
-			"logged_in": false,
-			"error":     "tidak ada sesi aktif",
-		}
-	}
-
-	// Dapatkan informasi dasar yang pasti tersedia
-	jid := c.waClient.Store.ID.String()
-	formattedNumber := FormatWhatsAppNumber(jid)
-	pushName := c.waClient.Store.PushName
-
-	// Dapatkan URL foto profil jika tersedia
-	pictureURL := ""
-	if c.waClient.IsLoggedIn() {
-		if pic, err := c.GetProfilePictureURL(); err == nil && pic != "" {
-			pictureURL = pic
-		}
-	}
-
-	// Siapkan hasil
-	result := map[string]interface{}{
-		"id":            jid,
-		"formatted_jid": formattedNumber,
-		"logged_in":     true,
-		"push_name":     pushName,
-		"picture_url":   pictureURL,
-	}
-
-	c.logger.Debug("Device info retrieved", utils.Fields{
-		"jid":         jid,
-		"number":      formattedNumber,
-		"push_name":   pushName,
-		"has_picture": pictureURL != "",
-	})
-
-	return result
-}
-
-// GetContactNameByJID mendapatkan nama kontak dari JID jika tersedia
-func (c *Client) GetContactNameByJID(jid types.JID) string {
+// GetContactName mendapatkan nama kontak terbaik dari JID yang tersedia
+// Parameters:
+// - jid: JID kontak yang dicari
+// - defaultName: nama default jika tidak ada nama yang tersedia
+// Returns: nama kontak terbaik berdasarkan prioritas
+func (c *Client) GetContactName(jid types.JID, defaultName string) string {
 	if c.waClient == nil || !c.waClient.IsLoggedIn() {
-		return ""
+		return defaultName
+	}
+
+	// Cek apakah ini JID diri sendiri
+	isSelf := c.waClient.Store.ID != nil && c.waClient.Store.ID.User == jid.User
+
+	// Untuk diri sendiri, prioritaskan pushName dari store
+	if isSelf && c.waClient.Store.PushName != "" {
+		return c.waClient.Store.PushName
 	}
 
 	// Konversi ke non-AD JID jika perlu
 	nonAD := jid.ToNonAD()
 
-	// Coba dapatkan dari store kontak
-	ctx := context.Background()
+	// Coba dapatkan dari store kontak dengan timeout
+	ctx, cancel := c.createTimeoutContext(3 * time.Second)
+	defer cancel()
+
 	contact, err := c.waClient.Store.Contacts.GetContact(ctx, nonAD)
 	if err != nil {
 		c.logger.Debug("Tidak dapat mendapatkan kontak", utils.Fields{
 			"jid": jid.String(),
 			"err": err.Error(),
 		})
-		return ""
+		return defaultName
 	}
 
 	// Prioritaskan nama berdasarkan yang tersedia
@@ -224,30 +98,5 @@ func (c *Client) GetContactNameByJID(jid types.JID) string {
 		return contact.BusinessName
 	}
 
-	return ""
-}
-
-// GetEnrichedParticipants mendapatkan daftar peserta grup dengan informasi tambahan
-func (c *Client) GetEnrichedParticipants(groupJID types.JID) ([]types.GroupParticipant, error) {
-	// Dapatkan partisipan dasar
-	participants, err := c.GetGroupParticipants(groupJID)
-	if err != nil {
-		return nil, err
-	}
-
-	// Tidak perlu enrichment jika tidak ada partisipan
-	if len(participants) == 0 {
-		return participants, nil
-	}
-
-	// Enrich each participant with contact information
-	for i := range participants {
-		// Jika DisplayName kosong, coba isi dari kontak
-		if participants[i].DisplayName == "" {
-			contactName := c.GetContactNameByJID(participants[i].JID)
-			participants[i].DisplayName = contactName
-		}
-	}
-
-	return participants, nil
+	return defaultName
 }

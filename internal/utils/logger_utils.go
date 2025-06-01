@@ -261,3 +261,8 @@ func Close() {
 	// Tidak diperlukan implementasi khusus karena logrus
 	// akan otomatis flush ke output
 }
+
+// Sprintf is a helper function to format strings (used by WhatsmeowLogger)
+func Sprintf(format string, args ...interface{}) string {
+	return fmt.Sprintf(format, args...)
+}
