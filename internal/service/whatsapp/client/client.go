@@ -66,16 +66,27 @@ func (c *Client) GetConnectionState() ConnectionState {
 // SetConnectionState mengatur status koneksi saat ini
 func (c *Client) SetConnectionState(status ClientStatus, isConnected bool, retries int) {
 	previousStatus := c.connectionState.Status
+	previousConnected := c.connectionState.IsConnected
 
 	c.connectionState.Status = status
 	c.connectionState.IsConnected = isConnected
 	c.connectionState.ConnectionRetries = retries
 	c.connectionState.Timestamp = time.Now()
 
-	// Set ConnectedSince hanya jika status berubah dari tidak terhubung menjadi terhubung
-	if status == StatusConnected && previousStatus != StatusConnected {
+	// Set ConnectedSince hanya jika berubah dari tidak terhubung menjadi terhubung
+	if status == StatusConnected && isConnected && !previousConnected {
 		c.connectionState.ConnectedSince = time.Now()
-		c.logger.Info("Connection established, setting ConnectedSince timestamp")
+		c.logger.Info("Status berubah menjadi terhubung, setting ConnectedSince", utils.Fields{
+			"from_status":     previousStatus,
+			"to_status":       status,
+			"connected_since": c.connectionState.ConnectedSince.Format(time.RFC3339),
+		})
+	}
+
+	// Reset ConnectedSince saat terputus
+	if !isConnected && previousConnected {
+		c.connectionState.ConnectedSince = time.Time{} // Set ke zero time
+		c.logger.Info("Status berubah menjadi terputus, resetting ConnectedSince")
 	}
 }
 
@@ -99,9 +110,20 @@ func (c *Client) RegisterCallback(eventName string, callback func(interface{})) 
 	c.callbackHandlers[eventName] = callback
 }
 
-// UpdateLastActivity memperbarui timestamp aktivitas terakhir
+// UpdateLastActivity memperbarui waktu aktivitas terakhir
 func (c *Client) UpdateLastActivity() {
+	// Selalu perbarui LastActivity
 	c.connectionState.LastActivity = time.Now()
+
+	// Hanya jika ConnectedSince adalah zero time dan client terhubung,
+	// Gunakan waktu sekarang sebagai ConnectedSince
+	if c.connectionState.IsConnected && c.connectionState.ConnectedSince.IsZero() {
+		c.connectionState.ConnectedSince = c.connectionState.LastActivity
+		c.logger.Info("ConnectedSince diinisialisasi (zero time sebelumnya)", utils.Fields{
+			"connected_since": c.connectionState.ConnectedSince.Format(time.RFC3339),
+			"last_activity":   c.connectionState.LastActivity.Format(time.RFC3339),
+		})
+	}
 }
 
 // GetSelfID mengembalikan JID dari perangkat sendiri

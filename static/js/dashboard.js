@@ -3,17 +3,16 @@
  */
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Elements
+    // Elements - ubah dari const menjadi let untuk variabel yang perlu dimodifikasi
     const refreshBtn = document.getElementById('refresh-btn');
-    const refreshQrBtn = document.getElementById('refresh-qr-btn');
     const disconnectBtn = document.getElementById('disconnect-btn');
-    const copyApiBtn = document.getElementById('copy-api-btn');
     const connectionBadge = document.getElementById('connection-badge');
-    const qrContainer = document.getElementById('qr-container');
-    const qrCode = document.getElementById('qr-code');
-    const qrLoading = document.getElementById('qr-loading');
-    const connectedView = document.getElementById('connected-view');
-    const qrView = document.getElementById('qr-view');
+    let qrContainer = document.getElementById('qr-container');
+    let qrCode = document.getElementById('qr-code');
+    let qrLoading = document.getElementById('qr-loading');
+    let connectedView = document.getElementById('connected-view');
+    let qrView = document.getElementById('qr-view');
+    let refreshQrBtn = document.getElementById('refresh-qr-btn');
     const serverTime = document.getElementById('server-time');
     
     // Update server time every second
@@ -31,6 +30,32 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize server time and update every second
     updateServerTime();
     setInterval(updateServerTime, 1000);
+    
+    // Setup sticky header
+    const header = document.querySelector('.dashboard-header');
+    const headerObserver = new IntersectionObserver(
+        ([entry]) => {
+            if (!entry.isIntersecting) {
+                header.classList.add('scrolled');
+            } else {
+                header.classList.remove('scrolled');
+            }
+        },
+        { threshold: 0.1 } // Trigger ketika 10% header tidak terlihat
+    );
+    
+    // Buat dummy element sebagai "trigger point"
+    const headerTrigger = document.createElement('div');
+    headerTrigger.style.height = '1px';
+    headerTrigger.style.width = '100%';
+    headerTrigger.style.position = 'absolute';
+    headerTrigger.style.top = '0';
+    headerTrigger.style.left = '0';
+    headerTrigger.style.zIndex = '-1';
+    document.body.prepend(headerTrigger);
+    
+    // Observe trigger element
+    headerObserver.observe(headerTrigger);
     
     // Function to check QR status
     function checkQRStatus() {
@@ -51,7 +76,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // QR code is not available or expired
                 if (qrLoading) {
                     if (data.expired) {
-                        qrLoading.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>QR Code kedaluwarsa, memuat ulang...</span>';
+                        qrLoading.innerHTML = '<i class="fas fa-exclamation-circle"></i><span>QR Code kedaluwarsa, memuat ulang...</span>';
                         qrLoading.style.display = 'flex';
                         qrCode && (qrCode.style.display = 'none');
                         
@@ -152,7 +177,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Modifikasi fungsi startQRStatusChecks untuk mendukung auto-refresh
     let qrCheckInterval;
-    let autoRefreshEnabled = true; // Flag untuk mengaktifkan auto-refresh
     
     function startQRStatusChecks() {
         // Clear any existing interval
@@ -175,6 +199,103 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 3000);
     }
     
+    // Function to update UI directly after disconnecting
+    function updateUIAfterDisconnect() {
+        console.log('Updating UI after disconnect');
+        
+        // Update badge status
+        if (connectionBadge) {
+            connectionBadge.textContent = 'Terputus';
+            connectionBadge.classList.remove('connected');
+            connectionBadge.classList.add('disconnected');
+        }
+        
+        // Temukan elemen yang perlu diupdate
+        const connectedInfo = document.getElementById('connected-view');
+        const qrConnectionView = document.getElementById('qr-view');
+        
+        // Debug info
+        console.log('Elements found:', {
+            connectedView: connectedInfo ? true : false,
+            qrView: qrConnectionView ? true : false
+        });
+        
+        // Hide connected view
+        if (connectedInfo) {
+            connectedInfo.style.display = 'none';
+        }
+        
+        // Create QR view if it doesn't exist
+        if (!qrConnectionView) {
+            console.log('QR view not found, creating it');
+            const newQrView = createQRView();
+            
+            // Find the parent container to insert QR view
+            const cardBody = document.querySelector('.contact-info-section .card-body');
+            if (cardBody) {
+                cardBody.innerHTML = ''; // Clear current content
+                cardBody.appendChild(newQrView);
+                
+                // Get references to new elements - tetap menggunakan variabel global
+                qrContainer = document.getElementById('qr-container');
+                qrLoading = document.getElementById('qr-loading');
+                refreshQrBtn = document.getElementById('refresh-qr-btn');
+                qrView = document.getElementById('qr-view');
+                
+                // Attach event listener to new refresh button
+                if (refreshQrBtn) {
+                    refreshQrBtn.addEventListener('click', refreshQRCode);
+                }
+            }
+        } else {
+            // Show existing QR view
+            qrConnectionView.style.display = 'flex';
+            
+            // Update QR container to loading state
+            if (qrContainer) {
+                if (qrLoading) {
+                    qrLoading.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Memuat Kode QR...</span>';
+                    qrLoading.style.display = 'flex';
+                }
+                
+                if (qrCode) {
+                    qrCode.style.display = 'none';
+                }
+            }
+        }
+        
+        // Start refreshing QR code
+        setTimeout(refreshQRCode, 500);
+    }
+    
+    // Helper function to create QR view if it doesn't exist
+    function createQRView() {
+        const qrView = document.createElement('div');
+        qrView.id = 'qr-view';
+        qrView.className = 'qr-connection';
+        qrView.style.display = 'flex';
+        
+        qrView.innerHTML = `
+            <p class="qr-instructions">
+                Silakan pindai kode QR berikut dengan WhatsApp di ponsel Anda untuk menghubungkan Bot:
+            </p>
+            <div class="qr-container" id="qr-container">
+                <div class="qr-loading" id="qr-loading">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span>Memuat Kode QR...</span>
+                </div>
+            </div>
+            <div class="qr-actions">
+                <button id="refresh-qr-btn" class="btn btn-primary">
+                    <i class="fas fa-sync"></i>
+                    <span>Segarkan QR</span>
+                </button>
+            </div>
+        `;
+        
+        return qrView;
+    }
+    
     // Function to disconnect WhatsApp
     function disconnectWhatsApp() {
         if (disconnectBtn) {
@@ -188,45 +309,56 @@ document.addEventListener('DOMContentLoaded', function() {
                 'Content-Type': 'application/json'
             }
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
         .then(data => {
             console.log('Disconnect response:', data);
             
             if (data.success) {
-                // Update UI to show disconnected state
-                if (connectionBadge) {
-                    connectionBadge.textContent = 'Terputus';
-                    connectionBadge.classList.remove('connected');
-                    connectionBadge.classList.add('disconnected');
-                }
+                // Tampilkan notifikasi sukses
+                showNotification('Koneksi WhatsApp berhasil diputuskan', 'success');
                 
-                // Switch to QR view
-                if (connectedView && qrView) {
-                    connectedView.style.display = 'none';
-                    qrView.style.display = 'flex';
-                }
+                // Langsung update UI tanpa reload
+                updateUIAfterDisconnect();
                 
-                // Start QR refresh
-                refreshQRCode();
+                // Reload halaman jika UI gagal diupdate setelah beberapa detik
+                setTimeout(() => {
+                    // Cek badge status untuk memastikan UI diperbarui
+                    if (connectionBadge && connectionBadge.classList.contains('connected')) {
+                        console.log('UI not updated properly, reloading page');
+                        window.location.reload();
+                    }
+                    
+                    // Cek juga untuk memastikan QR view sudah muncul
+                    const qrView = document.getElementById('qr-view');
+                    if (!qrView || qrView.style.display === 'none') {
+                        console.log('QR view not visible, reloading page');
+                        window.location.reload();
+                    }
+                }, 3000);
             } else {
-                // Show error
-                alert('Gagal memutuskan WhatsApp: ' + (data.message || 'Error tidak diketahui'));
+                // Tampilkan pesan error
+                showNotification(data.message || 'Gagal memutuskan koneksi', 'error');
                 
-                // Re-enable the button
+                // Kembalikan tombol ke state awal
                 if (disconnectBtn) {
                     disconnectBtn.disabled = false;
-                    disconnectBtn.innerHTML = '<i class="fas fa-power-off"></i><span>Putuskan Koneksi</span>';
+                    disconnectBtn.innerHTML = '<i class="fas fa-power-off"></i><span>Putuskan</span>';
                 }
             }
         })
         .catch(error => {
             console.error('Error disconnecting WhatsApp:', error);
-            alert('Terjadi kesalahan saat memutuskan WhatsApp');
+            showNotification('Terjadi kesalahan: ' + error.message, 'error');
             
-            // Re-enable the button
+            // Kembalikan tombol ke state awal
             if (disconnectBtn) {
                 disconnectBtn.disabled = false;
-                disconnectBtn.innerHTML = '<i class="fas fa-power-off"></i><span>Putuskan Koneksi</span>';
+                disconnectBtn.innerHTML = '<i class="fas fa-power-off"></i><span>Putuskan</span>';
             }
         });
     }
@@ -253,182 +385,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
-    // Function to copy API example to clipboard
-    function copyApiExample() {
-        const codeBlock = document.querySelector('.code-block code');
-        if (!codeBlock) return;
-        
-        const text = codeBlock.textContent;
-        
-        // Create temporary textarea to copy from
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        document.body.appendChild(textarea);
-        textarea.select();
-        
-        try {
-            document.execCommand('copy');
-            // Change button icon temporarily
-            if (copyApiBtn) {
-                copyApiBtn.innerHTML = '<i class="fas fa-check"></i>';
-                setTimeout(() => {
-                    copyApiBtn.innerHTML = '<i class="fas fa-copy"></i>';
-                }, 2000);
-            }
-        } catch (err) {
-            console.error('Could not copy text: ', err);
-        }
-        
-        document.body.removeChild(textarea);
-    }
-    
-    // Attach event listeners
-    if (refreshBtn) {
-        refreshBtn.addEventListener('click', function() {
-            window.location.reload();
-        });
-    }
-    
-    if (refreshQrBtn) {
-        refreshQrBtn.addEventListener('click', refreshQRCode);
-    }
-    
-    if (disconnectBtn) {
-        disconnectBtn.addEventListener('click', disconnectWhatsApp);
-    }
-    
-    if (copyApiBtn) {
-        copyApiBtn.addEventListener('click', copyApiExample);
-    }
-    
-    // Start QR status checks if we're on QR view
-    if (qrView && qrView.style.display !== 'none') {
-        startQRStatusChecks();
-    }
-    
-    // Periodically check connection status (every 10 seconds)
-    setInterval(() => {
-        fetchConnectionStatus(true);
-    }, 10000);
-    
-    // Auto-refresh QR jika berada di halaman QR view dan QR tidak tersedia/kedaluwarsa
-    // Perbaiki error dengan menambahkan pengecekan null untuk qrCode
-    if (qrView && qrView.style.display !== 'none') {
-        // Hanya coba akses style jika qrCode tidak null
-        if ((qrCode && !qrCode.style.display) || (qrCode && qrCode.style.display === 'none')) {
-            console.log('Auto-refreshing QR on page load');
-            setTimeout(refreshQRCode, 500);
-        } else if (!qrCode) {
-            // Jika qrCode tidak ada sama sekali, juga refresh
-            console.log('QR element not found, refreshing QR');
-            setTimeout(refreshQRCode, 500);
-        }
-    }
-    
-    // Tambahkan event listener untuk sticky header
-    document.addEventListener('DOMContentLoaded', function() {
-        // Setup sticky header
-        const header = document.querySelector('.dashboard-header');
-        const headerObserver = new IntersectionObserver(
-            ([entry]) => {
-                if (!entry.isIntersecting) {
-                    header.classList.add('scrolled');
-                } else {
-                    header.classList.remove('scrolled');
-                }
-            },
-            { threshold: 0.1 } // Trigger ketika 10% header tidak terlihat
-        );
-        
-        // Buat dummy element sebagai "trigger point"
-        const headerTrigger = document.createElement('div');
-        headerTrigger.style.height = '1px';
-        headerTrigger.style.width = '100%';
-        headerTrigger.style.position = 'absolute';
-        headerTrigger.style.top = '0';
-        headerTrigger.style.left = '0';
-        headerTrigger.style.zIndex = '-1';
-        document.body.prepend(headerTrigger);
-        
-        // Observe trigger element
-        headerObserver.observe(headerTrigger);
-        
-        // Setup copy buttons for API examples
-        const copyButtons = document.querySelectorAll('.copy-btn');
-        copyButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                const codeType = this.getAttribute('data-code');
-                const codeElement = document.getElementById(`${codeType}-code`);
-                const codeText = codeElement.textContent;
-                
-                navigator.clipboard.writeText(codeText).then(() => {
-                    // Temporarily change icon to show success
-                    const icon = this.querySelector('i');
-                    icon.classList.remove('fa-copy');
-                    icon.classList.add('fa-check');
-                    
-                    // Change back after 2 seconds
-                    setTimeout(() => {
-                        icon.classList.remove('fa-check');
-                        icon.classList.add('fa-copy');
-                    }, 2000);
-                });
-            });
-        });
-        
-        // Penanganan tombol disconnect
-        const disconnectBtn = document.getElementById('disconnect-btn');
-        if (disconnectBtn) {
-            disconnectBtn.addEventListener('click', function() {
-                // Ubah tampilan tombol menjadi loading state
-                const originalText = disconnectBtn.innerHTML;
-                disconnectBtn.disabled = true;
-                disconnectBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Memutuskan...</span>';
-                
-                // Panggil endpoint disconnect
-                fetch('/dashboard/disconnect', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Gagal memutuskan koneksi');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log('Disconnect response:', data);
-                    if (data.success) {
-                        // Tampilkan notifikasi sukses
-                        showNotification('Koneksi WhatsApp berhasil diputuskan', 'success');
-                        
-                        // Reload halaman setelah 1 detik
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 1000);
-                    } else {
-                        // Tampilkan pesan error
-                        showNotification(data.message || 'Gagal memutuskan koneksi', 'error');
-                        
-                        // Kembalikan tombol ke state awal
-                        disconnectBtn.disabled = false;
-                        disconnectBtn.innerHTML = originalText;
-                    }
-                })
-                .catch(error => {
-                    console.error('Error disconnecting:', error);
-                    showNotification('Terjadi kesalahan: ' + error.message, 'error');
-                    
-                    // Kembalikan tombol ke state awal
-                    disconnectBtn.disabled = false;
-                    disconnectBtn.innerHTML = originalText;
-                });
-            });
-        }
-    });
     
     // Fungsi untuk menampilkan notifikasi
     function showNotification(message, type = 'info') {
@@ -511,107 +467,57 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 5000);
     }
     
-    // Tambahkan event listener untuk tombol Putuskan
-    document.addEventListener('DOMContentLoaded', function() {
-        // Setup sticky header
-        const header = document.querySelector('.dashboard-header');
-        const headerObserver = new IntersectionObserver(
-            ([entry]) => {
-                if (!entry.isIntersecting) {
-                    header.classList.add('scrolled');
-                } else {
-                    header.classList.remove('scrolled');
-                }
-            },
-            { threshold: 0.1 } // Trigger ketika 10% header tidak terlihat
-        );
-        
-        // Buat dummy element sebagai "trigger point"
-        const headerTrigger = document.createElement('div');
-        headerTrigger.style.height = '1px';
-        headerTrigger.style.width = '100%';
-        headerTrigger.style.position = 'absolute';
-        headerTrigger.style.top = '0';
-        headerTrigger.style.left = '0';
-        headerTrigger.style.zIndex = '-1';
-        document.body.prepend(headerTrigger);
-        
-        // Observe trigger element
-        headerObserver.observe(headerTrigger);
-        
-        // Setup copy buttons for API examples
-        const copyButtons = document.querySelectorAll('.copy-btn');
-        copyButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                const codeType = this.getAttribute('data-code');
-                const codeElement = document.getElementById(`${codeType}-code`);
-                const codeText = codeElement.textContent;
+    // Setup copy buttons for API examples
+    const copyButtons = document.querySelectorAll('.copy-btn');
+    copyButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const codeType = this.getAttribute('data-code');
+            const codeElement = document.getElementById(`${codeType}-code`);
+            const codeText = codeElement.textContent;
+            
+            navigator.clipboard.writeText(codeText).then(() => {
+                // Temporarily change icon to show success
+                const icon = this.querySelector('i');
+                icon.classList.remove('fa-copy');
+                icon.classList.add('fa-check');
                 
-                navigator.clipboard.writeText(codeText).then(() => {
-                    // Temporarily change icon to show success
-                    const icon = this.querySelector('i');
-                    icon.classList.remove('fa-copy');
-                    icon.classList.add('fa-check');
-                    
-                    // Change back after 2 seconds
-                    setTimeout(() => {
-                        icon.classList.remove('fa-check');
-                        icon.classList.add('fa-copy');
-                    }, 2000);
-                });
+                // Change back after 2 seconds
+                setTimeout(() => {
+                    icon.classList.remove('fa-check');
+                    icon.classList.add('fa-copy');
+                }, 2000);
             });
         });
-        
-        // Penanganan tombol disconnect
-        const disconnectBtn = document.getElementById('disconnect-btn');
-        if (disconnectBtn) {
-            disconnectBtn.addEventListener('click', function() {
-                // Ubah tampilan tombol menjadi loading state
-                const originalText = disconnectBtn.innerHTML;
-                disconnectBtn.disabled = true;
-                disconnectBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Memutuskan...</span>';
-                
-                // Panggil endpoint disconnect
-                fetch('/dashboard/disconnect', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Gagal memutuskan koneksi');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log('Disconnect response:', data);
-                    if (data.success) {
-                        // Tampilkan notifikasi sukses
-                        showNotification('Koneksi WhatsApp berhasil diputuskan', 'success');
-                        
-                        // Reload halaman setelah 1 detik
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 1000);
-                    } else {
-                        // Tampilkan pesan error
-                        showNotification(data.message || 'Gagal memutuskan koneksi', 'error');
-                        
-                        // Kembalikan tombol ke state awal
-                        disconnectBtn.disabled = false;
-                        disconnectBtn.innerHTML = originalText;
-                    }
-                })
-                .catch(error => {
-                    console.error('Error disconnecting:', error);
-                    showNotification('Terjadi kesalahan: ' + error.message, 'error');
-                    
-                    // Kembalikan tombol ke state awal
-                    disconnectBtn.disabled = false;
-                    disconnectBtn.innerHTML = originalText;
-                });
-            });
-        }
     });
+    
+    // Attach event listeners - PENTING: hanya satu event listener per tombol
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+            window.location.reload();
+        });
+    }
+    
+    if (refreshQrBtn) {
+        refreshQrBtn.addEventListener('click', refreshQRCode);
+    }
+    
+    if (disconnectBtn) {
+        disconnectBtn.addEventListener('click', disconnectWhatsApp);
+    }
+    
+    // Start QR status checks if we're on QR view
+    if (qrView && qrView.style.display !== 'none') {
+        startQRStatusChecks();
+    }
+    
+    // Periodically check connection status (every 10 seconds)
+    setInterval(() => {
+        fetchConnectionStatus(true);
+    }, 10000);
+    
+    // Auto-refresh QR jika berada di halaman QR view dan QR tidak tersedia/kedaluwarsa
+    if (qrView && qrView.style.display !== 'none' && qrCode && qrCode.style.display === 'none') {
+        console.log('Auto-refreshing QR on page load');
+        setTimeout(refreshQRCode, 500);
+    }
 });

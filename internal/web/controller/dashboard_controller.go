@@ -132,11 +132,28 @@ func (c *DashboardController) prepareDashboardData() entity.DashboardData {
 				duration = 24 * time.Hour // Default 1 hari jika berlebihan
 			}
 			data.ConnectionDuration = utils.FormatUptime(duration)
+
+			c.logger.Debug("Informasi durasi koneksi", utils.Fields{
+				"connected_since": connectionState.ConnectedSince.Format(time.RFC3339),
+				"duration":        data.ConnectionDuration,
+				"is_zero_time":    connectionState.ConnectedSince.IsZero(),
+			})
 		} else {
 			// Jika ConnectedSince tidak valid, gunakan LastActivity sebagai fallback
+			c.logger.Warn("ConnectedSince adalah zero time, menggunakan LastActivity sebagai fallback", utils.Fields{
+				"last_activity": connectionState.LastActivity.Format(time.RFC3339),
+			})
+
 			data.ConnectedSince = connectionState.LastActivity
 			data.ConnectedSinceFormatted = utils.FormatTimeIndonesia(&connectionState.LastActivity)
-			data.ConnectionDuration = "Baru saja terhubung"
+
+			// Gunakan durasi default jika LastActivity juga tidak valid
+			if connectionState.LastActivity.IsZero() {
+				data.ConnectionDuration = "Baru saja terhubung"
+			} else {
+				duration := time.Since(connectionState.LastActivity)
+				data.ConnectionDuration = utils.FormatUptime(duration)
+			}
 		}
 
 		// Tambahkan informasi profil - pastikan semua data diisi

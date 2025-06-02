@@ -98,6 +98,11 @@ func (c *Client) Disconnect() {
 	// Perbarui status koneksi SEBELUM memanggil disconnect
 	c.connectionState.Status = StatusDisconnected
 	c.connectionState.IsConnected = false
+
+	// PENTING: Reset ConnectedSince saat disconnect
+	// Ini memastikan nilai akan diperbarui saat koneksi baru terbentuk
+	c.connectionState.ConnectedSince = time.Time{} // Set ke zero time
+
 	c.connectionState.Timestamp = time.Now()
 
 	// Tutup koneksi aktual
@@ -193,19 +198,27 @@ func (c *Client) handleConnectedEvent() {
 	})
 
 	// Update status koneksi
-	previousStatus := c.connectionState.Status
+	previousConnected := c.connectionState.IsConnected
 	c.connectionState.Status = StatusConnected
 	c.connectionState.IsConnected = true
 	c.connectionState.ConnectionRetries = 0
 
-	// Set ConnectedSince hanya jika baru terhubung
-	if previousStatus != StatusConnected {
+	// Set ConnectedSince HANYA jika sebelumnya tidak terhubung
+	// Ini menjamin nilai hanya diperbarui saat pertama kali terhubung
+	if !previousConnected {
 		c.connectionState.ConnectedSince = time.Now()
-		c.logger.Info("Connection established, setting ConnectedSince timestamp", utils.Fields{
-			"connected_since": c.connectionState.ConnectedSince,
+		c.logger.Info("Waktu koneksi awal dicatat", utils.Fields{
+			"connected_since": c.connectionState.ConnectedSince.Format(time.RFC3339),
+			"last_activity":   c.connectionState.LastActivity.Format(time.RFC3339),
+		})
+	} else {
+		c.logger.Debug("Tetap mempertahankan waktu koneksi awal", utils.Fields{
+			"connected_since": c.connectionState.ConnectedSince.Format(time.RFC3339),
+			"last_activity":   c.connectionState.LastActivity.Format(time.RFC3339),
 		})
 	}
 
+	// Selalu perbarui LastActivity
 	c.UpdateLastActivity()
 
 	// Coba update informasi profil setelah terhubung
