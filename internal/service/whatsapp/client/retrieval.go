@@ -92,12 +92,13 @@ func (c *Client) GetConnectionInfo() map[string]interface{} {
 	state := c.connectionState
 
 	return map[string]interface{}{
-		"status":      state.Status,
-		"connected":   state.IsConnected,
-		"last_active": state.LastActivity,
-		"retry_count": state.ConnectionRetries,
-		"logged_in":   c.IsLoggedIn(),
-		"device_info": c.GetDeviceInfo(),
+		"status":          state.Status,
+		"connected":       state.IsConnected,
+		"last_active":     state.LastActivity,
+		"connected_since": state.ConnectedSince,
+		"retry_count":     state.ConnectionRetries,
+		"logged_in":       c.IsLoggedIn(),
+		"device_info":     c.GetDeviceInfo(),
 	}
 }
 

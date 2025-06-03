@@ -120,44 +120,60 @@ func (c *DashboardController) prepareDashboardData() entity.DashboardData {
 
 	// Jika terhubung, tambahkan informasi koneksi
 	if data.IsConnected {
-		// Cek apakah ConnectedSince valid (tidak zero time)
-		if !connectionState.ConnectedSince.IsZero() {
-			data.ConnectedSince = connectionState.ConnectedSince
-			data.ConnectedSinceFormatted = utils.FormatTimeIndonesia(&connectionState.ConnectedSince)
+		// Dapatkan profil info seperti di profile_handler.go
+		deviceInfo := c.whatsApp.GetDeviceInfo()
 
-			// Hitung durasi koneksi - dengan validasi
-			duration := time.Since(connectionState.ConnectedSince)
+		// Periksa status koneksi dari WhatsApp client langsung
+		connectionInfo := c.whatsApp.GetConnectionInfo()
+
+		// Dapatkan waktu connectedSince yang lebih akurat dari profil WhatsApp
+		// Ini akan lebih konsisten dan tidak bergantung pada LastActivity
+		if connTime, ok := connectionInfo["connected_since"].(time.Time); ok && !connTime.IsZero() {
+			// Gunakan waktu koneksi dari info koneksi
+			data.ConnectedSince = connTime
+			data.ConnectedSinceFormatted = utils.FormatTimeIndonesia(&connTime)
+
+			// Hitung durasi koneksi berdasarkan waktu yang akurat
+			duration := time.Since(connTime)
 			// Batasi durasi maksimal untuk mencegah nilai yang tidak masuk akal
 			if duration > 365*24*time.Hour {
 				duration = 24 * time.Hour // Default 1 hari jika berlebihan
 			}
 			data.ConnectionDuration = utils.FormatUptime(duration)
 
-			c.logger.Debug("Informasi durasi koneksi", utils.Fields{
-				"connected_since": connectionState.ConnectedSince.Format(time.RFC3339),
+			c.logger.Debug("Informasi durasi koneksi dari GetConnectionInfo", utils.Fields{
+				"connected_since": connTime.Format(time.RFC3339),
 				"duration":        data.ConnectionDuration,
-				"is_zero_time":    connectionState.ConnectedSince.IsZero(),
 			})
 		} else {
-			// Jika ConnectedSince tidak valid, gunakan LastActivity sebagai fallback
-			c.logger.Warn("ConnectedSince adalah zero time, menggunakan LastActivity sebagai fallback", utils.Fields{
-				"last_activity": connectionState.LastActivity.Format(time.RFC3339),
-			})
+			// Fallback ke metode lama jika metode baru gagal
+			if !connectionState.ConnectedSince.IsZero() {
+				data.ConnectedSince = connectionState.ConnectedSince
+				data.ConnectedSinceFormatted = utils.FormatTimeIndonesia(&connectionState.ConnectedSince)
 
-			data.ConnectedSince = connectionState.LastActivity
-			data.ConnectedSinceFormatted = utils.FormatTimeIndonesia(&connectionState.LastActivity)
-
-			// Gunakan durasi default jika LastActivity juga tidak valid
-			if connectionState.LastActivity.IsZero() {
-				data.ConnectionDuration = "Baru saja terhubung"
-			} else {
-				duration := time.Since(connectionState.LastActivity)
+				duration := time.Since(connectionState.ConnectedSince)
+				if duration > 365*24*time.Hour {
+					duration = 24 * time.Hour
+				}
 				data.ConnectionDuration = utils.FormatUptime(duration)
+
+				c.logger.Debug("Fallback ke ConnectionState untuk durasi koneksi", utils.Fields{
+					"connected_since": connectionState.ConnectedSince.Format(time.RFC3339),
+					"duration":        data.ConnectionDuration,
+				})
+			} else {
+				// Jika masih tidak ada, gunakan LastActivity sebagai pilihan terakhir
+				c.logger.Warn("Tidak ada ConnectedSince yang valid, menggunakan LastActivity", utils.Fields{
+					"last_activity": connectionState.LastActivity.Format(time.RFC3339),
+				})
+
+				data.ConnectedSince = connectionState.LastActivity
+				data.ConnectedSinceFormatted = utils.FormatTimeIndonesia(&connectionState.LastActivity)
+				data.ConnectionDuration = "Tidak diketahui"
 			}
 		}
 
 		// Tambahkan informasi profil - pastikan semua data diisi
-		deviceInfo := c.whatsApp.GetDeviceInfo()
 		// Set default values untuk mencegah nil
 		data.PhoneNumber = "Tidak tersedia"
 		data.ContactName = "Tidak tersedia"
