@@ -52,7 +52,6 @@ func (h *StatusHandler) GetStatus(c *fiber.Ctx) error {
 
 	// 6. Sertakan informasi tambahan jika terhubung
 	if state.IsConnected {
-		response.ConnectionRetries = state.ConnectionRetries
 		response.LastActivity = utils.FormatTimeIndonesia(&state.LastActivity)
 	}
 

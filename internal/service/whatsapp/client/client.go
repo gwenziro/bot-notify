@@ -29,12 +29,11 @@ const (
 
 // ConnectionState menyimpan informasi status koneksi
 type ConnectionState struct {
-	Status            ClientStatus `json:"status"`
-	IsConnected       bool         `json:"is_connected"`
-	ConnectionRetries int          `json:"connection_retries"`
-	LastActivity      time.Time    `json:"last_activity"`
-	Timestamp         time.Time    `json:"timestamp"`
-	ConnectedSince    time.Time    `json:"connected_since"`
+	Status         ClientStatus `json:"status"`
+	IsConnected    bool         `json:"is_connected"`
+	LastActivity   time.Time    `json:"last_activity"`
+	Timestamp      time.Time    `json:"timestamp"`
+	ConnectedSince time.Time    `json:"connected_since"`
 }
 
 // EventHandlerFunc adalah tipe fungsi untuk menangani event WhatsApp
@@ -51,9 +50,11 @@ type Client struct {
 	qrChan          chan string
 	SessionManager  *session.Manager
 
+	// Tambahkan counter pesan dan mutex untuk mengamankan akses
+	messagesSent  int64
+	messagesMutex sync.RWMutex
+
 	callbackHandlers map[string]func(interface{})
-	reconnectLock    sync.Mutex
-	retryTimer       *time.Timer
 	ctx              context.Context
 	cancel           context.CancelFunc
 }
@@ -64,13 +65,12 @@ func (c *Client) GetConnectionState() ConnectionState {
 }
 
 // SetConnectionState mengatur status koneksi saat ini
-func (c *Client) SetConnectionState(status ClientStatus, isConnected bool, retries int) {
+func (c *Client) SetConnectionState(status ClientStatus, isConnected bool) {
 	previousStatus := c.connectionState.Status
 	previousConnected := c.connectionState.IsConnected
 
 	c.connectionState.Status = status
 	c.connectionState.IsConnected = isConnected
-	c.connectionState.ConnectionRetries = retries
 	c.connectionState.Timestamp = time.Now()
 
 	// Set ConnectedSince hanya jika berubah dari tidak terhubung menjadi terhubung
@@ -88,11 +88,6 @@ func (c *Client) SetConnectionState(status ClientStatus, isConnected bool, retri
 		c.connectionState.ConnectedSince = time.Time{} // Set ke zero time
 		c.logger.Info("Status berubah menjadi terputus, resetting ConnectedSince")
 	}
-}
-
-// GetConnectionRetries mengembalikan jumlah percobaan koneksi
-func (c *Client) GetConnectionRetries() int {
-	return c.connectionState.ConnectionRetries
 }
 
 // GetWhatsmeowClient mengembalikan referensi ke client whatsmeow
@@ -133,6 +128,38 @@ func (c *Client) GetSelfID() *types.JID {
 	}
 
 	return c.waClient.Store.ID
+}
+
+// IncrementMessageCount menambah counter pesan terkirim
+func (c *Client) IncrementMessageCount() {
+	c.messagesMutex.Lock()
+	defer c.messagesMutex.Unlock()
+	c.messagesSent++
+
+	// Log increment untuk debug
+	c.logger.Debug("Incremented message count", utils.Fields{
+		"current_count": c.messagesSent,
+	})
+}
+
+// GetMessagesSent mengembalikan jumlah pesan yang berhasil dikirim
+func (c *Client) GetMessagesSent() int64 {
+	c.messagesMutex.RLock()
+	defer c.messagesMutex.RUnlock()
+	return c.messagesSent
+}
+
+// ResetMessageCount mengatur ulang counter pesan terkirim
+func (c *Client) ResetMessageCount() {
+	c.messagesMutex.Lock()
+	defer c.messagesMutex.Unlock()
+
+	// Log sebelum reset untuk debug
+	c.logger.Debug("Resetting message count", utils.Fields{
+		"previous_count": c.messagesSent,
+	})
+
+	c.messagesSent = 0
 }
 
 // NewClient membuat instance baru dari klien WhatsApp
@@ -177,13 +204,11 @@ func NewClient(cfg *config.Config) (*Client, error) {
 		ctx:              ctx,
 		cancel:           cancel,
 		connectionState: ConnectionState{
-			Status:            StatusDisconnected,
-			IsConnected:       false,
-			ConnectionRetries: 0,
-			Timestamp:         time.Now(),
-			LastActivity:      time.Now(),
+			Status:       StatusDisconnected,
+			IsConnected:  false,
+			Timestamp:    time.Now(),
+			LastActivity: time.Now(),
 		},
-		reconnectLock: sync.Mutex{},
 	}
 
 	// Create session manager with callback

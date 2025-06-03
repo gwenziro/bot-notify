@@ -45,6 +45,9 @@ func (c *Client) SendMessage(recipient types.JID, message string) (time.Time, er
 		return time.Time{}, fmt.Errorf("gagal mengirim pesan: %w", err)
 	}
 
+	// Jika berhasil, tingkatkan counter pesan terkirim
+	c.IncrementMessageCount()
+
 	return sendTime, nil
 }
 

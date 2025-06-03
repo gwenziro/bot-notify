@@ -65,7 +65,6 @@ func (c *Client) handleDisconnectedEvent(_ *events.Disconnected) {
 	c.logger.Warn("Terputus dari WhatsApp")
 	c.connectionState.Status = StatusDisconnected
 	c.connectionState.IsConnected = false
-	go c.AttemptReconnect("disconnected")
 }
 
 // handleLoggedOutEvent menangani event LoggedOut

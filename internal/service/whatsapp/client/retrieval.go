@@ -96,7 +96,6 @@ func (c *Client) GetConnectionInfo() map[string]interface{} {
 		"connected":       state.IsConnected,
 		"last_active":     state.LastActivity,
 		"connected_since": state.ConnectedSince,
-		"retry_count":     state.ConnectionRetries,
 		"logged_in":       c.IsLoggedIn(),
 		"device_info":     c.GetDeviceInfo(),
 	}
@@ -107,21 +106,20 @@ func (c *Client) GetConnectionStateSafe() (ConnectionState, error) {
 	// Cek untuk mencegah nil dereference
 	if c == nil {
 		return ConnectionState{
-			Status:            StatusDisconnected,
-			IsConnected:       false,
-			ConnectionRetries: 0,
-			LastActivity:      time.Now(),
-			Timestamp:         time.Now(),
+			Status:       StatusDisconnected,
+			IsConnected:  false,
+			LastActivity: time.Now(),
+			Timestamp:    time.Now(),
 		}, fmt.Errorf("client adalah nil")
 	}
 
 	// Deep copy untuk mencegah race condition
 	state := ConnectionState{
-		Status:            c.connectionState.Status,
-		IsConnected:       c.connectionState.IsConnected,
-		ConnectionRetries: c.connectionState.ConnectionRetries,
-		LastActivity:      c.connectionState.LastActivity,
-		Timestamp:         c.connectionState.Timestamp,
+		Status:         c.connectionState.Status,
+		IsConnected:    c.connectionState.IsConnected,
+		LastActivity:   c.connectionState.LastActivity,
+		Timestamp:      c.connectionState.Timestamp,
+		ConnectedSince: c.connectionState.ConnectedSince,
 	}
 
 	return state, nil

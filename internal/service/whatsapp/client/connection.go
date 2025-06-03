@@ -1,7 +1,6 @@
 package client
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -100,69 +99,15 @@ func (c *Client) Disconnect() {
 	c.connectionState.IsConnected = false
 
 	// PENTING: Reset ConnectedSince saat disconnect
-	// Ini memastikan nilai akan diperbarui saat koneksi baru terbentuk
 	c.connectionState.ConnectedSince = time.Time{} // Set ke zero time
 
 	c.connectionState.Timestamp = time.Now()
 
+	// Reset counter pesan saat disconnect
+	c.ResetMessageCount()
+
 	// Tutup koneksi aktual
 	c.waClient.Disconnect()
-}
-
-// AttemptReconnect mencoba reconnect dengan exponential backoff
-func (c *Client) AttemptReconnect(reason string) {
-	c.reconnectLock.Lock()
-	defer c.reconnectLock.Unlock()
-
-	// Pastikan tidak ada percobaan reconnect yang sedang berlangsung
-	if c.retryTimer != nil {
-		c.retryTimer.Stop()
-	}
-
-	// Batas maksimum percobaan
-	if c.connectionState.ConnectionRetries >= c.config.MaxRetry {
-		c.logger.WithFields(utils.Fields{
-			"max_retries": c.config.MaxRetry,
-			"reason":      reason,
-		}).Error("Mencapai batas maksimum percobaan reconnect")
-		return
-	}
-
-	c.connectionState.ConnectionRetries++
-
-	// Hitung waktu delay dengan exponential backoff
-	delay := time.Duration(1<<uint(c.connectionState.ConnectionRetries-1)) * time.Second
-	if delay > c.config.RetryDelay {
-		delay = c.config.RetryDelay
-	}
-
-	c.logger.WithFields(utils.Fields{
-		"delay":   delay,
-		"attempt": c.connectionState.ConnectionRetries,
-		"reason":  reason,
-	}).Info("Mencoba reconnect")
-
-	c.connectionState.Status = StatusConnecting
-
-	// Set timer untuk reconnect
-	c.retryTimer = time.AfterFunc(delay, func() {
-		// Bersihkan resource lama jika ada
-		if c.waClient != nil {
-			c.waClient.Disconnect()
-		}
-
-		// Coba connect ulang
-		err := c.Connect()
-		if err != nil {
-			c.logger.WithFields(utils.Fields{
-				"error":   err,
-				"attempt": c.connectionState.ConnectionRetries,
-			}).Error("Gagal reconnect")
-
-			// Coba lagi dengan AttemptReconnect
-			c.AttemptReconnect("reconnect_failed")
-		}
-	})
 }
 
 // handleConnectedEvent menangani event Connected
@@ -201,7 +146,6 @@ func (c *Client) handleConnectedEvent() {
 	previousConnected := c.connectionState.IsConnected
 	c.connectionState.Status = StatusConnected
 	c.connectionState.IsConnected = true
-	c.connectionState.ConnectionRetries = 0
 
 	// Set ConnectedSince HANYA jika sebelumnya tidak terhubung
 	// Ini menjamin nilai hanya diperbarui saat pertama kali terhubung
@@ -220,18 +164,6 @@ func (c *Client) handleConnectedEvent() {
 
 	// Selalu perbarui LastActivity
 	c.UpdateLastActivity()
-
-	// Coba update informasi profil setelah terhubung
-	if c.waClient != nil && c.waClient.IsLoggedIn() {
-		go func() {
-			// Berikan sedikit waktu untuk koneksi stabil
-			time.Sleep(3 * time.Second)
-
-			_, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-			defer cancel()
-
-		}()
-	}
 }
 
 // Close menutup semua resource yang digunakan oleh klien

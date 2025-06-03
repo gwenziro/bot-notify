@@ -203,8 +203,13 @@ func (c *DashboardController) prepareDashboardData() entity.DashboardData {
 			c.logger.Debug("Foto profil tidak tersedia")
 		}
 
-		// Di implementasi nyata, Anda bisa menambahkan jumlah pesan terkirim dari storage
-		data.MessagesSent = 0 // Ganti dengan nilai sebenarnya
+		// Dapatkan jumlah pesan terkirim dari WhatsApp client
+		messagesSent := c.whatsApp.GetMessagesSent()
+		data.MessagesSent = int(messagesSent)
+
+		c.logger.Debug("Retrieved message statistics", utils.Fields{
+			"messages_sent": messagesSent,
+		})
 	} else {
 		// Jika tidak terhubung, dapatkan informasi QR code
 		qrStatus := c.getQRCodeStatus()

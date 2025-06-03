@@ -82,7 +82,6 @@ func (c *DocController) getApiEndpoints() []entity.ApiEndpoint {
   "status": "connected",
   "device_name": "WhatsApp Web",
   "connected_since": "2025-05-25T23:15:20Z",
-  "connection_retries": 0,
   "messages_sent": 5,
   "groups_count": 3
 }`,
