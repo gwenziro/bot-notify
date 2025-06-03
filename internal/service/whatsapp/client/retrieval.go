@@ -18,7 +18,7 @@ func (c *Client) GetGroups() ([]*types.GroupInfo, error) {
 	}
 
 	c.logger.Info("Mengambil daftar grup")
-	c.UpdateLastActivity()
+	// Hapus c.UpdateLastActivity()
 
 	groups, err := c.waClient.GetJoinedGroups()
 	if err != nil {
@@ -35,7 +35,13 @@ func (c *Client) GetGroupByID(groupID string) (*types.GroupInfo, error) {
 	}
 
 	// Konversi ID ke JID
-	jid := ParseGroupID(groupID)
+	jidStr := utils.FormatGroupID(groupID)
+
+	// Parse string ke JID object
+	jid, err := types.ParseJID(jidStr)
+	if err != nil {
+		return nil, fmt.Errorf("gagal parsing JID %s: %w", jidStr, err)
+	}
 
 	// Ambil info grup
 	group, err := c.waClient.GetGroupInfo(jid)
@@ -53,11 +59,16 @@ func (c *Client) GetContactInfo(identifier string) (*types.ContactInfo, error) {
 		return nil, err
 	}
 
-	c.UpdateLastActivity()
-
 	// Ambil kontak dari store
 	ctx := context.Background()
-	contact, err := c.waClient.Store.Contacts.GetContact(ctx, ParsePhoneNumber(identifier))
+	// Format nomor WhatsApp dan konversi ke JID
+	formattedNumber := utils.FormatWhatsAppNumber(identifier)
+	jid, err := types.ParseJID(formattedNumber)
+	if err != nil {
+		return nil, fmt.Errorf("gagal parsing JID %s: %w", formattedNumber, err)
+	}
+
+	contact, err := c.waClient.Store.Contacts.GetContact(ctx, jid)
 	if err != nil {
 		return nil, fmt.Errorf("gagal mendapatkan info kontak %s: %w", identifier, err)
 	}
@@ -94,7 +105,6 @@ func (c *Client) GetConnectionInfo() map[string]interface{} {
 	return map[string]interface{}{
 		"status":      state.Status,
 		"connected":   state.IsConnected,
-		"last_active": state.LastActivity,
 		"retry_count": state.ConnectionRetries,
 		"logged_in":   c.IsLoggedIn(),
 		"device_info": c.GetDeviceInfo(),
@@ -103,23 +113,19 @@ func (c *Client) GetConnectionInfo() map[string]interface{} {
 
 // GetConnectionStateSafe mengembalikan state koneksi dengan pengecekan null
 func (c *Client) GetConnectionStateSafe() (ConnectionState, error) {
-	// Cek untuk mencegah nil dereference
 	if c == nil {
 		return ConnectionState{
 			Status:            StatusDisconnected,
 			IsConnected:       false,
 			ConnectionRetries: 0,
-			LastActivity:      time.Now(),
 			Timestamp:         time.Now(),
 		}, fmt.Errorf("client adalah nil")
 	}
 
-	// Deep copy untuk mencegah race condition
 	state := ConnectionState{
 		Status:            c.connectionState.Status,
 		IsConnected:       c.connectionState.IsConnected,
 		ConnectionRetries: c.connectionState.ConnectionRetries,
-		LastActivity:      c.connectionState.LastActivity,
 		Timestamp:         c.connectionState.Timestamp,
 	}
 
@@ -165,7 +171,7 @@ func (c *Client) GetDeviceInfo() map[string]interface{} {
 
 	// Dapatkan informasi dasar yang pasti tersedia
 	jid := c.waClient.Store.ID.String()
-	formattedNumber := FormatWhatsAppNumber(jid)
+	formattedNumber := utils.FormatPhoneNumber(jid)
 	pushName := c.waClient.Store.PushName
 
 	// Dapatkan URL foto profil jika tersedia

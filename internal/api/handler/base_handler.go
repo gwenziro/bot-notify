@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gwenziro/bot-notify/internal/api/constants"
 	"github.com/gwenziro/bot-notify/internal/api/model"
+	"github.com/gwenziro/bot-notify/internal/constants"
 	"github.com/gwenziro/bot-notify/internal/service/whatsapp/client"
 	"github.com/gwenziro/bot-notify/internal/utils"
 )
@@ -120,19 +120,4 @@ func (h *BaseHandler) LogDebugRequest(c *fiber.Ctx, handlerName string) {
 // LogSuccessResponse mencatat informasi tentang respons sukses
 func (h *BaseHandler) LogSuccessResponse(message string, fields utils.Fields) {
 	h.Logger.WithFields(fields).Info(message)
-}
-
-// FormatConnectedSince memformat waktu koneksi dalam format Indonesia
-func (h *BaseHandler) FormatConnectedSince(state client.ConnectionState) string {
-	if !state.IsConnected {
-		return ""
-	}
-
-	// Pilih waktu yang valid
-	timeToFormat := state.ConnectedSince
-	if timeToFormat.IsZero() {
-		timeToFormat = state.LastActivity
-	}
-
-	return utils.FormatTimeIndonesia(&timeToFormat)
 }

@@ -115,47 +115,9 @@ func (c *DashboardController) prepareDashboardData() entity.DashboardData {
 	connectionState, _ := c.whatsApp.GetConnectionStateSafe()
 	data.IsConnected = connectionState.IsConnected
 	data.ConnectionStatus = string(connectionState.Status)
-	data.LastActivity = connectionState.LastActivity
-	data.LastActivityFormatted = utils.FormatTimeIndonesia(&connectionState.LastActivity)
 
 	// Jika terhubung, tambahkan informasi koneksi
 	if data.IsConnected {
-		// Cek apakah ConnectedSince valid (tidak zero time)
-		if !connectionState.ConnectedSince.IsZero() {
-			data.ConnectedSince = connectionState.ConnectedSince
-			data.ConnectedSinceFormatted = utils.FormatTimeIndonesia(&connectionState.ConnectedSince)
-
-			// Hitung durasi koneksi - dengan validasi
-			duration := time.Since(connectionState.ConnectedSince)
-			// Batasi durasi maksimal untuk mencegah nilai yang tidak masuk akal
-			if duration > 365*24*time.Hour {
-				duration = 24 * time.Hour // Default 1 hari jika berlebihan
-			}
-			data.ConnectionDuration = utils.FormatUptime(duration)
-
-			c.logger.Debug("Informasi durasi koneksi", utils.Fields{
-				"connected_since": connectionState.ConnectedSince.Format(time.RFC3339),
-				"duration":        data.ConnectionDuration,
-				"is_zero_time":    connectionState.ConnectedSince.IsZero(),
-			})
-		} else {
-			// Jika ConnectedSince tidak valid, gunakan LastActivity sebagai fallback
-			c.logger.Warn("ConnectedSince adalah zero time, menggunakan LastActivity sebagai fallback", utils.Fields{
-				"last_activity": connectionState.LastActivity.Format(time.RFC3339),
-			})
-
-			data.ConnectedSince = connectionState.LastActivity
-			data.ConnectedSinceFormatted = utils.FormatTimeIndonesia(&connectionState.LastActivity)
-
-			// Gunakan durasi default jika LastActivity juga tidak valid
-			if connectionState.LastActivity.IsZero() {
-				data.ConnectionDuration = "Baru saja terhubung"
-			} else {
-				duration := time.Since(connectionState.LastActivity)
-				data.ConnectionDuration = utils.FormatUptime(duration)
-			}
-		}
-
 		// Tambahkan informasi profil - pastikan semua data diisi
 		deviceInfo := c.whatsApp.GetDeviceInfo()
 		// Set default values untuk mencegah nil
@@ -163,7 +125,7 @@ func (c *DashboardController) prepareDashboardData() entity.DashboardData {
 		data.ContactName = "Tidak tersedia"
 
 		if jid, ok := deviceInfo["id"].(string); ok && jid != "" {
-			data.PhoneNumber = client.FormatWhatsAppNumber(jid)
+			data.PhoneNumber = utils.FormatWhatsAppNumber(jid)
 		}
 
 		if pushName, ok := deviceInfo["push_name"].(string); ok && pushName != "" {
@@ -188,7 +150,6 @@ func (c *DashboardController) prepareDashboardData() entity.DashboardData {
 		}
 
 		// Di implementasi nyata, Anda bisa menambahkan jumlah pesan terkirim dari storage
-		data.MessagesSent = 0 // Ganti dengan nilai sebenarnya
 	} else {
 		// Jika tidak terhubung, dapatkan informasi QR code
 		qrStatus := c.getQRCodeStatus()

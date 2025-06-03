@@ -5,7 +5,6 @@ type ConnectionStatus struct {
 	Status            string `json:"status"`                      // Status koneksi sebagai string
 	IsConnected       bool   `json:"isConnected"`                 // Flag status koneksi
 	ConnectionRetries int    `json:"connectionRetries,omitempty"` // Jumlah percobaan koneksi
-	LastActivity      string `json:"lastActivity,omitempty"`      // Waktu aktivitas terakhir
 }
 
 // StatusResponse adalah model untuk respons dari endpoint status
@@ -14,7 +13,6 @@ type StatusResponse struct {
 	Status            string `json:"status"`                      // Status koneksi sebagai string
 	IsConnected       bool   `json:"isConnected"`                 // Flag status koneksi
 	ConnectionRetries int    `json:"connectionRetries,omitempty"` // Jumlah percobaan koneksi
-	LastActivity      string `json:"lastActivity,omitempty"`      // Waktu aktivitas terakhir
 }
 
 // NewStatusResponse membuat instance baru StatusResponse

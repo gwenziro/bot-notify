@@ -6,10 +6,11 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gwenziro/bot-notify/internal/api/constants"
 	"github.com/gwenziro/bot-notify/internal/api/model"
+	"github.com/gwenziro/bot-notify/internal/constants"
 	"github.com/gwenziro/bot-notify/internal/service/whatsapp/client"
 	"github.com/gwenziro/bot-notify/internal/utils"
+	"go.mau.fi/whatsmeow/types"
 )
 
 // MessageHandler menangani endpoint pengiriman pesan API
@@ -56,7 +57,12 @@ func (h *MessageHandler) SendGroup(c *fiber.Ctx) error {
 	}
 
 	// 6. Proses pengiriman pesan
-	jid := client.ParseGroupID(req.GroupID)
+	groupID := utils.FormatGroupID(req.GroupID)
+	jid, err := types.ParseJID(groupID)
+	if err != nil {
+		return h.SendError(c, "Format ID grup tidak valid: "+err.Error(), err, fiber.StatusBadRequest)
+	}
+
 	sendTime, err := h.WhatsApp.SendMessage(jid, req.Message)
 	if err != nil {
 		return h.SendError(c, constants.MsgSendFailure, err, fiber.StatusInternalServerError)
@@ -112,7 +118,12 @@ func (h *MessageHandler) SendPersonal(c *fiber.Ctx) error {
 	c.SetUserContext(ctx)
 
 	// 7. Proses pengiriman pesan
-	jid := client.ParsePhoneNumber(req.PhoneNumber)
+	phoneNumber := utils.FormatPhoneNumber(req.PhoneNumber)
+	jid, err := types.ParseJID(phoneNumber + "@s.whatsapp.net")
+	if err != nil {
+		return h.SendError(c, "Format nomor telepon tidak valid: "+err.Error(), err, fiber.StatusBadRequest)
+	}
+
 	sendTime, err := h.WhatsApp.SendMessage(jid, req.Message)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {

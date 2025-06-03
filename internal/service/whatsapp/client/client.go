@@ -32,9 +32,7 @@ type ConnectionState struct {
 	Status            ClientStatus `json:"status"`
 	IsConnected       bool         `json:"is_connected"`
 	ConnectionRetries int          `json:"connection_retries"`
-	LastActivity      time.Time    `json:"last_activity"`
 	Timestamp         time.Time    `json:"timestamp"`
-	ConnectedSince    time.Time    `json:"connected_since"`
 }
 
 // EventHandlerFunc adalah tipe fungsi untuk menangani event WhatsApp
@@ -65,29 +63,10 @@ func (c *Client) GetConnectionState() ConnectionState {
 
 // SetConnectionState mengatur status koneksi saat ini
 func (c *Client) SetConnectionState(status ClientStatus, isConnected bool, retries int) {
-	previousStatus := c.connectionState.Status
-	previousConnected := c.connectionState.IsConnected
-
 	c.connectionState.Status = status
 	c.connectionState.IsConnected = isConnected
 	c.connectionState.ConnectionRetries = retries
 	c.connectionState.Timestamp = time.Now()
-
-	// Set ConnectedSince hanya jika berubah dari tidak terhubung menjadi terhubung
-	if status == StatusConnected && isConnected && !previousConnected {
-		c.connectionState.ConnectedSince = time.Now()
-		c.logger.Info("Status berubah menjadi terhubung, setting ConnectedSince", utils.Fields{
-			"from_status":     previousStatus,
-			"to_status":       status,
-			"connected_since": c.connectionState.ConnectedSince.Format(time.RFC3339),
-		})
-	}
-
-	// Reset ConnectedSince saat terputus
-	if !isConnected && previousConnected {
-		c.connectionState.ConnectedSince = time.Time{} // Set ke zero time
-		c.logger.Info("Status berubah menjadi terputus, resetting ConnectedSince")
-	}
 }
 
 // GetConnectionRetries mengembalikan jumlah percobaan koneksi
@@ -100,6 +79,14 @@ func (c *Client) GetWhatsmeowClient() *whatsmeow.Client {
 	return c.waClient
 }
 
+// GetSelfID mengembalikan JID dari perangkat sendiri
+func (c *Client) GetSelfID() *types.JID {
+	if c.waClient == nil || !c.waClient.IsLoggedIn() || c.waClient.Store == nil {
+		return nil
+	}
+	return c.waClient.Store.ID
+}
+
 // GetCallbackHandlers mengembalikan map callback handler yang terdaftar
 func (c *Client) GetCallbackHandlers() map[string]func(interface{}) {
 	return c.callbackHandlers
@@ -108,31 +95,6 @@ func (c *Client) GetCallbackHandlers() map[string]func(interface{}) {
 // RegisterCallback mendaftarkan callback untuk event tertentu
 func (c *Client) RegisterCallback(eventName string, callback func(interface{})) {
 	c.callbackHandlers[eventName] = callback
-}
-
-// UpdateLastActivity memperbarui waktu aktivitas terakhir
-func (c *Client) UpdateLastActivity() {
-	// Selalu perbarui LastActivity
-	c.connectionState.LastActivity = time.Now()
-
-	// Hanya jika ConnectedSince adalah zero time dan client terhubung,
-	// Gunakan waktu sekarang sebagai ConnectedSince
-	if c.connectionState.IsConnected && c.connectionState.ConnectedSince.IsZero() {
-		c.connectionState.ConnectedSince = c.connectionState.LastActivity
-		c.logger.Info("ConnectedSince diinisialisasi (zero time sebelumnya)", utils.Fields{
-			"connected_since": c.connectionState.ConnectedSince.Format(time.RFC3339),
-			"last_activity":   c.connectionState.LastActivity.Format(time.RFC3339),
-		})
-	}
-}
-
-// GetSelfID mengembalikan JID dari perangkat sendiri
-func (c *Client) GetSelfID() *types.JID {
-	if c.waClient == nil || !c.waClient.IsLoggedIn() {
-		return nil
-	}
-
-	return c.waClient.Store.ID
 }
 
 // NewClient membuat instance baru dari klien WhatsApp
@@ -181,7 +143,6 @@ func NewClient(cfg *config.Config) (*Client, error) {
 			IsConnected:       false,
 			ConnectionRetries: 0,
 			Timestamp:         time.Now(),
-			LastActivity:      time.Now(),
 		},
 		reconnectLock: sync.Mutex{},
 	}

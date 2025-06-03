@@ -2,8 +2,8 @@ package handler
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/gwenziro/bot-notify/internal/api/constants"
 	"github.com/gwenziro/bot-notify/internal/api/model"
+	"github.com/gwenziro/bot-notify/internal/constants"
 	"github.com/gwenziro/bot-notify/internal/service/whatsapp/client"
 	"github.com/gwenziro/bot-notify/internal/utils"
 )
@@ -30,21 +30,21 @@ func (h *StatusHandler) GetStatus(c *fiber.Ctx) error {
 
 	// 2. Periksa ketersediaan WhatsApp client
 	if h.WhatsApp == nil {
-		return h.SendError(c, constants.MsgClientNotAvailable, nil, fiber.StatusInternalServerError)
+		return h.SendError(c, constants.MsgClientNotAvailable, nil, fiber.StatusInternalServerError) // Perbarui referensi
 	}
 
 	// 3. Dapatkan status koneksi
 	state, err := h.WhatsApp.GetConnectionStateSafe()
 	if err != nil {
-		return h.SendError(c, constants.MsgStatusFailed, err, fiber.StatusInternalServerError)
+		return h.SendError(c, constants.MsgStatusFailed, err, fiber.StatusInternalServerError) // Perbarui referensi
 	}
 
 	// 4. Tentukan pesan yang sesuai
 	var message string
 	if !state.IsConnected {
-		message = constants.MsgNotConnected
+		message = constants.MsgNotConnected // Perbarui referensi
 	} else {
-		message = constants.MsgConnected
+		message = constants.MsgConnected // Perbarui referensi
 	}
 
 	// 5. Buat respons
@@ -53,7 +53,6 @@ func (h *StatusHandler) GetStatus(c *fiber.Ctx) error {
 	// 6. Sertakan informasi tambahan jika terhubung
 	if state.IsConnected {
 		response.ConnectionRetries = state.ConnectionRetries
-		response.LastActivity = utils.FormatTimeIndonesia(&state.LastActivity)
 	}
 
 	// 7. Selalu kembalikan StatusOK (200) agar dashboard tetap bisa menampilkan status

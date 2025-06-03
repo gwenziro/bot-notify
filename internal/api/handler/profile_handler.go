@@ -2,8 +2,8 @@ package handler
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/gwenziro/bot-notify/internal/api/constants"
 	"github.com/gwenziro/bot-notify/internal/api/model"
+	"github.com/gwenziro/bot-notify/internal/constants"
 	"github.com/gwenziro/bot-notify/internal/service/whatsapp/client"
 	"github.com/gwenziro/bot-notify/internal/utils"
 )
@@ -48,15 +48,14 @@ func (h *ProfileHandler) GetProfile(c *fiber.Ctx) error {
 
 	// 4. Persiapkan data profil
 	profile := model.ProfileInfo{
-		IsConnected:    state.IsConnected,
-		IsLoggedIn:     h.WhatsApp.IsLoggedIn(),
-		ConnectedSince: h.FormatConnectedSince(state),
+		IsConnected: state.IsConnected,
+		IsLoggedIn:  h.WhatsApp.IsLoggedIn(),
 	}
 
 	// 5. Isi data profil dari deviceInfo
 	if id, ok := deviceInfo["id"].(string); ok {
 		profile.ID = id
-		profile.PhoneNumber = client.FormatWhatsAppNumber(id)
+		profile.PhoneNumber = utils.FormatWhatsAppNumber(id)
 	}
 
 	if pushName, ok := deviceInfo["push_name"].(string); ok && pushName != "" {

@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gwenziro/bot-notify/internal/api/constants"
 	"github.com/gwenziro/bot-notify/internal/api/model"
+	"github.com/gwenziro/bot-notify/internal/constants"
 	"github.com/gwenziro/bot-notify/internal/service/whatsapp/client"
 	"github.com/gwenziro/bot-notify/internal/utils"
 	"go.mau.fi/whatsmeow/types"
@@ -181,7 +181,7 @@ func (h *GroupHandler) processParticipantsWithContacts(participants []types.Grou
 		}
 
 		// Format nomor telepon untuk display
-		phoneNumber := client.FormatWhatsAppNumber(participant.JID.String())
+		phoneNumber := utils.FormatWhatsAppNumber(participant.JID.String())
 
 		// Pilih nama kontak yang terbaik untuk ditampilkan
 		contactName := participant.DisplayName

@@ -1,6 +1,10 @@
 package utils
 
-import "strings"
+import (
+	"strings"
+
+	"go.mau.fi/whatsmeow/types" // Import untuk types.JID
+)
 
 // NormalizeJID menormalkan JID WhatsApp untuk perbandingan yang konsisten
 func NormalizeJID(jid string) string {
@@ -137,6 +141,20 @@ func ValidateGroupID(id string) bool {
 		return false
 	}
 
+	// Cek jika ID memiliki format array "[123, 456]"
+	// dan ekstrak nilai pertama dari array
+	if strings.HasPrefix(id, "[") && strings.Contains(id, "]") {
+		// Ekstrak konten di dalam tanda kurung
+		content := id[1:strings.Index(id, "]")]
+
+		// Split berdasarkan koma
+		parts := strings.Split(content, ",")
+		if len(parts) > 0 {
+			// Gunakan elemen pertama sebagai ID
+			id = strings.TrimSpace(parts[0])
+		}
+	}
+
 	// Jika sudah mengandung @g.us, cek formatnya
 	if strings.Contains(id, "@g.us") {
 		parts := strings.Split(id, "@")
@@ -165,4 +183,26 @@ func NormalizeGroupID(id string) string {
 		}
 		return -1
 	}, id)
+}
+
+// ParseGroupID mengkonversi ID grup menjadi JID grup
+func ParseGroupID(groupID string) types.JID {
+	// Validasi ID grup tidak boleh kosong
+	if !ValidateGroupID(groupID) {
+		// Log warning dan gunakan ID placeholder untuk menghindari panic
+		Warn("Group ID tidak valid", Fields{"id": groupID})
+		return types.NewJID("invalid", types.GroupServer)
+	}
+
+	// Jika sudah memiliki @g.us, ekstrak ID-nya saja
+	if strings.Contains(groupID, "@g.us") {
+		id := strings.Split(groupID, "@")[0]
+		return types.NewJID(id, types.GroupServer)
+	}
+
+	// Gunakan FormatGroupID untuk mendapatkan ID yang benar
+	formattedID := FormatGroupID(groupID)
+	id := strings.Split(formattedID, "@")[0] // Hapus bagian @g.us
+
+	return types.NewJID(id, types.GroupServer)
 }

@@ -1,7 +1,6 @@
 package client
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -95,17 +94,10 @@ func (c *Client) Disconnect() {
 
 	c.logger.Info("Menutup koneksi WhatsApp")
 
-	// Perbarui status koneksi SEBELUM memanggil disconnect
 	c.connectionState.Status = StatusDisconnected
 	c.connectionState.IsConnected = false
-
-	// PENTING: Reset ConnectedSince saat disconnect
-	// Ini memastikan nilai akan diperbarui saat koneksi baru terbentuk
-	c.connectionState.ConnectedSince = time.Time{} // Set ke zero time
-
 	c.connectionState.Timestamp = time.Now()
 
-	// Tutup koneksi aktual
 	c.waClient.Disconnect()
 }
 
@@ -198,40 +190,9 @@ func (c *Client) handleConnectedEvent() {
 	})
 
 	// Update status koneksi
-	previousConnected := c.connectionState.IsConnected
 	c.connectionState.Status = StatusConnected
 	c.connectionState.IsConnected = true
 	c.connectionState.ConnectionRetries = 0
-
-	// Set ConnectedSince HANYA jika sebelumnya tidak terhubung
-	// Ini menjamin nilai hanya diperbarui saat pertama kali terhubung
-	if !previousConnected {
-		c.connectionState.ConnectedSince = time.Now()
-		c.logger.Info("Waktu koneksi awal dicatat", utils.Fields{
-			"connected_since": c.connectionState.ConnectedSince.Format(time.RFC3339),
-			"last_activity":   c.connectionState.LastActivity.Format(time.RFC3339),
-		})
-	} else {
-		c.logger.Debug("Tetap mempertahankan waktu koneksi awal", utils.Fields{
-			"connected_since": c.connectionState.ConnectedSince.Format(time.RFC3339),
-			"last_activity":   c.connectionState.LastActivity.Format(time.RFC3339),
-		})
-	}
-
-	// Selalu perbarui LastActivity
-	c.UpdateLastActivity()
-
-	// Coba update informasi profil setelah terhubung
-	if c.waClient != nil && c.waClient.IsLoggedIn() {
-		go func() {
-			// Berikan sedikit waktu untuk koneksi stabil
-			time.Sleep(3 * time.Second)
-
-			_, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-			defer cancel()
-
-		}()
-	}
 }
 
 // Close menutup semua resource yang digunakan oleh klien

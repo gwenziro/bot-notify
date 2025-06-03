@@ -52,6 +52,8 @@ const (
 	MsgMaxTarget                = "Maksimal hanya 16 target penerima untuk broadcast"
 	MsgEmptyMessage             = "Pesan tidak boleh kosong"
 	MsgBroadcastConnectionError = "Gagal mengirim pesan broadcast: WhatsApp sedang tidak terhubung"
+	DefaultBroadcastDelay       = 1000 // Default delay antar pengiriman (ms)
+	MaxBroadcastDelay           = 5000 // Maksimum delay antar pengiriman (ms)
 )
 
 // Konstanta untuk grup

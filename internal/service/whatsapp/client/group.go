@@ -2,7 +2,6 @@ package client
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/gwenziro/bot-notify/internal/utils"
 	"go.mau.fi/whatsmeow/types"
@@ -50,8 +49,8 @@ func (c *Client) IsGroupAdmin(groupJID types.JID) (bool, error) {
 	// Cari diri sendiri dalam daftar anggota
 	for _, participant := range participants {
 		// Bandingkan JID tanpa bagian device
-		selfJIDStr := normalizeJID(selfID.String())
-		participantJIDStr := normalizeJID(participant.JID.String())
+		selfJIDStr := utils.NormalizeJID(selfID.String())
+		participantJIDStr := utils.NormalizeJID(participant.JID.String())
 
 		if selfJIDStr == participantJIDStr {
 			return participant.IsAdmin, nil
@@ -59,13 +58,4 @@ func (c *Client) IsGroupAdmin(groupJID types.JID) (bool, error) {
 	}
 
 	return false, fmt.Errorf("pengguna tidak ditemukan dalam grup")
-}
-
-// normalizeJID menormalkan JID untuk perbandingan
-func normalizeJID(jid string) string {
-	// Hapus bagian device ID
-	if idx := strings.IndexRune(jid, ':'); idx > 0 {
-		jid = jid[:idx] + jid[strings.IndexRune(jid, '@'):]
-	}
-	return jid
 }

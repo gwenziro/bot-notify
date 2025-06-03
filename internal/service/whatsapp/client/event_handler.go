@@ -82,7 +82,4 @@ func (c *Client) handleMessageEvent(evt *events.Message) {
 		"chat":     evt.Info.Chat.String(),
 		"is_group": evt.Info.IsGroup,
 	}).Debug("Pesan diterima")
-
-	// Update aktivitas terakhir ketika menerima pesan
-	c.UpdateLastActivity()
 }
