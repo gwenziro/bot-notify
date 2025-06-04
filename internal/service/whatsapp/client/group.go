@@ -69,3 +69,28 @@ func normalizeJID(jid string) string {
 	}
 	return jid
 }
+
+// GetEnrichedParticipants mendapatkan daftar peserta grup dengan informasi tambahan
+func (c *Client) GetEnrichedParticipants(groupJID types.JID) ([]types.GroupParticipant, error) {
+	// Dapatkan partisipan dasar
+	participants, err := c.GetGroupParticipants(groupJID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Tidak perlu enrichment jika tidak ada partisipan
+	if len(participants) == 0 {
+		return participants, nil
+	}
+
+	// Enrich each participant with contact information
+	for i := range participants {
+		// Jika DisplayName kosong, coba isi dari kontak
+		if participants[i].DisplayName == "" {
+			contactName := c.GetContactNameByJID(participants[i].JID)
+			participants[i].DisplayName = contactName
+		}
+	}
+
+	return participants, nil
+}

@@ -1,8 +1,7 @@
 package handler
 
 import (
-	"context"
-	"errors"
+	"fmt"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -12,7 +11,7 @@ import (
 	"github.com/gwenziro/bot-notify/internal/utils"
 )
 
-// MessageHandler menangani endpoint pengiriman pesan API
+// MessageHandler menangani endpoint API pesan WhatsApp
 type MessageHandler struct {
 	BaseHandler
 }
@@ -30,106 +29,114 @@ func (h *MessageHandler) SendGroup(c *fiber.Ctx) error {
 	// 1. Log informasi debug request
 	h.LogDebugRequest(c, "SendGroup")
 
-	// 2. Validasi koneksi WhatsApp
-	if !h.CheckWhatsAppConnection(c, constants.MsgSendFailure+": "+constants.MsgNotConnected) {
+	// 2. Gunakan metode standar untuk memeriksa koneksi
+	if !h.CheckWhatsAppConnection(c, constants.MsgNotConnected) {
 		return nil
 	}
 
-	// 3. Parse dan validasi input
+	// 3. Parse dan validasi request
 	var req model.GroupMessageRequest
 	if err := h.ParseAndValidateBody(c, &req); err != nil {
 		return err
 	}
 
-	// 4. Validasi field wajib
+	// 4. Validasi parameter
 	if err := h.ValidateRequiredField(c, "groupID", req.GroupID); err != nil {
 		return err
 	}
-
 	if err := h.ValidateRequiredField(c, "message", req.Message); err != nil {
 		return err
 	}
 
-	// 5. Validasi format data
-	if !utils.ValidateGroupID(req.GroupID) {
+	// 5. Validasi format ID grup
+	if !utils.IsValidGroupID(req.GroupID) {
 		return h.SendError(c, constants.MsgInvalidGroupID, nil, fiber.StatusBadRequest)
 	}
 
-	// 6. Proses pengiriman pesan
-	jid := client.ParseGroupID(req.GroupID)
-	sendTime, err := h.WhatsApp.SendMessage(jid, req.Message)
-	if err != nil {
-		return h.SendError(c, constants.MsgSendFailure, err, fiber.StatusInternalServerError)
-	}
+	// 6. Parse ID grup ke JID
+	jid := utils.ParseGroupID(req.GroupID)
 
-	// 7. Log dan kirim respons sukses
-	h.LogSuccessResponse("Pesan grup berhasil dikirim", utils.Fields{
+	// 7. Kirim pesan
+	h.Logger.Info("Mengirim pesan grup", utils.Fields{
 		"group_id": req.GroupID,
-		"msg_len":  len(req.Message),
+		"length":   len(req.Message),
 	})
 
+	sentTime, err := h.WhatsApp.SendMessage(jid, req.Message)
+	if err != nil {
+		return h.SendError(c, fmt.Sprintf("%s: %v", constants.MsgSendFailure, err), err, fiber.StatusInternalServerError)
+	}
+
+	// 8. Log sukses
+	h.LogSuccessResponse("Pesan grup berhasil dikirim", utils.Fields{
+		"group_id":  req.GroupID,
+		"timestamp": sentTime.Format(time.RFC3339),
+	})
+
+	// 9. Kirim respons sukses
 	return h.SendSuccess(c, model.NewMessageResponse(
-		constants.MsgSendGroupSuccess,
-		jid.String(),
+		constants.MsgSendSuccess,
+		req.GroupID,
 		"group",
-		sendTime))
+		sentTime,
+	))
 }
 
-// SendPersonal mengirim pesan ke kontak personal WhatsApp
+// SendPersonal mengirim pesan ke nomor WhatsApp personal
 // Endpoint: POST /api/send/personal
 func (h *MessageHandler) SendPersonal(c *fiber.Ctx) error {
 	// 1. Log informasi debug request
 	h.LogDebugRequest(c, "SendPersonal")
 
-	// 2. Validasi koneksi WhatsApp
-	if !h.CheckWhatsAppConnection(c, constants.MsgSendFailure+": "+constants.MsgNotConnected) {
+	// 2. Gunakan metode standar untuk memeriksa koneksi
+	if !h.CheckWhatsAppConnection(c, constants.MsgNotConnected) {
 		return nil
 	}
 
-	// 3. Parse dan validasi input
+	// 3. Parse dan validasi request
 	var req model.PersonalMessageRequest
 	if err := h.ParseAndValidateBody(c, &req); err != nil {
 		return err
 	}
 
-	// 4. Validasi field wajib
+	// 4. Validasi parameter
 	if err := h.ValidateRequiredField(c, "phoneNumber", req.PhoneNumber); err != nil {
 		return err
 	}
-
 	if err := h.ValidateRequiredField(c, "message", req.Message); err != nil {
 		return err
 	}
 
-	// 5. Validasi format data
-	if !utils.ValidatePhoneNumber(req.PhoneNumber) {
+	// 5. Validasi format nomor telepon
+	if !utils.IsValidPhoneNumber(req.PhoneNumber) {
 		return h.SendError(c, constants.MsgInvalidPhoneNumber, nil, fiber.StatusBadRequest)
 	}
 
-	// 6. Setup timeout context
-	ctx, cancel := context.WithTimeout(c.Context(), 15*time.Second)
-	defer cancel()
-	c.SetUserContext(ctx)
+	// 6. Parse nomor telepon ke JID
+	jid := utils.ParsePhoneNumber(req.PhoneNumber)
 
-	// 7. Proses pengiriman pesan
-	jid := client.ParsePhoneNumber(req.PhoneNumber)
-	sendTime, err := h.WhatsApp.SendMessage(jid, req.Message)
-	if err != nil {
-		if errors.Is(err, context.DeadlineExceeded) {
-			return h.SendError(c, constants.MsgTimeoutError, err, fiber.StatusGatewayTimeout)
-		}
-		return h.SendError(c, constants.MsgSendFailure, err, fiber.StatusInternalServerError)
-	}
-
-	// 8. Log dan kirim respons sukses
-	h.LogSuccessResponse("Pesan personal berhasil dikirim", utils.Fields{
-		"phone":   req.PhoneNumber,
-		"msg_len": len(req.Message),
+	// 7. Kirim pesan
+	h.Logger.Info("Mengirim pesan personal", utils.Fields{
+		"phone":  req.PhoneNumber,
+		"length": len(req.Message),
 	})
 
+	sentTime, err := h.WhatsApp.SendMessage(jid, req.Message)
+	if err != nil {
+		return h.SendError(c, fmt.Sprintf("%s: %v", constants.MsgSendFailure, err), err, fiber.StatusInternalServerError)
+	}
+
+	// 8. Log sukses
+	h.LogSuccessResponse("Pesan personal berhasil dikirim", utils.Fields{
+		"phone":     req.PhoneNumber,
+		"timestamp": sentTime.Format(time.RFC3339),
+	})
+
+	// 9. Kirim respons sukses
 	return h.SendSuccess(c, model.NewMessageResponse(
 		constants.MsgSendSuccess,
-		jid.String(),
+		req.PhoneNumber,
 		"personal",
-		sendTime))
+		sentTime,
+	))
 }

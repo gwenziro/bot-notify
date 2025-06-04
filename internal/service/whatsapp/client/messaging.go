@@ -14,8 +14,15 @@ import (
 
 // SendMessage mengirim pesan teks ke nomor atau grup tertentu
 func (c *Client) SendMessage(recipient types.JID, message string) (time.Time, error) {
-	if c.waClient == nil || !c.connectionState.IsConnected {
-		return time.Time{}, errors.New("klien WhatsApp belum terhubung")
+	// Check dan pulihkan koneksi jika perlu
+	connected, err := c.CheckConnection()
+	if err != nil {
+		c.logger.WithError(err).Error("Gagal memeriksa/memulihkan koneksi saat mengirim pesan")
+		return time.Time{}, fmt.Errorf("koneksi WhatsApp terputus dan gagal memulihkan: %w", err)
+	}
+
+	if !connected {
+		return time.Time{}, errors.New("klien WhatsApp tidak terhubung")
 	}
 
 	c.logger.WithFields(utils.Fields{
@@ -34,7 +41,7 @@ func (c *Client) SendMessage(recipient types.JID, message string) (time.Time, er
 	sendTime := time.Now()
 
 	// Kirim pesan dengan context timeout
-	_, err := c.waClient.SendMessage(ctx, recipient, &waE2E.Message{
+	_, err = c.waClient.SendMessage(ctx, recipient, &waE2E.Message{
 		Conversation: &message,
 	})
 
@@ -83,6 +90,16 @@ func (c *Client) SendFormattedMessage(recipient types.JID, message string) error
 
 // BroadcastMessage mengirim pesan ke beberapa target sekaligus
 func (c *Client) BroadcastMessage(personalNumbers []string, groupIDs []string, message string, delayMs int) ([]model.BroadcastResult, time.Time) {
+	// Check dan pulihkan koneksi sebelum mulai broadcast
+	connected, err := c.CheckConnection()
+	if err != nil {
+		c.logger.WithError(err).Error("Gagal memeriksa/memulihkan koneksi saat memulai broadcast")
+		// Tetap lanjutkan, individual SendMessage akan melakukan check juga
+	} else if !connected {
+		c.logger.Warn("WhatsApp tidak terhubung saat memulai broadcast, kemungkinan broadcast akan gagal")
+		// Tetap lanjutkan, individual SendMessage akan melakukan check juga
+	}
+
 	results := make([]model.BroadcastResult, 0, len(personalNumbers)+len(groupIDs))
 	var lastSentTime time.Time
 
@@ -105,7 +122,7 @@ func (c *Client) BroadcastMessage(personalNumbers []string, groupIDs []string, m
 		}).Info("Memproses target broadcast personal")
 
 		// Validasi nomor telepon
-		if !utils.ValidatePhoneNumber(number) {
+		if !utils.IsValidPhoneNumber(number) {
 			c.logger.Warn("Nomor telepon tidak valid, dilewati", utils.Fields{"number": number})
 			results = append(results, model.BroadcastResult{
 				Target:   number,
@@ -117,7 +134,7 @@ func (c *Client) BroadcastMessage(personalNumbers []string, groupIDs []string, m
 		}
 
 		// Parse nomor telepon ke JID
-		jid := ParsePhoneNumber(number)
+		jid := utils.ParsePhoneNumber(number)
 
 		// Catat mulai pengiriman
 		c.logger.WithFields(utils.Fields{
@@ -170,7 +187,7 @@ func (c *Client) BroadcastMessage(personalNumbers []string, groupIDs []string, m
 		}
 
 		// Validasi ID grup
-		if !utils.ValidateGroupID(groupID) {
+		if !utils.IsValidGroupID(groupID) {
 			c.logger.Warn("ID grup tidak valid, dilewati", utils.Fields{"group_id": groupID})
 			results = append(results, model.BroadcastResult{
 				Target:   groupID,
@@ -188,7 +205,7 @@ func (c *Client) BroadcastMessage(personalNumbers []string, groupIDs []string, m
 		}).Info("Memproses target broadcast grup")
 
 		// Parse ID grup ke JID
-		jid := ParseGroupID(groupID)
+		jid := utils.ParseGroupID(groupID)
 
 		// Catat mulai pengiriman
 		c.logger.WithFields(utils.Fields{

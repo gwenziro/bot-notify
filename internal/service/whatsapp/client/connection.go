@@ -183,3 +183,57 @@ func (c *Client) Close() {
 		c.deviceStore.Close()
 	}
 }
+
+// CheckConnection memeriksa apakah koneksi masih valid dan mencoba koneksi ulang jika perlu
+func (c *Client) CheckConnection() (bool, error) {
+	if c.waClient == nil {
+		c.logger.Warn("WhatsApp client is nil, attempting to reconnect")
+		return false, c.Connect()
+	}
+
+	// Periksa apakah client menganggap dirinya terhubung
+	clientConnected := c.waClient.IsConnected()
+
+	// Jika client menganggap terhubung, tapi state kita mengatakan tidak, perbarui state
+	if clientConnected && !c.connectionState.IsConnected {
+		c.logger.Info("Client terhubung tetapi state tidak terhubung, memperbaiki state")
+		c.SetConnectionState(StatusConnected, true)
+		return true, nil
+	}
+
+	// Jika client menganggap tidak terhubung, tapi state kita mengatakan ya, coba koneksi ulang
+	if !clientConnected && c.connectionState.IsConnected {
+		c.logger.Warn("Terdeteksi koneksi terputus saat state terhubung, mencoba koneksi ulang")
+		c.SetConnectionState(StatusDisconnected, false)
+
+		// Mencoba koneksi ulang
+		err := c.Connect()
+		if err != nil {
+			c.logger.WithError(err).Error("Gagal melakukan koneksi ulang otomatis")
+			return false, err
+		}
+
+		c.logger.Info("Berhasil melakukan koneksi ulang otomatis")
+		return true, nil
+	}
+
+	return clientConnected, nil
+}
+
+// PingConnection mengirim ping untuk memastikan koneksi masih hidup
+func (c *Client) PingConnection() bool {
+	if c.waClient == nil {
+		return false
+	}
+
+	// Coba operasi sederhana yang menggunakan WebSocket
+	isConnected := c.waClient.IsLoggedIn() && c.waClient.IsConnected()
+
+	// Jika tidak terhubung, perbarui status
+	if !isConnected && c.connectionState.IsConnected {
+		c.logger.Warn("Koneksi terputus terdeteksi selama ping")
+		c.SetConnectionState(StatusDisconnected, false)
+	}
+
+	return isConnected
+}

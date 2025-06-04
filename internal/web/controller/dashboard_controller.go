@@ -179,7 +179,7 @@ func (c *DashboardController) prepareDashboardData() entity.DashboardData {
 		data.ContactName = "Tidak tersedia"
 
 		if jid, ok := deviceInfo["id"].(string); ok && jid != "" {
-			data.PhoneNumber = client.FormatWhatsAppNumber(jid)
+			data.PhoneNumber = utils.FormatWhatsAppNumber(jid)
 		}
 
 		if pushName, ok := deviceInfo["push_name"].(string); ok && pushName != "" {

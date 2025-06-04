@@ -216,3 +216,47 @@ func NewClient(cfg *config.Config) (*Client, error) {
 
 	return client, nil
 }
+
+// StartConnectionHealthCheck memulai goroutine untuk memeriksa koneksi secara berkala
+func (c *Client) StartConnectionHealthCheck(checkInterval time.Duration) {
+	if checkInterval == 0 {
+		checkInterval = 5 * time.Minute // Default check setiap 5 menit
+	}
+
+	go func() {
+		ticker := time.NewTicker(checkInterval)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-c.ctx.Done():
+				// Context dibatalkan, hentikan health check
+				c.logger.Info("Menghentikan health check koneksi WhatsApp")
+				return
+			case <-ticker.C:
+				// Waktu untuk memeriksa koneksi
+				c.logger.Debug("Melakukan health check koneksi WhatsApp")
+				isConnected := c.PingConnection()
+
+				if !isConnected && c.connectionState.IsConnected {
+					c.logger.Warn("Koneksi terputus terdeteksi selama health check, mencoba koneksi ulang")
+
+					// Set status ke disconnected
+					c.SetConnectionState(StatusDisconnected, false)
+
+					// Coba koneksi ulang
+					err := c.Connect()
+					if err != nil {
+						c.logger.WithError(err).Error("Gagal menghubungkan ulang WhatsApp selama health check")
+					} else {
+						c.logger.Info("Berhasil menghubungkan ulang WhatsApp selama health check")
+					}
+				}
+			}
+		}
+	}()
+
+	c.logger.Info("Health check koneksi WhatsApp dimulai", utils.Fields{
+		"check_interval": checkInterval.String(),
+	})
+}

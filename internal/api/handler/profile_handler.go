@@ -20,7 +20,7 @@ func NewProfileHandler(whatsClient *client.Client) *ProfileHandler {
 	}
 }
 
-// GetProfile mengembalikan informasi profil akun WhatsApp terhubung
+// GetProfile mengembalikan informasi profil WhatsApp
 // Endpoint: GET /api/profile
 func (h *ProfileHandler) GetProfile(c *fiber.Ctx) error {
 	// 1. Log informasi debug request
@@ -53,12 +53,6 @@ func (h *ProfileHandler) GetProfile(c *fiber.Ctx) error {
 		ConnectedSince: h.FormatConnectedSince(state),
 	}
 
-	// 5. Isi data profil dari deviceInfo
-	if id, ok := deviceInfo["id"].(string); ok {
-		profile.ID = id
-		profile.PhoneNumber = client.FormatWhatsAppNumber(id)
-	}
-
 	if pushName, ok := deviceInfo["push_name"].(string); ok && pushName != "" {
 		profile.Name = pushName
 	} else {
@@ -76,9 +70,12 @@ func (h *ProfileHandler) GetProfile(c *fiber.Ctx) error {
 		}
 	}
 
+	// Format nomor telepon untuk tampilan
+	formattedNumber := utils.FormatWhatsAppNumber(profile.PhoneNumber)
+
 	// 7. Log dan kirim respons sukses
 	h.LogSuccessResponse("Informasi profil WhatsApp berhasil diambil", utils.Fields{
-		"phone":       profile.PhoneNumber,
+		"phone":       formattedNumber,
 		"name":        profile.Name,
 		"connected":   profile.IsConnected,
 		"has_picture": profile.PictureURL != "",

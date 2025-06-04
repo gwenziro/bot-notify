@@ -34,8 +34,8 @@ func (c *Client) GetGroupByID(groupID string) (*types.GroupInfo, error) {
 		return nil, errors.New("klien WhatsApp belum terhubung")
 	}
 
-	// Konversi ID ke JID
-	jid := ParseGroupID(groupID)
+	// Konversi ID ke JID menggunakan utils
+	jid := utils.ParseGroupID(groupID)
 
 	// Ambil info grup
 	group, err := c.waClient.GetGroupInfo(jid)
@@ -55,9 +55,9 @@ func (c *Client) GetContactInfo(identifier string) (*types.ContactInfo, error) {
 
 	c.UpdateLastActivity()
 
-	// Ambil kontak dari store
+	// Ambil kontak dari store menggunakan utils
 	ctx := context.Background()
-	contact, err := c.waClient.Store.Contacts.GetContact(ctx, ParsePhoneNumber(identifier))
+	contact, err := c.waClient.Store.Contacts.GetContact(ctx, utils.ParsePhoneNumber(identifier))
 	if err != nil {
 		return nil, fmt.Errorf("gagal mendapatkan info kontak %s: %w", identifier, err)
 	}
@@ -164,7 +164,7 @@ func (c *Client) GetDeviceInfo() map[string]interface{} {
 
 	// Dapatkan informasi dasar yang pasti tersedia
 	jid := c.waClient.Store.ID.String()
-	formattedNumber := FormatWhatsAppNumber(jid)
+	formattedNumber := utils.FormatWhatsAppNumber(jid)
 	pushName := c.waClient.Store.PushName
 
 	// Dapatkan URL foto profil jika tersedia
@@ -224,29 +224,4 @@ func (c *Client) GetContactNameByJID(jid types.JID) string {
 	}
 
 	return ""
-}
-
-// GetEnrichedParticipants mendapatkan daftar peserta grup dengan informasi tambahan
-func (c *Client) GetEnrichedParticipants(groupJID types.JID) ([]types.GroupParticipant, error) {
-	// Dapatkan partisipan dasar
-	participants, err := c.GetGroupParticipants(groupJID)
-	if err != nil {
-		return nil, err
-	}
-
-	// Tidak perlu enrichment jika tidak ada partisipan
-	if len(participants) == 0 {
-		return participants, nil
-	}
-
-	// Enrich each participant with contact information
-	for i := range participants {
-		// Jika DisplayName kosong, coba isi dari kontak
-		if participants[i].DisplayName == "" {
-			contactName := c.GetContactNameByJID(participants[i].JID)
-			participants[i].DisplayName = contactName
-		}
-	}
-
-	return participants, nil
 }

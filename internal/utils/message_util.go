@@ -26,7 +26,7 @@ func CleanAndDedupPersonalNumbers(numbers []string, logFunc func(msg string, fie
 			innerArray := ExtractArrayValues(num)
 			// Proses hasil ekstraksi dengan deduplikasi
 			for _, innerNum := range innerArray {
-				if innerNum == "" || !ValidatePhoneNumber(innerNum) {
+				if innerNum == "" || !IsValidPhoneNumber(innerNum) {
 					continue
 				}
 
@@ -48,7 +48,7 @@ func CleanAndDedupPersonalNumbers(numbers []string, logFunc func(msg string, fie
 
 		// Nomor normal
 		num = strings.TrimSpace(num)
-		if num == "" || !ValidatePhoneNumber(num) {
+		if num == "" || !IsValidPhoneNumber(num) {
 			continue
 		}
 
@@ -90,12 +90,12 @@ func CleanAndDedupGroupIDs(ids []string, logFunc func(msg string, fields Fields)
 			innerArray := ExtractArrayValues(id)
 			// Proses hasil ekstraksi dengan deduplikasi
 			for _, innerID := range innerArray {
-				if innerID == "" || !ValidateGroupID(innerID) {
+				if innerID == "" || !IsValidGroupID(innerID) {
 					continue
 				}
 
-				// Normalisasi ID grup untuk deduplikasi - menggunakan fungsi dari jid.go
-				normalizedID := NormalizeGroupID(innerID)
+				// Normalisasi ID grup untuk deduplikasi
+				normalizedID := FormatGroupID(innerID)
 
 				if !seenGroupIDs[normalizedID] {
 					seenGroupIDs[normalizedID] = true
@@ -112,12 +112,12 @@ func CleanAndDedupGroupIDs(ids []string, logFunc func(msg string, fields Fields)
 
 		// Group ID normal
 		id = strings.TrimSpace(id)
-		if id == "" || !ValidateGroupID(id) {
+		if id == "" || !IsValidGroupID(id) {
 			continue
 		}
 
-		// Deduplikasi group ID - menggunakan fungsi dari jid.go
-		normalizedID := NormalizeGroupID(id)
+		// Deduplikasi group ID
+		normalizedID := FormatGroupID(id)
 		if !seenGroupIDs[normalizedID] {
 			seenGroupIDs[normalizedID] = true
 			cleanedGroupIDs = append(cleanedGroupIDs, id)

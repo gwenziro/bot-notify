@@ -82,7 +82,7 @@ func (h *GroupHandler) GetParticipants(c *fiber.Ctx) error {
 	}
 
 	// Validasi format ID grup
-	if !utils.ValidateGroupID(groupID) {
+	if !utils.IsValidGroupID(groupID) {
 		return h.SendError(c, constants.MsgInvalidGroupID, nil, fiber.StatusBadRequest)
 	}
 
@@ -181,7 +181,7 @@ func (h *GroupHandler) processParticipantsWithContacts(participants []types.Grou
 		}
 
 		// Format nomor telepon untuk display
-		phoneNumber := client.FormatWhatsAppNumber(participant.JID.String())
+		phoneNumber := utils.FormatWhatsAppNumber(participant.JID.String())
 
 		// Pilih nama kontak yang terbaik untuk ditampilkan
 		contactName := participant.DisplayName

@@ -36,11 +36,11 @@
 
 /* Efek ketika header sticky (scrolled) */
 .dashboard-header.scrolled {
-  background: rgba(14, 23, 45, 0.85); /* Lebih gelap saat di-scroll */
+  background: var(--glass-bg);
   backdrop-filter: blur(16px); /* Blur lebih kuat */
   -webkit-backdrop-filter: blur(16px);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25), 0 0 15px var(--primary-glow);
-  border-color: rgba(138, 180, 248, 0.08);
+  border-color: var(--glass-border);
   padding-top: var(--space-3);
   padding-bottom: var(--space-3);
 }
