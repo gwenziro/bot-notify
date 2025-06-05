@@ -8,7 +8,8 @@ type DashboardData struct {
 	Title       string // Judul halaman
 	CurrentYear int    // Tahun saat ini untuk footer
 	BaseURL     string // URL dasar aplikasi
-	MaskedToken string // Token API yang dimaskir
+	MaskedToken string // Token API yang dimaskir (akan diganti dengan Token)
+	Token       string // Token API yang ditampilkan penuh
 	ActivePage  string // Halaman aktif untuk navigasi
 
 	// Status WhatsApp
@@ -17,6 +18,7 @@ type DashboardData struct {
 	ConnectionDuration      string    // Durasi terhubung sebagai string
 	ConnectedSince          time.Time // Waktu mulai terhubung
 	ConnectedSinceFormatted string    // Waktu mulai terhubung yang sudah diformat
+	ConnectedSinceShort     string    // Format waktu yang lebih singkat untuk card detail
 	LastActivity            time.Time // Waktu aktivitas terakhir
 	LastActivityFormatted   string    // Waktu aktivitas terakhir yang sudah diformat
 
@@ -36,12 +38,13 @@ type DashboardData struct {
 }
 
 // NewDashboardData membuat instance baru DashboardData dengan nilai default
-func NewDashboardData(baseURL, maskedToken string) DashboardData {
+func NewDashboardData(baseURL, token string) DashboardData {
 	return DashboardData{
 		Title:        "Dashboard - Bot Notify",
 		CurrentYear:  time.Now().Year(),
 		BaseURL:      baseURL,
-		MaskedToken:  maskedToken,
+		MaskedToken:  token, // Tetap dipertahankan untuk kompatibilitas
+		Token:        token, // Token penuh tanpa masking
 		ActivePage:   "dashboard",
 		MessagesSent: 0,
 		IsConnected:  false,

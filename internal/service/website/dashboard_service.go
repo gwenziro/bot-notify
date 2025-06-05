@@ -38,6 +38,9 @@ func (s *DashboardService) GetDashboardData() entity.DashboardData {
 	maskedToken := utils.MaskToken(s.config.Auth.AccessToken)
 	data := entity.NewDashboardData(baseURL, maskedToken)
 
+	// Tetapkan token asli tanpa masking
+	data.Token = s.config.Auth.AccessToken
+
 	// Dapatkan status koneksi WhatsApp
 	connectionState, _ := s.whatsApp.GetConnectionStateSafe()
 	data.IsConnected = connectionState.IsConnected

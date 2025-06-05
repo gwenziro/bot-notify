@@ -493,6 +493,53 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Tambahkan dukungan copy untuk token API
+    function setupTokenCopy() {
+        const tokenCopyBtn = document.querySelector('[data-code="api-token"]');
+        if (tokenCopyBtn) {
+            // Simpan ikon asli dalam data attribute
+            const iconElement = tokenCopyBtn.querySelector('i');
+            if (iconElement) {
+                tokenCopyBtn.setAttribute('data-original-icon', iconElement.className);
+            }
+            
+            tokenCopyBtn.addEventListener('click', function() {
+                const tokenElement = document.getElementById('api-token-code');
+                if (!tokenElement) {
+                    window.notificationSystem.error('Elemen token tidak ditemukan');
+                    return;
+                }
+                
+                // Dapatkan teks token
+                const tokenText = tokenElement.textContent;
+                
+                // Ambil original icon class dari data attribute
+                const originalIconClass = this.getAttribute('data-original-icon') || 'fas fa-copy';
+                
+                // Salin ke clipboard
+                navigator.clipboard.writeText(tokenText)
+                    .then(() => {
+                        // Tampilkan efek sukses
+                        this.classList.add('copied');
+                        this.innerHTML = '<i class="fas fa-check"></i>';
+                        
+                        // Notifikasi sukses
+                        window.notificationSystem.success('Token API telah disalin ke clipboard');
+                        
+                        // Kembalikan tombol ke keadaan semula setelah 2 detik
+                        setTimeout(() => {
+                            this.classList.remove('copied');
+                            this.innerHTML = `<i class="${originalIconClass}"></i>`;
+                        }, 2000);
+                    })
+                    .catch(err => {
+                        console.error('Gagal menyalin token: ', err);
+                        window.notificationSystem.error('Tidak dapat menyalin token API');
+                    });
+            });
+        }
+    }
+
     // Attach event listeners - PENTING: hanya satu event listener per tombol
     if (refreshBtn) {
         refreshBtn.addEventListener('click', function() {

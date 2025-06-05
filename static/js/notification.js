@@ -7,7 +7,7 @@ class NotificationSystem {
     // Default configuration
     this.config = {
       position: 'top-right',
-      duration: 5000,
+      duration: 2500,
       maxCount: 5,
       ...options
     };
@@ -39,7 +39,7 @@ class NotificationSystem {
       console.log('Using existing notification container');
     }
   }
-  
+   
   /**
    * Show a notification
    * @param {string} message - The message to display

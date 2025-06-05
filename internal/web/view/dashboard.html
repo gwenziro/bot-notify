@@ -79,8 +79,9 @@
 
                         <div class="card-body">
                             {{if .IsConnected}}
-                            <!-- Connected state - informasi profil -->
+                            <!-- Connected state - informasi profil disederhanakan dengan token di samping -->
                             <div class="connected-info" id="connected-view">
+                                <!-- Informasi profil di kiri -->
                                 <div class="connected-profile">
                                     {{if .ProfilePictureURL}}
                                     <img src="{{.ProfilePictureURL}}" alt="Profile Picture" class="profile-pic">
@@ -92,6 +93,19 @@
                                     <div class="profile-info">
                                         <h3 class="profile-name">{{.ContactName}}</h3>
                                         <p class="profile-number">{{.PhoneNumber}}</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- API token section di kanan - dengan tombol salin di dalam kolom token -->
+                                <div class="api-token-wrapper">
+                                    <div class="api-token-header">
+                                        <h4 class="api-token-title"><i class="fas fa-key"></i> Token API</h4>
+                                    </div>
+                                    <div class="api-token-display">
+                                        <code id="api-token-code">{{.Token}}</code>
+                                        <button class="btn-icon copy-btn" title="Salin token" data-code="api-token">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
