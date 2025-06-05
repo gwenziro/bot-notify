@@ -9,7 +9,10 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>Dashboard - Bot Notify</title>
+    <link rel="stylesheet" href="/static/css/base.css">
     <link rel="stylesheet" href="/static/css/dashboard.css">
+    <link rel="stylesheet" href="/static/css/dialog.css">
+    <link rel="stylesheet" href="/static/css/notification.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <link rel="icon" type="image/png" href="https://img.icons8.com/fluency/48/message-bot.png">
     <link
@@ -57,8 +60,13 @@
                     <div class="glass-card">
                         <div class="card-header">
                             <h2 class="section-title">
+                                {{if .IsConnected}}
                                 <i class="fas fa-address-card"></i>
                                 Informasi Kontak
+                                {{else}}
+                                <i class="fas fa-qrcode"></i>
+                                Informasi QR
+                                {{end}}
                             </h2>
 
                             {{if .IsConnected}}
@@ -90,34 +98,47 @@
                             {{else}}
                             <!-- Disconnected state - QR code view tetap sama -->
                             <div class="qr-connection" id="qr-view">
-                                <p class="qr-instructions">
-                                    {{if .QRCodeMessage}}
-                                    {{.QRCodeMessage}}
-                                    {{else}}
-                                    Silakan pindai kode QR berikut dengan WhatsApp di ponsel Anda untuk menghubungkan
-                                    Bot:
-                                    {{end}}
-                                </p>
-                                <div class="qr-container" id="qr-container">
-                                    {{if .QRCodeAvailable}}
-                                    <img id="qr-code" class="qr-image" src="{{.QRCodeURL}}" alt="QR Code WhatsApp">
-                                    {{else}}
-                                    <div class="qr-loading" id="qr-loading">
-                                        {{if .QRCodeExpired}}
-                                        <i class="fas fa-exclamation-circle"></i>
-                                        <span>QR Code kedaluwarsa</span>
+                                <div class="qr-section">
+                                    <p class="qr-instructions">
+                                        {{if .QRCodeMessage}}
+                                        {{.QRCodeMessage}}
                                         {{else}}
-                                        <i class="fas fa-spinner fa-spin"></i>
-                                        <span>Memuat Kode QR...</span>
+                                        Silakan pindai kode QR berikut dengan WhatsApp di ponsel Anda untuk
+                                        menghubungkan
+                                        Bot:
+                                        {{end}}
+                                    </p>
+                                    <div class="qr-container" id="qr-container">
+                                        {{if .QRCodeAvailable}}
+                                        <img id="qr-code" class="qr-image" src="{{.QRCodeURL}}" alt="QR Code WhatsApp">
+                                        {{else}}
+                                        <div class="qr-loading" id="qr-loading">
+                                            {{if .QRCodeExpired}}
+                                            <i class="fas fa-exclamation-circle"></i>
+                                            <span>QR Code kedaluwarsa</span>
+                                            {{else}}
+                                            <i class="fas fa-spinner fa-spin"></i>
+                                            <span>Memuat Kode QR...</span>
+                                            {{end}}
+                                        </div>
                                         {{end}}
                                     </div>
-                                    {{end}}
+                                    <div class="qr-actions">
+                                        <button id="refresh-qr-btn" class="btn btn-primary">
+                                            <i class="fas fa-sync"></i>
+                                            <span>Segarkan QR</span>
+                                        </button>
+                                    </div>
                                 </div>
-                                <div class="qr-actions">
-                                    <button id="refresh-qr-btn" class="btn btn-primary">
-                                        <i class="fas fa-sync"></i>
-                                        <span>Segarkan QR</span>
-                                    </button>
+
+                                <!-- Konten tambahan di bawah QR code - Disederhanakan -->
+                                <div class="qr-additional-info">
+                                    <div class="status-details">
+                                        <p class="status-text">QR code akan otomatis diperbarui setiap <span
+                                                class="highlight">60 detik</span> jika tidak dipindai</p>
+                                        <p class="status-text">Jika mengalami masalah, klik tombol <span
+                                                class="highlight">Segarkan QR</span></p>
+                                    </div>
                                 </div>
                             </div>
                             {{end}}
@@ -130,11 +151,13 @@
                     <div class="glass-card">
                         <div class="card-header">
                             <h2 class="section-title">
-                                <i class="fas fa-info-circle"></i>
-                                Tentang Bot Notify
+                                <i class="fas fa-{{if .IsConnected}}info-circle{{else}}book-reader{{end}}"></i>
+                                {{if .IsConnected}}Tentang Bot Notify{{else}}Tutorial Menghubungkan WhatsApp{{end}}
                             </h2>
                         </div>
                         <div class="card-body">
+                            {{if .IsConnected}}
+                            <!-- Konten About Bot Notify saat terhubung -->
                             <p class="info-description">
                                 Bot Notify adalah layanan untuk mengirimkan pesan notifikasi WhatsApp secara otomatis
                                 ketika form disubmit atau event tertentu terjadi di sistem Anda.
@@ -168,6 +191,75 @@
                                     </div>
                                 </div>
                             </div>
+                            {{else}}
+                            <!-- Tutorial Menghubungkan WhatsApp saat tidak terhubung - Lebih ringkas -->
+                            <div class="tutorial-content">
+                                <p class="info-description">
+                                    Ikuti langkah-langkah berikut untuk menghubungkan WhatsApp dengan Bot Notify:
+                                </p>
+
+                                <div class="tutorial-steps">
+                                    <div class="tutorial-step">
+                                        <div class="step-icon-container">
+                                            <div class="step-number">1</div>
+                                            <div class="step-connector"></div>
+                                        </div>
+                                        <div class="step-content">
+                                            <h3 class="step-title"><i class="fas fa-mobile-alt"></i> Siapkan WhatsApp
+                                            </h3>
+                                            <p class="step-description">
+                                                Pastikan aplikasi WhatsApp sudah terpasang dan aktif di ponsel Anda
+                                                dengan koneksi internet yang stabil.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div class="tutorial-step">
+                                        <div class="step-icon-container">
+                                            <div class="step-number">2</div>
+                                            <div class="step-connector"></div>
+                                        </div>
+                                        <div class="step-content">
+                                            <h3 class="step-title"><i class="fas fa-qrcode"></i> Pindai Kode QR</h3>
+                                            <p class="step-description">
+                                                Buka WhatsApp &rarr; <strong>Menu</strong> <i
+                                                    class="fas fa-ellipsis-v fa-sm"></i> &rarr; <strong>Perangkat
+                                                    Tertaut</strong> &rarr; <strong>Tautkan Perangkat</strong> dan
+                                                pindai kode QR.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div class="tutorial-step">
+                                        <div class="step-icon-container">
+                                            <div class="step-number">3</div>
+                                            <div class="step-connector"></div>
+                                        </div>
+                                        <div class="step-content">
+                                            <h3 class="step-title"><i class="fas fa-sync"></i> Tunggu Proses</h3>
+                                            <p class="step-description">
+                                                Tunggu beberapa saat hingga proses menghubungkan selesai. Halaman akan
+                                                otomatis diperbarui setelah koneksi berhasil.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div class="tutorial-step">
+                                        <div class="step-icon-container">
+                                            <div class="step-number">4</div>
+                                        </div>
+                                        <div class="step-content">
+                                            <h3 class="step-title"><i class="fas fa-check-circle"></i> Mulai Gunakan
+                                            </h3>
+                                            <p class="step-description">
+                                                Setelah terhubung, Anda dapat mulai mengirim pesan WhatsApp melalui API
+                                                sesuai contoh di bawah.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {{end}}
                         </div>
                     </div>
                 </section>
@@ -266,7 +358,7 @@
                             <div class="card-header-actions">
                                 <a href="/docs" class="btn btn-primary">
                                     <i class="fas fa-book"></i>
-                                    <span>Dokumentasi API Lengkap</span>
+                                    <span>Dokumentasi Lengkap</span>
                                 </a>
                             </div>
                         </div>
@@ -319,7 +411,7 @@
                                                 <i class="fas fa-copy"></i>
                                             </button>
                                         </div>
-                                        <pre class="code-block" id="broadcast-code"><code>curl -X POST "{{.BaseURL}}/api/broadcast" \
+                                        <pre class="code-block" id="broadcast-code"><code>curl -X POST "{{.BaseURL}}/api/send/broadcast" \
   -H "X-Access-Token: {{.MaskedToken}}" \
   -H "Content-Type: application/json" \
   -d '{
@@ -351,7 +443,15 @@
         </footer>
     </div>
 
+    <!-- Dialog container -->
+    <div id="dialog-container"></div>
+
+    <!-- Notification container -->
+    <div id="notification-container" class="notification-container"></div>
+
     <!-- Scripts -->
+    <script src="/static/js/notification.js"></script>
+    <script src="/static/js/dialog.js"></script>
     <script src="/static/js/dashboard.js"></script>
 </body>
 

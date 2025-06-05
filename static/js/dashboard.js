@@ -15,6 +15,12 @@ document.addEventListener('DOMContentLoaded', function() {
     let refreshQrBtn = document.getElementById('refresh-qr-btn');
     const serverTime = document.getElementById('server-time');
     
+    // Inisialisasi sistem notifikasi jika belum ada
+    if (!window.notificationSystem) {
+        console.log('Initializing notification system...');
+        window.notificationSystem = new NotificationSystem();
+    }
+    
     // Update server time every second
     function updateServerTime() {
         const now = new Date();
@@ -66,11 +72,35 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (data.available) {
                 // QR code is available, update the image with cache-busting
-                if (qrCode) {
+                if (qrContainer) {
+                    // Pastikan elemen qrCode ada
+                    if (!qrCode) {
+                        // Jika tidak ada, buat elemen img baru
+                        qrCode = document.createElement('img');
+                        qrCode.id = 'qr-code';
+                        qrCode.className = 'qr-image';
+                        qrCode.alt = 'QR Code WhatsApp';
+                        qrContainer.appendChild(qrCode);
+                        
+                        // Notifikasi QR code baru dibuat
+                        notificationSystem.info('QR Code baru telah dibuat');
+                    }
+                    
+                    // Update src dengan timestamp untuk mencegah cache
                     const qrUrl = `/api/qr/image?t=${Date.now()}`;
                     qrCode.src = qrUrl;
                     qrCode.style.display = 'block';
-                    qrLoading && (qrLoading.style.display = 'none');
+                    
+                    // Sembunyikan loading indicator
+                    if (qrLoading) {
+                        qrLoading.style.display = 'none';
+                    }
+                    
+                    // Log info untuk debugging
+                    console.log('QR code displayed with URL:', qrUrl);
+                } else {
+                    console.error('QR container not found');
+                    notificationSystem.error('Container QR Code tidak ditemukan');
                 }
             } else {
                 // QR code is not available or expired
@@ -78,7 +108,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (data.expired) {
                         qrLoading.innerHTML = '<i class="fas fa-exclamation-circle"></i><span>QR Code kedaluwarsa, memuat ulang...</span>';
                         qrLoading.style.display = 'flex';
-                        qrCode && (qrCode.style.display = 'none');
+                        
+                        // Sembunyikan QR code yang mungkin sudah tidak valid
+                        if (qrCode) {
+                            qrCode.style.display = 'none';
+                        }
                         
                         // Jika QR code kedaluwarsa, otomatis refresh QR code
                         // Delay sedikit untuk mencegah terlalu banyak request berturut-turut
@@ -88,13 +122,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else {
                         qrLoading.innerHTML = '<i class="fas fa-clock"></i><span>Menunggu QR Code...</span>';
                         qrLoading.style.display = 'flex';
-                        qrCode && (qrCode.style.display = 'none');
+                        
+                        // Sembunyikan QR code yang mungkin sudah tidak valid
+                        if (qrCode) {
+                            qrCode.style.display = 'none';
+                        }
                     }
                 }
             }
         })
         .catch(error => {
             console.error('Error checking QR status:', error);
+            notificationSystem.error('Gagal memeriksa status QR: ' + error.message);
         });
     }
     
@@ -135,6 +174,9 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('QR refresh response:', data);
             
             if (data.success) {
+                // Show success notification
+                notificationSystem.success('QR Code berhasil disegarkan');
+                
                 // Check if QR is available immediately
                 checkQRStatus();
                 
@@ -145,6 +187,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (qrLoading) {
                     qrLoading.innerHTML = `<i class="fas fa-exclamation-triangle"></i><span>${data.message || 'Gagal memuat QR code'}</span>`;
                 }
+                notificationSystem.error(data.message || 'Gagal menyegarkan QR Code');
             }
             
             // Re-enable the button
@@ -158,11 +201,7 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(error => {
             console.error('Error refreshing QR code:', error);
-            
-            // Show error message
-            if (qrLoading) {
-                qrLoading.innerHTML = '<i class="fas fa-exclamation-triangle"></i><span>Terjadi kesalahan saat memuat QR code</span>';
-            }
+            notificationSystem.error('Terjadi kesalahan: ' + error.message);
             
             // Re-enable the button
             if (refreshQrBtn) {
@@ -239,6 +278,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Get references to new elements - tetap menggunakan variabel global
                 qrContainer = document.getElementById('qr-container');
                 qrLoading = document.getElementById('qr-loading');
+                qrCode = null; // Reset qrCode reference - penting!
                 refreshQrBtn = document.getElementById('refresh-qr-btn');
                 qrView = document.getElementById('qr-view');
                 
@@ -284,6 +324,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <i class="fas fa-spinner fa-spin"></i>
                     <span>Memuat Kode QR...</span>
                 </div>
+                <!-- QR code image akan dibuat secara dinamis dengan JavaScript -->
             </div>
             <div class="qr-actions">
                 <button id="refresh-qr-btn" class="btn btn-primary">
@@ -320,7 +361,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (data.success) {
                 // Tampilkan notifikasi sukses
-                showNotification('Koneksi WhatsApp berhasil diputuskan', 'success');
+                notificationSystem.success('Koneksi WhatsApp berhasil diputuskan');
                 
                 // Langsung update UI tanpa reload
                 updateUIAfterDisconnect();
@@ -342,7 +383,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }, 3000);
             } else {
                 // Tampilkan pesan error
-                showNotification(data.message || 'Gagal memutuskan koneksi', 'error');
+                notificationSystem.error(data.message || 'Gagal memutuskan koneksi');
                 
                 // Kembalikan tombol ke state awal
                 if (disconnectBtn) {
@@ -353,7 +394,7 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(error => {
             console.error('Error disconnecting WhatsApp:', error);
-            showNotification('Terjadi kesalahan: ' + error.message, 'error');
+            notificationSystem.error('Terjadi kesalahan: ' + error.message);
             
             // Kembalikan tombol ke state awal
             if (disconnectBtn) {
@@ -386,110 +427,72 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Fungsi untuk menampilkan notifikasi
-    function showNotification(message, type = 'info') {
-        // Cek apakah container notifikasi sudah ada
-        let notifContainer = document.getElementById('notification-container');
-        
-        // Jika belum ada, buat container baru
-        if (!notifContainer) {
-            notifContainer = document.createElement('div');
-            notifContainer.id = 'notification-container';
-            notifContainer.style.position = 'fixed';
-            notifContainer.style.top = '20px';
-            notifContainer.style.right = '20px';
-            notifContainer.style.zIndex = '1000';
-            document.body.appendChild(notifContainer);
-        }
-        
-        // Buat elemen notifikasi
-        const notification = document.createElement('div');
-        notification.className = `notification notification-${type}`;
-        notification.style.padding = '12px 16px';
-        notification.style.marginBottom = '10px';
-        notification.style.borderRadius = '4px';
-        notification.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-        notification.style.display = 'flex';
-        notification.style.alignItems = 'center';
-        notification.style.justifyContent = 'space-between';
-        notification.style.minWidth = '300px';
-        notification.style.animation = 'slideInRight 0.3s ease-out forwards';
-        
-        // Set warna berdasarkan tipe
-        if (type === 'success') {
-            notification.style.backgroundColor = 'rgba(14, 204, 141, 0.15)';
-            notification.style.color = 'var(--success)';
-            notification.style.border = '1px solid rgba(14, 204, 141, 0.3)';
-        } else if (type === 'error') {
-            notification.style.backgroundColor = 'rgba(229, 62, 62, 0.15)';
-            notification.style.color = 'var(--danger)';
-            notification.style.border = '1px solid rgba(229, 62, 62, 0.3)';
-        } else {
-            notification.style.backgroundColor = 'rgba(49, 130, 206, 0.15)';
-            notification.style.color = 'var(--info)';
-            notification.style.border = '1px solid rgba(49, 130, 206, 0.3)';
-        }
-        
-        // Isi konten notifikasi
-        notification.innerHTML = `
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
-                <span>${message}</span>
-            </div>
-            <button class="close-notification" style="background: none; border: none; cursor: pointer; color: inherit;">
-                <i class="fas fa-times"></i>
-            </button>
-        `;
-        
-        // Tambahkan notifikasi ke container
-        notifContainer.appendChild(notification);
-        
-        // Tambahkan event listener untuk tombol close
-        notification.querySelector('.close-notification').addEventListener('click', function() {
-            notification.style.opacity = '0';
-            notification.style.transform = 'translateX(20px)';
-            setTimeout(() => {
-                notifContainer.removeChild(notification);
-            }, 300);
-        });
-        
-        // Hapus notifikasi setelah 5 detik
-        setTimeout(() => {
-            if (notification.parentNode === notifContainer) {
-                notification.style.opacity = '0';
-                notification.style.transform = 'translateX(20px)';
-                setTimeout(() => {
-                    if (notification.parentNode === notifContainer) {
-                        notifContainer.removeChild(notification);
-                    }
-                }, 300);
-            }
-        }, 5000);
+    // Fungsi untuk syntax highlighting sederhana pada code blocks
+    function highlightCodeSyntax() {
+      const codeBlocks = document.querySelectorAll('.code-block code');
+      
+      codeBlocks.forEach(block => {
+        // Hanya highlight property JSON untuk kesederhanaan
+        block.innerHTML = block.innerHTML.replace(
+          /"([^"]+)":/g, 
+          '"<span class="property">$1</span>":'
+        );
+      });
     }
     
-    // Setup copy buttons for API examples
-    const copyButtons = document.querySelectorAll('.copy-btn');
-    copyButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const codeType = this.getAttribute('data-code');
-            const codeElement = document.getElementById(`${codeType}-code`);
-            const codeText = codeElement.textContent;
+    // Fungsi untuk menangani tombol copy kode
+    function setupCodeCopyButtons() {
+        const copyButtons = document.querySelectorAll('.copy-btn');
+        
+        copyButtons.forEach(btn => {
+            // Simpan ikon asli dalam data attribute untuk referensi yang lebih konsisten
+            const iconElement = btn.querySelector('i');
+            if (iconElement) {
+                btn.setAttribute('data-original-icon', iconElement.className);
+            }
             
-            navigator.clipboard.writeText(codeText).then(() => {
-                // Temporarily change icon to show success
-                const icon = this.querySelector('i');
-                icon.classList.remove('fa-copy');
-                icon.classList.add('fa-check');
+            btn.addEventListener('click', function() {
+                const codeType = this.getAttribute('data-code');
+                const codeElement = document.getElementById(`${codeType}-code`);
                 
-                // Change back after 2 seconds
-                setTimeout(() => {
-                    icon.classList.remove('fa-check');
-                    icon.classList.add('fa-copy');
-                }, 2000);
+                if (!codeElement) {
+                    window.notificationSystem.error('Elemen kode tidak ditemukan');
+                    return;
+                }
+                
+                // Dapatkan teks yang akan disalin
+                const codeText = codeElement.textContent;
+                
+                // Ambil original icon class dari data attribute
+                const originalIconClass = this.getAttribute('data-original-icon') || 'fas fa-copy';
+                
+                // Gunakan clipboard API untuk menyalin teks
+                navigator.clipboard.writeText(codeText)
+                    .then(() => {
+                        // Tampilkan efek sukses pada tombol
+                        this.classList.add('copied');
+                        
+                        // Ganti ikon dengan ikon centang
+                        this.innerHTML = '<i class="fas fa-check"></i>';
+                        
+                        // Tampilkan notifikasi sukses
+                        window.notificationSystem.success('Kode telah disalin ke clipboard');
+                        
+                        // Kembalikan tombol ke keadaan semula setelah 2 detik
+                        setTimeout(() => {
+                            this.classList.remove('copied');
+                            // Kembalikan ikon asli menggunakan data attribute
+                            this.innerHTML = `<i class="${originalIconClass}"></i>`;
+                        }, 2000);
+                    })
+                    .catch(err => {
+                        console.error('Gagal menyalin teks: ', err);
+                        window.notificationSystem.error('Tidak dapat menyalin kode');
+                    });
             });
         });
-    });
-    
+    }
+
     // Attach event listeners - PENTING: hanya satu event listener per tombol
     if (refreshBtn) {
         refreshBtn.addEventListener('click', function() {
@@ -501,23 +504,89 @@ document.addEventListener('DOMContentLoaded', function() {
         refreshQrBtn.addEventListener('click', refreshQRCode);
     }
     
+    // Create dialog instance
+    const dialog = new Dialog();
+    
+    // Handler untuk tombol disconnect
     if (disconnectBtn) {
-        disconnectBtn.addEventListener('click', disconnectWhatsApp);
+        disconnectBtn.addEventListener('click', function() {
+            console.log('Disconnect button clicked');
+            // Gunakan dialog modular
+            dialog.show({
+                title: 'Konfirmasi Pemutusan',
+                message: 'Apakah Anda yakin ingin memutuskan koneksi WhatsApp?',
+                description: 'Pemutusan koneksi akan menghapus sesi dan memerlukan pemindaian QR code lagi untuk terhubung kembali.',
+                confirmText: 'Putuskan Koneksi',
+                cancelText: 'Batal',
+                type: 'danger',
+                onConfirm: function() {
+                    console.log('Disconnect confirmed');
+                    // Ubah teks tombol untuk indikasi proses
+                    disconnectBtn.disabled = true;
+                    disconnectBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memutuskan...';
+                    
+                    // Kirim permintaan disconnect ke server
+                    fetch('/dashboard/disconnect', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('Disconnect response:', data);
+                        
+                        if (data.success) {
+                            // Tampilkan notifikasi sukses - perbaiki pemanggilan API
+                            console.log('Showing success notification');
+                            notificationSystem.success('WhatsApp berhasil diputuskan');
+                            
+                            // Tunggu sebentar agar notifikasi terlihat, lalu refresh halaman
+                            setTimeout(function() {
+                                console.log('Reloading page after disconnect');
+                                window.location.reload();
+                            }, 1500); // Refresh setelah 1.5 detik
+                        } else {
+                            // Jika gagal, kembalikan tombol ke keadaan semula
+                            disconnectBtn.disabled = false;
+                            disconnectBtn.innerHTML = '<i class="fas fa-power-off"></i> Putuskan';
+                            notificationSystem.error(data.message || 'Gagal memutuskan koneksi');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error disconnecting:', error);
+                        disconnectBtn.disabled = false;
+                        disconnectBtn.innerHTML = '<i class="fas fa-power-off"></i> Putuskan';
+                        notificationSystem.error('Terjadi kesalahan: ' + error.message);
+                    });
+                },
+                onCancel: function() {
+                    console.log('Disconnect cancelled');
+                    notificationSystem.info('Pemutusan koneksi dibatalkan');
+                }
+            });
+        });
     }
     
     // Start QR status checks if we're on QR view
     if (qrView && qrView.style.display !== 'none') {
         startQRStatusChecks();
     }
-    
-    // Periodically check connection status (every 10 seconds)
+
+    // Periodically check connection status (every 5 seconds)
     setInterval(() => {
         fetchConnectionStatus(true);
-    }, 10000);
+    }, 30000);
     
     // Auto-refresh QR jika berada di halaman QR view dan QR tidak tersedia/kedaluwarsa
     if (qrView && qrView.style.display !== 'none' && qrCode && qrCode.style.display === 'none') {
         console.log('Auto-refreshing QR on page load');
         setTimeout(refreshQRCode, 500);
     }
+    
+    // Tambahkan syntax highlighting ke code blocks
+    highlightCodeSyntax();
+    
+    // Gunakan hanya setupCodeCopyButtons yang sudah diperbaiki
+    setupCodeCopyButtons();
 });

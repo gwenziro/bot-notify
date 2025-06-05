@@ -6,6 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/session"
 	"github.com/gwenziro/bot-notify/internal/api/handler"
 	"github.com/gwenziro/bot-notify/internal/config"
+	"github.com/gwenziro/bot-notify/internal/service/website"
 	"github.com/gwenziro/bot-notify/internal/service/whatsapp/client"
 	"github.com/gwenziro/bot-notify/internal/utils"
 	"github.com/gwenziro/bot-notify/internal/web/controller"
@@ -46,11 +47,17 @@ func NewWebHandler(cfg *config.Config, whatsClient *client.Client, sessionStore 
 
 	logger := utils.ForModule("web")
 
-	// Inisialisasi controller
-	homeController := controller.NewHomeController(cfg, whatsClient, logger)
-	dashboardController := controller.NewDashboardController(cfg, whatsClient, logger)
-	authController := controller.NewAuthController(cfg, whatsClient, sessionStore, logger)
-	docController := controller.NewDocController(cfg, whatsClient, logger)
+	// Buat service layer terlebih dahulu
+	homeService := website.NewHomeService(cfg, logger)
+	dashboardService := website.NewDashboardService(cfg, whatsClient, logger)
+	authService := website.NewAuthService(cfg, sessionStore, logger)
+	docService := website.NewDocService(cfg, whatsClient, logger)
+
+	// Inisialisasi controller dengan service yang sesuai
+	homeController := controller.NewHomeController(homeService, logger)
+	dashboardController := controller.NewDashboardController(dashboardService, logger)
+	authController := controller.NewAuthController(authService, logger)
+	docController := controller.NewDocController(docService, logger)
 
 	// Inisialisasi API handler
 	apiHandler := &APIHandler{
@@ -94,6 +101,9 @@ func (h *WebHandler) GetStaticPath() string {
 func (h *WebHandler) SetSessionStore(store *session.Store) {
 	h.sessionStore = store
 
-	// Re-initialize auth controller with the new session store
-	h.authController = controller.NewAuthController(h.config, h.whatsApp, store, h.logger)
+	// Create a new auth service with the updated session store
+	authService := website.NewAuthService(h.config, store, h.logger)
+
+	// Re-initialize auth controller with the new auth service
+	h.authController = controller.NewAuthController(authService, h.logger)
 }

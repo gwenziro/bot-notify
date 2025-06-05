@@ -75,7 +75,7 @@
                         <span class="code-title">send_notification.sh</span>
                     </div>
                     <pre class="code-content"><code><span class="code-comment"># Kirim notifikasi ke WhatsApp</span>
-curl -X POST https://api.botnotify.app/send \
+curl -X POST {{.ApiBaseURL}}/api/send/personal \
   -H <span class="code-property">"X-Access-Token"</span>: <span class="code-string">"{YOUR_ACCESS_TOKEN}"</span> \
   -H <span class="code-property">"Content-Type"</span>: <span class="code-string">"application/json"</span> \
   -d '{

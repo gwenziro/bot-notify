@@ -1,0 +1,169 @@
+/**
+ * Notification Styles - Consistent with app theme
+ * Provides reusable notification components with glassmorphism design
+ */
+
+/* Container for notifications */
+.notification-container {
+  position: fixed;
+  top: 3rem;
+  right: 3rem;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 320px;
+  width: 100%;
+}
+
+/* Individual notification */
+.notification {
+  display: flex;
+  align-items: flex-start;
+  padding: 1rem;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
+  border-left-width: 4px;
+  box-shadow: var(--glass-shadow);
+  animation: slide-in 0.3s ease-out forwards;
+  transform-origin: top right;
+}
+
+.notification.fade-out {
+  animation: slide-out 0.3s ease-out forwards, fade-out 0.3s ease-out forwards;
+}
+
+.notification-icon {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0.75rem;
+}
+
+.notification-content {
+  flex: 1;
+}
+
+.notification-title {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  font-size: 0.95rem;
+}
+
+.notification-message {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* Close button */
+.notification-close {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 0.5rem;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.notification-close:hover {
+  opacity: 1;
+}
+
+/* Notification types with colored left border */
+.notification-info {
+  border-left-color: var(--info);
+}
+
+.notification-info .notification-icon {
+  color: var(--info);
+}
+
+.notification-info .notification-title {
+  color: var(--info-light);
+}
+
+.notification-success {
+  border-left-color: var(--success);
+}
+
+.notification-success .notification-icon {
+  color: var(--success);
+}
+
+.notification-success .notification-title {
+  color: var(--success-light);
+}
+
+.notification-error {
+  border-left-color: var(--danger);
+}
+
+.notification-error .notification-icon {
+  color: var(--danger);
+}
+
+.notification-error .notification-title {
+  color: var(--danger-light);
+}
+
+.notification-warning {
+  border-left-color: var(--warning);
+}
+
+.notification-warning .notification-icon {
+  color: var(--warning);
+}
+
+.notification-warning .notification-title {
+  color: var(--warning-light);
+}
+
+/* Animation for notifications - Ditingkatkan */
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-out {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(120%);
+  }
+}
+
+@keyframes fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* Mobile responsiveness */
+@media (max-width: 640px) {
+  .notification-container {
+    max-width: 90%;
+    right: 5%;
+  }
+}

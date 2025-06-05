@@ -1,0 +1,279 @@
+/**
+ * Dialog Styles - Modal Dialog Component
+ * Glassmorphism design consistent with the app theme
+ */
+
+/* Main Dialog Container */
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  background-color: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  opacity: 0;
+  transition: opacity var(--transition-normal) cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dialog-overlay.visible {
+  opacity: 1;
+}
+
+/* Dialog Box with Glass Effect */
+.dialog-box {
+  width: min(480px, 94%);
+  max-height: 85vh;
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-shadow),
+              0 0 0 1px var(--glass-highlight);
+  color: var(--text-primary);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: translateY(20px) scale(0.98);
+  transition: transform var(--transition-normal) cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: auto;
+}
+
+.dialog-box.visible {
+  transform: translateY(0) scale(1);
+}
+
+/* Dialog Header */
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--glass-border);
+  background: linear-gradient(to right, rgba(15, 23, 42, 0.2), rgba(15, 23, 42, 0.3));
+}
+
+.dialog-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: linear-gradient(to right, var(--text-primary), var(--text-secondary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.dialog-close {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  border: none;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast) ease;
+}
+
+.dialog-close:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: var(--text-primary);
+  transform: rotate(90deg);
+}
+
+.dialog-close:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--primary-glow);
+}
+
+/* Dialog Body */
+.dialog-body {
+  padding: var(--space-5);
+  overflow-y: auto;
+  max-height: 50vh;
+}
+
+.dialog-message {
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin: 0 0 var(--space-3);
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+.dialog-description {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  margin: 0 0 var(--space-4);
+  line-height: 1.6;
+}
+
+/* Dialog Footer */
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--glass-border);
+  background: linear-gradient(to bottom, rgba(15, 23, 42, 0.2), rgba(15, 23, 42, 0.3));
+}
+
+/* Dialog Buttons */
+.dialog-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2) var(--space-4);
+  font-size: 0.95rem;
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  border: none;
+  outline: none;
+  cursor: pointer;
+  transition: all var(--transition-fast) ease;
+  overflow: hidden;
+  min-width: 100px;
+}
+
+.dialog-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.5s ease;
+}
+
+.dialog-btn:hover::before {
+  transform: translateX(100%);
+}
+
+.dialog-cancel {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-border);
+  color: var(--text-secondary);
+}
+
+.dialog-cancel:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.dialog-confirm {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: white;
+  box-shadow: 0 4px 12px rgba(10, 147, 159, 0.3);
+  font-weight: 600;
+}
+
+.dialog-confirm:hover {
+  background: linear-gradient(135deg, var(--primary-light), var(--primary));
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(10, 147, 159, 0.4);
+}
+
+/* Dialog Type Variations */
+.dialog-danger .dialog-confirm {
+  background: linear-gradient(135deg, var(--danger), var(--danger-dark));
+  box-shadow: 0 4px 12px rgba(229, 62, 62, 0.3);
+}
+
+.dialog-danger .dialog-confirm:hover {
+  background: linear-gradient(135deg, var(--danger-light), var(--danger));
+  box-shadow: 0 6px 16px rgba(229, 62, 62, 0.4);
+}
+
+.dialog-warning .dialog-confirm {
+  background: linear-gradient(135deg, var(--warning), var(--warning-dark));
+  box-shadow: 0 4px 12px rgba(246, 173, 85, 0.3);
+}
+
+.dialog-warning .dialog-confirm:hover {
+  background: linear-gradient(135deg, var(--warning-light), var(--warning));
+  box-shadow: 0 6px 16px rgba(246, 173, 85, 0.4);
+}
+
+.dialog-info .dialog-confirm {
+  background: linear-gradient(135deg, var(--info), var(--info-dark));
+  box-shadow: 0 4px 12px rgba(49, 130, 206, 0.3);
+}
+
+.dialog-info .dialog-confirm:hover {
+  background: linear-gradient(135deg, var(--info-light), var(--info));
+  box-shadow: 0 6px 16px rgba(49, 130, 206, 0.4);
+}
+
+/* Dialog Content Animations */
+@keyframes dialogFadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.dialog-message,
+.dialog-description {
+  animation: dialogFadeIn 0.3s ease forwards;
+}
+
+.dialog-description {
+  animation-delay: 0.1s;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 640px) {
+  .dialog-box {
+    width: 92%;
+    max-height: 80vh;
+  }
+  
+  .dialog-footer {
+    flex-direction: column-reverse;
+    padding: var(--space-3) var(--space-4);
+  }
+  
+  .dialog-btn {
+    width: 100%;
+    padding: var(--space-3) var(--space-4);
+  }
+  
+  .dialog-message {
+    font-size: 1rem;
+  }
+  
+  .dialog-description {
+    font-size: 0.875rem;
+  }
+}
+
+/* Accessibility Focus Styles */
+.dialog-btn:focus,
+.dialog-close:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--primary-glow);
+}
+
+/* Support for reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .dialog-overlay,
+  .dialog-box,
+  .dialog-btn,
+  .dialog-close,
+  .dialog-message,
+  .dialog-description {
+    transition: none !important;
+    animation: none !important;
+  }
+}

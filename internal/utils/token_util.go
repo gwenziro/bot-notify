@@ -21,6 +21,6 @@ func MaskToken(token string) string {
 		return "********"
 	}
 
-	// Tampilkan hanya 4 karakter pertama dan 4 terakhir
-	return token[:4] + "..." + token[len(token)-4:]
+	// Tampilkan hanya 2 karakter pertama dan 2 terakhir
+	return token[:2] + "..." + token[len(token)-2:]
 }
