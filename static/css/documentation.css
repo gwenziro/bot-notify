@@ -3,7 +3,7 @@
  * Styling khusus untuk halaman dokumentasi API
  */
 
-@import url('./base.css');
+@import url("./base.css");
 
 /* Documentation Layout */
 .docs-container {
@@ -190,19 +190,6 @@
   color: var(--text-primary);
 }
 
-code {
-  font-family: var(--font-mono);
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 3px;
-  padding: 2px 4px;
-  font-size: 0.9em;
-}
-
-.code-block code {
-  background: transparent;
-  padding: 0;
-}
-
 /* Endpoint Sections */
 .endpoint-section {
   margin: var(--space-6) 0;
@@ -301,6 +288,25 @@ code {
   flex-shrink: 0;
 }
 
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast) ease;
+  border: 1px solid transparent;
+}
+
+.btn-icon:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
 /* Error Table */
 .error-table {
   width: 100%;
@@ -342,19 +348,19 @@ code {
   .docs-container {
     flex-direction: column;
   }
-  
+
   .docs-sidebar {
     width: 100%;
     height: auto;
     position: relative;
     top: 0;
   }
-  
+
   .docs-nav {
     height: auto;
     max-height: 300px;
   }
-  
+
   .api-info-card {
     grid-template-columns: 1fr;
   }
@@ -364,17 +370,17 @@ code {
   .docs-title {
     font-size: 1.5rem;
   }
-  
+
   .docs-subtitle {
     font-size: 1.25rem;
   }
-  
+
   .endpoint-details {
     flex-direction: column;
     align-items: flex-start;
     gap: var(--space-2);
   }
-  
+
   .code-block {
     font-size: 0.8rem;
   }
