@@ -21,7 +21,8 @@ type DocumentationData struct {
 	Title             string        // Judul halaman
 	CurrentYear       int           // Tahun saat ini untuk footer
 	BaseURL           string        // URL dasar aplikasi
-	MaskedToken       string        // Token API yang dimaskir
+	MaskedToken       string        // Token API yang dimaskir (untuk backward compatibility)
+	Token             string        // Token API yang ditampilkan penuh
 	ActivePage        string        // Halaman aktif untuk navigasi
 	WhatsAppConnected bool          // Status koneksi WhatsApp untuk UI
 	Endpoints         []ApiEndpoint // Daftar endpoint API
