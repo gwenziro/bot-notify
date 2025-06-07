@@ -1,12 +1,47 @@
 package client
 
 import (
+	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/gwenziro/bot-notify/internal/utils"
 	"go.mau.fi/whatsmeow/types"
 )
+
+// GetGroups mengembalikan daftar grup yang tersedia
+func (c *Client) GetGroups() ([]*types.GroupInfo, error) {
+	if c.waClient == nil || !c.connectionState.IsConnected {
+		return nil, errors.New("klien WhatsApp belum terhubung")
+	}
+
+	c.logger.Info("Mengambil daftar grup")
+	c.UpdateLastActivity()
+
+	groups, err := c.waClient.GetJoinedGroups()
+	if err != nil {
+		return nil, fmt.Errorf("gagal mendapatkan daftar grup: %w", err)
+	}
+
+	return groups, nil
+}
+
+// GetGroupByID mencari grup berdasarkan ID
+func (c *Client) GetGroupByID(groupID string) (*types.GroupInfo, error) {
+	if c.waClient == nil || !c.connectionState.IsConnected {
+		return nil, errors.New("klien WhatsApp belum terhubung")
+	}
+
+	// Konversi ID ke JID menggunakan utils
+	jid := utils.ParseGroupID(groupID)
+
+	// Ambil info grup
+	group, err := c.waClient.GetGroupInfo(jid)
+	if err != nil {
+		return nil, fmt.Errorf("gagal mendapatkan info grup %s: %w", groupID, err)
+	}
+
+	return group, nil
+}
 
 // GetGroupParticipants mendapatkan daftar anggota grup dengan informasi lengkap
 func (c *Client) GetGroupParticipants(groupJID types.JID) ([]types.GroupParticipant, error) {
@@ -49,9 +84,9 @@ func (c *Client) IsGroupAdmin(groupJID types.JID) (bool, error) {
 
 	// Cari diri sendiri dalam daftar anggota
 	for _, participant := range participants {
-		// Bandingkan JID tanpa bagian device
-		selfJIDStr := normalizeJID(selfID.String())
-		participantJIDStr := normalizeJID(participant.JID.String())
+		// Bandingkan JID tanpa bagian device menggunakan utils
+		selfJIDStr := utils.NormalizeJID(selfID.String())
+		participantJIDStr := utils.NormalizeJID(participant.JID.String())
 
 		if selfJIDStr == participantJIDStr {
 			return participant.IsAdmin, nil
@@ -59,15 +94,6 @@ func (c *Client) IsGroupAdmin(groupJID types.JID) (bool, error) {
 	}
 
 	return false, fmt.Errorf("pengguna tidak ditemukan dalam grup")
-}
-
-// normalizeJID menormalkan JID untuk perbandingan
-func normalizeJID(jid string) string {
-	// Hapus bagian device ID
-	if idx := strings.IndexRune(jid, ':'); idx > 0 {
-		jid = jid[:idx] + jid[strings.IndexRune(jid, '@'):]
-	}
-	return jid
 }
 
 // GetEnrichedParticipants mendapatkan daftar peserta grup dengan informasi tambahan
@@ -87,8 +113,10 @@ func (c *Client) GetEnrichedParticipants(groupJID types.JID) ([]types.GroupParti
 	for i := range participants {
 		// Jika DisplayName kosong, coba isi dari kontak
 		if participants[i].DisplayName == "" {
-			contactName := c.GetContactNameByJID(participants[i].JID)
-			participants[i].DisplayName = contactName
+			contactInfo, err := c.GetContactInfo(participants[i].JID.String())
+			if err == nil && contactInfo != nil {
+				participants[i].DisplayName = contactInfo.FullName
+			}
 		}
 	}
 

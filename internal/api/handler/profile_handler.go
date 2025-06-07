@@ -4,7 +4,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gwenziro/bot-notify/internal/api/model"
 	"github.com/gwenziro/bot-notify/internal/constants"
-	"github.com/gwenziro/bot-notify/internal/service/whatsapp/client"
+	"github.com/gwenziro/bot-notify/internal/service/client"
 	"github.com/gwenziro/bot-notify/internal/utils"
 )
 
@@ -43,7 +43,7 @@ func (h *ProfileHandler) GetProfile(c *fiber.Ctx) error {
 	}
 
 	// 3. Dapatkan informasi perangkat dan status koneksi
-	deviceInfo := h.WhatsApp.GetDeviceInfo()
+	deviceInfo := h.WhatsApp.GetConnectionInfo()
 	state := h.WhatsApp.GetConnectionState()
 
 	// 4. Persiapkan data profil

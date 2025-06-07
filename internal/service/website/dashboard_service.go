@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/gwenziro/bot-notify/internal/config"
-	"github.com/gwenziro/bot-notify/internal/service/whatsapp/client"
+	"github.com/gwenziro/bot-notify/internal/service/client"
 	"github.com/gwenziro/bot-notify/internal/utils"
 	"github.com/gwenziro/bot-notify/internal/web/entity"
 )
@@ -31,9 +31,6 @@ func NewDashboardService(cfg *config.Config, whatsClient *client.Client, logger 
 func (s *DashboardService) GetDashboardData() entity.DashboardData {
 	// Buat data dasar
 	baseURL := s.config.Server.BaseURL
-	if baseURL == "" {
-		baseURL = "http://localhost:8080"
-	}
 
 	maskedToken := utils.MaskToken(s.config.Auth.AccessToken)
 	data := entity.NewDashboardData(baseURL, maskedToken)
@@ -66,7 +63,7 @@ func (s *DashboardService) GetDashboardData() entity.DashboardData {
 // enrichConnectedData memperkaya data dashboard dengan informasi koneksi
 func (s *DashboardService) enrichConnectedData(data *entity.DashboardData, connectionState client.ConnectionState) {
 	// Dapatkan profil info
-	deviceInfo := s.whatsApp.GetDeviceInfo()
+	deviceInfo := s.whatsApp.GetConnectionInfo()
 	connectionInfo := s.whatsApp.GetConnectionInfo()
 
 	// Set waktu koneksi

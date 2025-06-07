@@ -43,8 +43,8 @@ func NewDashboardData(baseURL, token string) DashboardData {
 		Title:        "Dashboard - Bot Notify",
 		CurrentYear:  time.Now().Year(),
 		BaseURL:      baseURL,
-		MaskedToken:  token, // Tetap dipertahankan untuk kompatibilitas
-		Token:        token, // Token penuh tanpa masking
+		MaskedToken:  token,
+		Token:        token,
 		ActivePage:   "dashboard",
 		MessagesSent: 0,
 		IsConnected:  false,

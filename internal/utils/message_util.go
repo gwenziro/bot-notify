@@ -172,3 +172,11 @@ func ExtractArrayValues(arrayStr string) []string {
 
 	return result
 }
+
+// Helper function untuk mendapatkan elemen pertama array atau string kosong
+func GetFirstOrEmpty(arr []string) string {
+	if len(arr) > 0 {
+		return arr[0]
+	}
+	return ""
+}

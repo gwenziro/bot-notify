@@ -108,8 +108,8 @@ func (c *Client) BroadcastMessage(personalNumbers []string, groupIDs []string, m
 		"personal_count":     len(personalNumbers),
 		"group_count":        len(groupIDs),
 		"message_length":     len(message),
-		"first_personal_num": getFirstOrEmpty(personalNumbers),
-		"first_group_id":     getFirstOrEmpty(groupIDs),
+		"first_personal_num": utils.GetFirstOrEmpty(personalNumbers),
+		"first_group_id":     utils.GetFirstOrEmpty(groupIDs),
 	}).Debug("Menerima permintaan broadcast")
 
 	// Kirim ke nomor personal (satu per satu)
@@ -256,12 +256,4 @@ func (c *Client) BroadcastMessage(personalNumbers []string, groupIDs []string, m
 	}
 
 	return results, lastSentTime
-}
-
-// Helper function untuk mendapatkan elemen pertama array atau string kosong
-func getFirstOrEmpty(arr []string) string {
-	if len(arr) > 0 {
-		return arr[0]
-	}
-	return ""
 }

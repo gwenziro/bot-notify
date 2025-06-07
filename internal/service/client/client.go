@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/gwenziro/bot-notify/internal/config"
-	"github.com/gwenziro/bot-notify/internal/service/whatsapp/session"
+	"github.com/gwenziro/bot-notify/internal/service/session"
 	"github.com/gwenziro/bot-notify/internal/utils"
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/store/sqlstore"

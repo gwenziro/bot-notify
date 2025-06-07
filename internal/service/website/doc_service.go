@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/gwenziro/bot-notify/internal/config"
-	"github.com/gwenziro/bot-notify/internal/service/whatsapp/client"
+	"github.com/gwenziro/bot-notify/internal/service/client"
 	"github.com/gwenziro/bot-notify/internal/utils"
 	"github.com/gwenziro/bot-notify/internal/web/entity"
 )

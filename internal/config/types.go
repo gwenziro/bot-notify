@@ -23,8 +23,8 @@ type ServerConfig struct {
 	WriteTimeout    time.Duration `yaml:"write_timeout"`
 	ShutdownTimeout time.Duration `yaml:"shutdown_timeout"`
 	BaseURL         string        `yaml:"base_url"`
-	Environment     string        `yaml:"environment"` // development, staging, production
-	ApiDomain       string        `yaml:"api_domain"`  // Domain khusus untuk API jika berbeda dari base_url
+	Environment     string        `yaml:"environment"`
+	ApiDomain       string        `yaml:"api_domain"`
 }
 
 // WhatsAppConfig berisi konfigurasi untuk layanan WhatsApp

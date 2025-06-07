@@ -11,7 +11,7 @@ import (
 	"github.com/gwenziro/bot-notify/internal/api"
 	"github.com/gwenziro/bot-notify/internal/config"
 	"github.com/gwenziro/bot-notify/internal/server"
-	"github.com/gwenziro/bot-notify/internal/service/whatsapp/client"
+	"github.com/gwenziro/bot-notify/internal/service/client"
 	"github.com/gwenziro/bot-notify/internal/storage"
 	"github.com/gwenziro/bot-notify/internal/utils"
 	"github.com/gwenziro/bot-notify/internal/web"

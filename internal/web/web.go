@@ -6,8 +6,8 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/session"
 	"github.com/gwenziro/bot-notify/internal/api/handler"
 	"github.com/gwenziro/bot-notify/internal/config"
+	"github.com/gwenziro/bot-notify/internal/service/client"
 	"github.com/gwenziro/bot-notify/internal/service/website"
-	"github.com/gwenziro/bot-notify/internal/service/whatsapp/client"
 	"github.com/gwenziro/bot-notify/internal/utils"
 	"github.com/gwenziro/bot-notify/internal/web/controller"
 )

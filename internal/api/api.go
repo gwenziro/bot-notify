@@ -6,7 +6,7 @@ import (
 	"github.com/gwenziro/bot-notify/internal/api/handler"
 	"github.com/gwenziro/bot-notify/internal/api/middleware"
 	"github.com/gwenziro/bot-notify/internal/config"
-	"github.com/gwenziro/bot-notify/internal/service/whatsapp/client"
+	"github.com/gwenziro/bot-notify/internal/service/client"
 	"github.com/gwenziro/bot-notify/internal/utils"
 )
 
