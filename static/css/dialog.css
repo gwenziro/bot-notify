@@ -173,23 +173,12 @@
   border-color: rgba(255, 255, 255, 0.2);
 }
 
-.dialog-confirm {
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-  color: white;
-  box-shadow: 0 4px 12px rgba(10, 147, 159, 0.3);
-  font-weight: 600;
-}
-
-.dialog-confirm:hover {
-  background: linear-gradient(135deg, var(--primary-light), var(--primary));
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(10, 147, 159, 0.4);
-}
-
 /* Dialog Type Variations */
 .dialog-danger .dialog-confirm {
   background: linear-gradient(135deg, var(--danger), var(--danger-dark));
   box-shadow: 0 4px 12px rgba(229, 62, 62, 0.3);
+  color: white;
+  font-weight: 600;
 }
 
 .dialog-danger .dialog-confirm:hover {

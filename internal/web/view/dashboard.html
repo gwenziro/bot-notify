@@ -95,7 +95,7 @@
                                         <p class="profile-number">{{.PhoneNumber}}</p>
                                     </div>
                                 </div>
-                                
+
                                 <!-- API token section di kanan - dengan tombol salin di dalam kolom token -->
                                 <div class="api-token-wrapper">
                                     <div class="api-token-header">
@@ -110,7 +110,7 @@
                                 </div>
                             </div>
                             {{else}}
-                            <!-- Disconnected state - QR code view tetap sama -->
+                            <!-- Disconnected state - QR code view yang diperbaiki -->
                             <div class="qr-connection" id="qr-view">
                                 <div class="qr-section">
                                     <p class="qr-instructions">
@@ -118,8 +118,7 @@
                                         {{.QRCodeMessage}}
                                         {{else}}
                                         Silakan pindai kode QR berikut dengan WhatsApp di ponsel Anda untuk
-                                        menghubungkan
-                                        Bot:
+                                        menghubungkan Bot:
                                         {{end}}
                                     </p>
                                     <div class="qr-container" id="qr-container">
@@ -145,13 +144,14 @@
                                     </div>
                                 </div>
 
-                                <!-- Konten tambahan di bawah QR code - Disederhanakan -->
+                                <!-- Konten tambahan di bawah QR code -->
                                 <div class="qr-additional-info">
-                                    <div class="status-details">
-                                        <p class="status-text">QR code akan otomatis diperbarui setiap <span
-                                                class="highlight">60 detik</span> jika tidak dipindai</p>
-                                        <p class="status-text">Jika mengalami masalah, klik tombol <span
-                                                class="highlight">Segarkan QR</span></p>
+                                    <div class="qr-notes">
+                                        <p class="status-text"><i class="fas fa-clock"></i> QR code akan otomatis
+                                            diperbarui setiap <span class="highlight">60 detik</span> jika tidak
+                                            dipindai</p>
+                                        <p class="status-text"><i class="fas fa-sync-alt"></i> Jika mengalami masalah,
+                                            klik tombol <span class="highlight">Segarkan QR</span></p>
                                     </div>
                                 </div>
                             </div>
@@ -206,7 +206,7 @@
                                 </div>
                             </div>
                             {{else}}
-                            <!-- Tutorial Menghubungkan WhatsApp saat tidak terhubung - Lebih ringkas -->
+                            <!-- Tutorial Menghubungkan WhatsApp saat tidak terhubung -->
                             <div class="tutorial-content">
                                 <p class="info-description">
                                     Ikuti langkah-langkah berikut untuk menghubungkan WhatsApp dengan Bot Notify:

@@ -1,284 +1,209 @@
 /**
- * Dialog Component - Reusable, accessible dialog functionality
- * Provides a consistent UX for confirmation dialogs
+ * Dialog System - Reusable dialog component
+ * Provides a consistent way to show dialogs across the application
  */
 class Dialog {
   constructor() {
-    this.visible = false;
-    this.overlay = null;
-    this.box = null;
-    this.title = null;
-    this.message = null;
-    this.description = null;
-    this.cancelBtn = null;
-    this.confirmBtn = null;
-    this.closeBtn = null;
+    // Container reference
+    this.container = document.getElementById('dialog-container');
     
-    // Event callbacks
-    this.onConfirm = null;
-    this.onCancel = null;
-    this.onClose = null;
-    
-    // Track the previously focused element
-    this.previouslyFocused = null;
-    
-    // Event handler references for cleanup
-    this.keydownHandler = this.handleKeydown.bind(this);
-    
-    // Create container if needed
-    this.initialize();
-  }
-  
-  initialize() {
-    // Create container if it doesn't exist
-    if (!document.getElementById('dialog-container')) {
-      const container = document.createElement('div');
-      container.id = 'dialog-container';
-      document.body.appendChild(container);
+    // Buat container jika belum ada
+    if (!this.container) {
+      this.container = document.createElement('div');
+      this.container.id = 'dialog-container';
+      document.body.appendChild(this.container);
     }
+    
+    // Dialog aktif saat ini
+    this.activeDialog = null;
+    
+    // Callback references - penting untuk mencegah multiple execution
+    this.onConfirmCallback = null;
+    this.onCancelCallback = null;
+    this.onCloseCallback = null;
   }
   
+  /**
+   * Show a dialog
+   * @param {Object} options Dialog options
+   */
   show(options) {
-    // Merge options with defaults
-    const {
-      title = 'Konfirmasi',
-      message = 'Apakah Anda yakin?',
-      description = '',
-      confirmText = 'Konfirmasi',
-      cancelText = 'Batal',
-      type = 'default', // default, danger, warning, info
-      onConfirm = () => {},
-      onCancel = () => {},
-      onClose = () => {}
-    } = options;
+    // Bersihkan dialog yang ada sebelum menampilkan yang baru
+    this.cleanup();
     
-    // Store callbacks
-    this.onConfirm = onConfirm;
-    this.onCancel = onCancel;
-    this.onClose = onClose;
+    const defaults = {
+      title: 'Konfirmasi',
+      message: 'Apakah Anda yakin?',
+      description: '',
+      confirmText: 'Konfirmasi',
+      cancelText: 'Batal',
+      type: 'primary', // primary, danger, warning
+      onConfirm: null,
+      onCancel: null,
+      onClose: null
+    };
     
-    // Create dialog elements if they don't exist yet
-    if (!this.overlay) {
-      this.createDialogElements();
-    }
+    const settings = { ...defaults, ...options };
     
-    // Store currently focused element
-    this.previouslyFocused = document.activeElement;
+    // Simpan callback untuk digunakan nanti - penting untuk menghindari kebocoran memori
+    this.onConfirmCallback = settings.onConfirm;
+    this.onCancelCallback = settings.onCancel;
+    this.onCloseCallback = settings.onClose;
     
-    // Set dialog content
-    this.title.textContent = title;
-    this.message.textContent = message;
-    this.description.textContent = description;
-    this.confirmBtn.textContent = confirmText;
-    this.cancelBtn.textContent = cancelText;
+    // Buat elemen dialog
+    const dialog = document.createElement('div');
+    dialog.className = `dialog-overlay dialog-${settings.type}`;
     
-    // Apply type-specific styling
-    this.box.className = `dialog-box dialog-${type}`;
+    // Tambahkan konten HTML - mempertahankan struktur original
+    dialog.innerHTML = `
+      <div class="dialog">
+        <div class="dialog-header">
+          <h3 class="dialog-title">${settings.title}</h3>
+          <button class="dialog-close" id="dialog-close" aria-label="Close dialog">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="dialog-body">
+          <p class="dialog-message">${settings.message}</p>
+          ${settings.description ? `<p class="dialog-description">${settings.description}</p>` : ''}
+        </div>
+        <div class="dialog-footer">
+          <button class="btn btn-${settings.type}" id="dialog-confirm">${settings.confirmText}</button>
+          <button class="btn btn-secondary" id="dialog-cancel">${settings.cancelText}</button>
+        </div>
+      </div>
+    `;
     
-    // Add to DOM
-    document.getElementById('dialog-container').appendChild(this.overlay);
+    // Tambahkan dialog ke container
+    this.container.appendChild(dialog);
+    this.activeDialog = dialog;
     
-    // Prevent body scrolling
-    document.body.style.overflow = 'hidden';
-    
-    // Show dialog with animation
-    requestAnimationFrame(() => {
-      this.overlay.classList.add('visible');
-      this.box.classList.add('visible');
-      
-      // Set focus to the confirm button
-      setTimeout(() => this.confirmBtn.focus(), 100);
-    });
-    
-    // Set visible state
-    this.visible = true;
-    
-    // Add event listeners
+    // Tambahkan event listeners
     this.attachEventListeners();
     
-    // Return instance for chaining
-    return this;
+    // Tambahkan kelas untuk animasi
+    setTimeout(() => {
+      dialog.classList.add('visible');
+    }, 10);
+    
+    return dialog;
   }
   
-  createDialogElements() {
-    // Create overlay
-    this.overlay = document.createElement('div');
-    this.overlay.className = 'dialog-overlay';
-    this.overlay.setAttribute('role', 'dialog');
-    this.overlay.setAttribute('aria-modal', 'true');
-    
-    // Create box
-    this.box = document.createElement('div');
-    this.box.className = 'dialog-box';
-    this.box.setAttribute('role', 'document');
-    
-    // Create header
-    const header = document.createElement('div');
-    header.className = 'dialog-header';
-    
-    this.title = document.createElement('h3');
-    this.title.className = 'dialog-title';
-    this.title.id = 'dialog-title-' + Math.random().toString(36).substr(2, 9);
-    
-    this.closeBtn = document.createElement('button');
-    this.closeBtn.className = 'dialog-close';
-    this.closeBtn.setAttribute('aria-label', 'Tutup dialog');
-    this.closeBtn.innerHTML = '<i class="fas fa-times"></i>';
-    
-    header.appendChild(this.title);
-    header.appendChild(this.closeBtn);
-    
-    // Create body
-    const body = document.createElement('div');
-    body.className = 'dialog-body';
-    
-    this.message = document.createElement('p');
-    this.message.className = 'dialog-message';
-    
-    this.description = document.createElement('p');
-    this.description.className = 'dialog-description';
-    
-    body.appendChild(this.message);
-    body.appendChild(this.description);
-    
-    // Create footer
-    const footer = document.createElement('div');
-    footer.className = 'dialog-footer';
-    
-    this.cancelBtn = document.createElement('button');
-    this.cancelBtn.className = 'dialog-btn dialog-cancel';
-    this.cancelBtn.type = 'button';
-    
-    this.confirmBtn = document.createElement('button');
-    this.confirmBtn.className = 'dialog-btn dialog-confirm';
-    this.confirmBtn.type = 'button';
-    
-    footer.appendChild(this.cancelBtn);
-    footer.appendChild(this.confirmBtn);
-    
-    // Set ARIA attributes for accessibility
-    this.overlay.setAttribute('aria-labelledby', this.title.id);
-    
-    // Assemble dialog
-    this.box.appendChild(header);
-    this.box.appendChild(body);
-    this.box.appendChild(footer);
-    this.overlay.appendChild(this.box);
-  }
-  
+  /**
+   * Attach event listeners untuk dialog yang aktif
+   */
   attachEventListeners() {
-    // Close button handler
-    this.closeBtn.addEventListener('click', () => this.handleClose());
+    if (!this.activeDialog) return;
     
-    // Cancel button handler
-    this.cancelBtn.addEventListener('click', () => this.handleCancel());
+    // Temukan tombol dialog
+    const confirmBtn = this.activeDialog.querySelector('#dialog-confirm');
+    const cancelBtn = this.activeDialog.querySelector('#dialog-cancel');
+    const closeBtn = this.activeDialog.querySelector('#dialog-close');
     
-    // Confirm button handler
-    this.confirmBtn.addEventListener('click', () => this.handleConfirm());
+    // Tambahkan event listener dengan binding untuk mencegah duplikat callbacks
+    if (confirmBtn) {
+      confirmBtn.addEventListener('click', this.handleConfirm.bind(this));
+    }
     
-    // Close on outside click
-    this.overlay.addEventListener('click', (e) => {
-      if (e.target === this.overlay) {
-        this.handleCancel();
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', this.handleCancel.bind(this));
+    }
+    
+    if (closeBtn) {
+      closeBtn.addEventListener('click', this.handleClose.bind(this));
+    }
+    
+    // Tambahkan click di luar dialog untuk menutupnya
+    this.activeDialog.addEventListener('click', (e) => {
+      if (e.target === this.activeDialog) {
+        this.handleClose();
       }
     });
-    
-    // Global keyboard handling
-    document.addEventListener('keydown', this.keydownHandler);
   }
   
-  detachEventListeners() {
-    document.removeEventListener('keydown', this.keydownHandler);
-  }
-  
-  handleKeydown(e) {
-    if (!this.visible) return;
-    
-    // Close on Escape
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      this.handleCancel();
-    }
-    
-    // Confirm on Enter when not in a form context
-    if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA' && !e.target.closest('form')) {
-      e.preventDefault();
-      this.handleConfirm();
-    }
-    
-    // Trap focus within dialog
-    if (e.key === 'Tab') {
-      // Get all focusable elements
-      const focusableEls = this.box.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
-      const firstFocusableEl = focusableEls[0];
-      const lastFocusableEl = focusableEls[focusableEls.length - 1];
-      
-      // If shift+tab and on first element, move to last element
-      if (e.shiftKey && document.activeElement === firstFocusableEl) {
-        e.preventDefault();
-        lastFocusableEl.focus();
-      }
-      // If tab and on last element, move to first element
-      else if (!e.shiftKey && document.activeElement === lastFocusableEl) {
-        e.preventDefault();
-        firstFocusableEl.focus();
-      }
-    }
-  }
-  
-  handleClose() {
-    if (typeof this.onClose === 'function') {
-      this.onClose();
-    }
-    this.close();
-  }
-  
-  handleCancel() {
-    if (typeof this.onCancel === 'function') {
-      this.onCancel();
-    }
-    this.close();
-  }
-  
+  /**
+   * Handle confirm button click
+   */
   handleConfirm() {
-    if (typeof this.onConfirm === 'function') {
-      this.onConfirm();
-    }
+    // Simpan referensi callback karena this.onConfirmCallback akan di-reset oleh this.close()
+    const callback = this.onConfirmCallback;
+    
+    // Tutup dialog
     this.close();
+    
+    // Eksekusi callback jika ada
+    if (typeof callback === 'function') {
+      callback();
+    }
   }
   
+  /**
+   * Handle cancel button click
+   */
+  handleCancel() {
+    // Simpan referensi callback karena this.onCancelCallback akan di-reset oleh this.close()
+    const callback = this.onCancelCallback;
+    
+    // Tutup dialog
+    this.close();
+    
+    // Eksekusi callback jika ada
+    if (typeof callback === 'function') {
+      callback();
+    }
+  }
+  
+  /**
+   * Handle close button click
+   */
+  handleClose() {
+    // Simpan referensi callback karena this.onCloseCallback akan di-reset oleh this.close()
+    const callback = this.onCloseCallback || this.onCancelCallback;
+    
+    // Tutup dialog
+    this.close();
+    
+    // Eksekusi callback jika ada
+    if (typeof callback === 'function') {
+      callback();
+    }
+  }
+  
+  /**
+   * Close the dialog dengan animasi
+   */
   close() {
-    if (!this.visible) return;
+    if (!this.activeDialog) return;
     
-    // Hide with animation
-    this.overlay.classList.remove('visible');
-    this.box.classList.remove('visible');
+    // Tambahkan kelas untuk animasi keluar
+    this.activeDialog.classList.remove('visible');
     
-    // Set state
-    this.visible = false;
-    
-    // Re-enable body scrolling
-    document.body.style.overflow = '';
-    
-    // Remove from DOM after animation
+    // Hapus dialog setelah animasi selesai
     setTimeout(() => {
-      if (this.overlay.parentNode) {
-        this.overlay.parentNode.removeChild(this.overlay);
-      }
-      
-      // Clean up event listeners
-      this.detachEventListeners();
-      
-      // Restore focus to previously focused element
-      if (this.previouslyFocused && typeof this.previouslyFocused.focus === 'function') {
-        this.previouslyFocused.focus();
-      }
+      this.cleanup();
     }, 300);
   }
   
-  // Public API for programmatically closing the dialog
-  forceClose() {
-    this.close();
+  /**
+   * Bersihkan dialog dan hapus event listener
+   * Penting untuk mencegah memory leaks dan event handler duplikat
+   */
+  cleanup() {
+    // Reset callback references terlebih dahulu untuk mencegah pemanggilan yang tidak diinginkan
+    this.onConfirmCallback = null;
+    this.onCancelCallback = null;
+    this.onCloseCallback = null;
+    
+    // Hapus dialog dari DOM jika ada
+    if (this.activeDialog && this.container) {
+      this.container.removeChild(this.activeDialog);
+      this.activeDialog = null;
+    }
+    
+    // Bersihkan container untuk keamanan
+    if (this.container) {
+      this.container.innerHTML = '';
+    }
   }
 }
 

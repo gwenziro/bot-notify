@@ -62,22 +62,29 @@ func (s *DashboardService) GetDashboardData() entity.DashboardData {
 
 // enrichConnectedData memperkaya data dashboard dengan informasi koneksi
 func (s *DashboardService) enrichConnectedData(data *entity.DashboardData, connectionState client.ConnectionState) {
-	// Dapatkan profil info
-	deviceInfo := s.whatsApp.GetConnectionInfo()
+	// Dapatkan informasi koneksi hanya sekali untuk efisiensi
 	connectionInfo := s.whatsApp.GetConnectionInfo()
+
+	// Ekstrak device_info dari connectionInfo
+	deviceInfo, ok := connectionInfo["device_info"].(map[string]interface{})
+	if !ok {
+		s.logger.Warn("Device info tidak tersedia atau format tidak sesuai")
+		deviceInfo = make(map[string]interface{})
+	}
 
 	// Set waktu koneksi
 	s.setConnectionTiming(data, connectionInfo, connectionState)
 
-	// Set informasi profil
+	// Set informasi profil dengan deviceInfo yang benar
 	s.setProfileInfo(data, deviceInfo)
 
 	// Dapatkan jumlah pesan terkirim
 	messagesSent := s.whatsApp.GetMessagesSent()
 	data.MessagesSent = int(messagesSent)
 
-	s.logger.Debug("Retrieved message statistics", utils.Fields{
-		"messages_sent": messagesSent,
+	s.logger.Debug("Retrieved profile and message statistics", utils.Fields{
+		"profile_available": ok,
+		"messages_sent":     messagesSent,
 	})
 }
 
@@ -136,7 +143,7 @@ func (s *DashboardService) setProfileInfo(data *entity.DashboardData, deviceInfo
 	data.PhoneNumber = "Tidak tersedia"
 	data.ContactName = "Tidak tersedia"
 
-	if jid, ok := deviceInfo["id"].(string); ok && jid != "" {
+	if jid, ok := deviceInfo["formatted_jid"].(string); ok && jid != "" {
 		data.PhoneNumber = utils.FormatWhatsAppNumber(jid)
 	}
 
