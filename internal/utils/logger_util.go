@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -14,6 +15,9 @@ import (
 
 // Log adalah instance logger global
 var Log *logrus.Logger
+
+// API logger khusus untuk aktivitas API
+var apiLogger *logrus.Logger
 
 // LogrusEntry alias untuk entry logrus
 type LogrusEntry = *logrus.Entry
@@ -174,8 +178,95 @@ func Setup(cfg *LogConfig) error {
 		Log.SetOutput(os.Stdout)
 	}
 
+	// Inisialisasi API logger
+	setupAPILogger(cfg)
+
 	Info("Logger berhasil diinisialisasi", Fields{"level": level.String()})
 	return nil
+}
+
+// setupAPILogger membuat logger khusus untuk aktivitas API
+func setupAPILogger(_ *LogConfig) {
+	// Inisialisasi API logger
+	apiLogger = logrus.New()
+
+	// Set formatter untuk API logger
+	apiLogger.SetFormatter(&logrus.TextFormatter{
+		FullTimestamp:   true,
+		TimestampFormat: "2006-01-02 15:04:05",
+	})
+
+	// Set level log untuk API logger selalu ke INFO
+	apiLogger.SetLevel(logrus.InfoLevel)
+
+	// Path untuk file log API
+	apiLogPath := filepath.Join(ProjectRoot, "logs", "api_activity.log")
+
+	// Pastikan direktori logs ada
+	logDir := filepath.Dir(apiLogPath)
+	if err := os.MkdirAll(logDir, 0755); err != nil {
+		fmt.Printf("Error membuat direktori log API: %v\n", err)
+		return
+	}
+
+	// Setup rotasi log untuk API logger
+	apiLogOutput := &lumberjack.Logger{
+		Filename:   apiLogPath,
+		MaxSize:    10, // 10 MB
+		MaxBackups: 5,  // 5 backup files
+		MaxAge:     30, // 30 hari
+		Compress:   true,
+	}
+
+	// API logger hanya menulis ke file
+	apiLogger.SetOutput(apiLogOutput)
+
+	// Log inisialisasi API logger
+	msg := fmt.Sprintf("API Logger initialized at %s - All API activities will be logged to this file",
+		time.Now().Format(time.RFC3339))
+
+	apiLogger.Info("------------------------------------------------------------")
+	apiLogger.Info(msg)
+	apiLogger.Info("------------------------------------------------------------")
+}
+
+// LogAPI mencatat aktivitas API ke file log khusus API
+func LogAPI(method, endpoint, status, message string, duration time.Duration, fields Fields) {
+	// Pastikan API logger sudah diinisialisasi
+	if apiLogger == nil {
+		// Coba inisialisasi kembali jika belum ada
+		setupAPILogger(nil)
+		if apiLogger == nil {
+			// Fallback ke logger utama jika tidak bisa inisialisasi apiLogger
+			WithField("api", true).Info(fmt.Sprintf("[API] %s %s - %s (%s) - %s",
+				method, endpoint, status, duration, message))
+			return
+		}
+	}
+
+	// Konversi Fields ke logrus.Fields
+	apiFields := logrus.Fields{
+		"method":   method,
+		"endpoint": endpoint,
+		"status":   status,
+		"duration": duration.String(),
+	}
+
+	// Tambahkan fields tambahan
+	for k, v := range fields {
+		apiFields[k] = v
+	}
+
+	// Log sesuai dengan status
+	entry := apiLogger.WithFields(apiFields)
+	switch strings.ToLower(status) {
+	case "error":
+		entry.Error(message)
+	case "warning":
+		entry.Warning(message)
+	default:
+		entry.Info(message)
+	}
 }
 
 // ForModule mengembalikan logger dengan nama modul yang konsisten
@@ -260,4 +351,12 @@ func Fatal(msg string, fields ...Fields) {
 func Close() {
 	// Tidak diperlukan implementasi khusus karena logrus
 	// akan otomatis flush ke output
+}
+
+// WithField menambahkan field ke logger utama
+func WithField(key string, value interface{}) *logrus.Entry {
+	if Log == nil {
+		Setup(nil)
+	}
+	return Log.WithField(key, value)
 }

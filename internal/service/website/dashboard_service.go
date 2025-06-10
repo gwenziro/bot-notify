@@ -30,7 +30,7 @@ func NewDashboardService(cfg *config.Config, whatsClient *client.Client, logger 
 // GetDashboardData menyiapkan semua data yang diperlukan untuk dashboard
 func (s *DashboardService) GetDashboardData() entity.DashboardData {
 	// Buat data dasar
-	baseURL := s.config.Server.BaseURL
+	baseURL := utils.CleanBaseURL(s.config.Server.BaseURL)
 
 	maskedToken := utils.MaskToken(s.config.Auth.AccessToken)
 	data := entity.NewDashboardData(baseURL, maskedToken)
@@ -211,7 +211,7 @@ func (s *DashboardService) GetQRCodeStatus() QRStatus {
 		message = "QR code belum tersedia. Silakan klik tombol 'Segarkan QR' untuk mendapatkan QR code baru."
 	} else {
 		message = "Silakan pindai kode QR berikut dengan WhatsApp di ponsel Anda untuk menghubungkan Bot:"
-		qrURL = fmt.Sprintf("%s/api/qr/image?t=%d", s.config.Server.BaseURL, timestamp.Unix())
+		qrURL = utils.FormatEndpointURL(s.config.Server.BaseURL, "/api/qr/image") + "?t=" + fmt.Sprintf("%d", timestamp.Unix())
 	}
 
 	return QRStatus{

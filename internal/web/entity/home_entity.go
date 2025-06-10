@@ -15,7 +15,7 @@ func NewHomePageData() HomePageData {
 		Title:       "WhatsApp Bot Notify",
 		Description: "Bot WhatsApp Kirim Pesan Realtime",
 		Version:     "1.0.0",
-		CurrentYear: 0,                       // Akan diisi saat digunakan
-		ApiBaseURL:  "http://localhost:8080", // Default value
+		CurrentYear: 0,
+		ApiBaseURL:  "http://localhost:8080",
 	}
 }

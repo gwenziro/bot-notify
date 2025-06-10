@@ -37,8 +37,6 @@ func (c *Client) Connect() error {
 			return fmt.Errorf("gagal mendapatkan QR channel: %w", err)
 		}
 
-		c.logger.Info("Silakan pindai QR code yang akan muncul di terminal...")
-
 		// Mulai koneksi
 		err = client.Connect()
 		if err != nil {

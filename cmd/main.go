@@ -18,6 +18,9 @@ import (
 )
 
 func main() {
+	// Inisialisasi ProjectRoot sebelum apapun
+	utils.InitProjectRoot()
+
 	// Setup dasar logger
 	if err := utils.Setup(&utils.LogConfig{Level: "info"}); err != nil {
 		fmt.Printf("Error saat inisialisasi logger: %v\n", err)

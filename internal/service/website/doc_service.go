@@ -35,7 +35,7 @@ func (s *DocService) GetDocumentationData() entity.DocumentationData {
 	token := s.config.Auth.AccessToken
 
 	// Persiapkan data untuk template
-	baseURL := s.config.Server.BaseURL
+	baseURL := utils.CleanBaseURL(s.config.Server.BaseURL)
 	if baseURL == "" {
 		baseURL = "http://localhost:8080"
 	}

@@ -2,6 +2,7 @@ package api
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/gwenziro/bot-notify/internal/api/middleware"
 )
 
 // RegisterRoutes mendaftarkan semua endpoint API ke Fiber app
@@ -11,6 +12,11 @@ func (h *APIHandler) RegisterEndpoints(app *fiber.App) {
 
 	// Grup API dengan autentikasi
 	api := app.Group("/api")
+
+	// Tambahkan middleware untuk logging API
+	api.Use(middleware.APILoggerMiddleware())
+
+	// Lalu middleware autentikasi
 	api.Use(h.authMw)
 
 	// Daftarkan endpoint berdasarkan domain

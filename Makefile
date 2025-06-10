@@ -1,7 +1,7 @@
-.PHONY: build run clean dev setup test
+.PHONY: build run clean dev setup test deploy prepare-deploy compress release
 
 # Application name
-APP_NAME=whatsapp-bot
+APP_NAME=bot-notify
 
 # Build the application
 build:
@@ -22,7 +22,7 @@ dev:
 
 # Setup development environment
 setup:
-	go run ./scripts/setup_dev.go
+	go run ./scripts/prepare_deploy.go
 
 # Install project dependencies
 deps:
