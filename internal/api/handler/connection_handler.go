@@ -6,23 +6,23 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gwenziro/bot-notify/internal/api/model"
 	"github.com/gwenziro/bot-notify/internal/constants"
-	"github.com/gwenziro/bot-notify/internal/service/client"
+	"github.com/gwenziro/bot-notify/internal/manager"
 	"github.com/gwenziro/bot-notify/internal/utils"
 )
 
-// ConnectionHandler menangani endpoint manajemen koneksi WhatsApp
+// ConnectionHandler menangani endpoint manajemen koneksi WhatsApp dengan dukungan multi-user
 type ConnectionHandler struct {
 	BaseHandler
 }
 
 // NewConnectionHandler membuat instance baru ConnectionHandler
-func NewConnectionHandler(whatsClient *client.Client) *ConnectionHandler {
+func NewConnectionHandler(userManager *manager.UserManager) *ConnectionHandler {
 	return &ConnectionHandler{
-		BaseHandler: NewBaseHandler(whatsClient, "handler-connection"),
+		BaseHandler: NewBaseHandler(userManager, "handler-connection"),
 	}
 }
 
-// Reconnect mencoba menghubungkan ulang WhatsApp
+// Reconnect mencoba menghubungkan ulang WhatsApp untuk pengguna tertentu
 // Endpoint: POST /api/reconnect
 func (h *ConnectionHandler) Reconnect(c *fiber.Ctx) error {
 	// 1. Log informasi debug request
@@ -35,50 +35,66 @@ func (h *ConnectionHandler) Reconnect(c *fiber.Ctx) error {
 		h.Logger.Debug("Gagal parsing request body, melanjutkan dengan nilai default")
 	}
 
-	// 3. Hubungkan WhatsApp
-	err := h.WhatsApp.Connect()
+	// 3. Dapatkan client untuk user ini
+	whatsClient, userID, err := h.GetUserClient(c)
+	if err != nil {
+		return h.SendError(c, constants.MsgClientNotAvailable, err, fiber.StatusInternalServerError)
+	}
+
+	// 4. Hubungkan WhatsApp
+	err = whatsClient.Connect()
 	if err != nil {
 		return h.SendError(c, constants.MsgConnectionFailed, err, fiber.StatusInternalServerError)
 	}
 
-	// 4. Log dan kirim respons sukses
+	// 5. Log dan kirim respons sukses
 	h.LogSuccessResponse("Permintaan menghubungkan ulang WhatsApp berhasil diproses", utils.Fields{
+		"userID": userID,
 		"force":  req.Force,
-		"status": string(h.WhatsApp.GetConnectionState().Status),
+		"status": string(whatsClient.GetConnectionState().Status),
 	})
 
 	return h.SendSuccess(c, model.NewConnectionResponse(
 		true,
 		constants.MsgReconnectSuccess,
-		string(h.WhatsApp.GetConnectionState().Status)))
+		string(whatsClient.GetConnectionState().Status)))
 }
 
-// Disconnect memutuskan koneksi WhatsApp
+// Disconnect memutuskan koneksi WhatsApp untuk pengguna tertentu
 // Endpoint: POST /api/disconnect
 func (h *ConnectionHandler) Disconnect(c *fiber.Ctx) error {
 	// 1. Log informasi debug request
 	h.LogDebugRequest(c, "Disconnect")
 
-	// 2. Putuskan koneksi WhatsApp
-	h.WhatsApp.Disconnect()
+	// 2. Dapatkan client untuk user ini
+	whatsClient, userID, err := h.GetUserClient(c)
+	if err != nil {
+		return h.SendError(c, constants.MsgClientNotAvailable, err, fiber.StatusInternalServerError)
+	}
 
-	// 3. Tunggu sejenak agar status koneksi diperbarui
+	// 3. Putuskan koneksi WhatsApp
+	whatsClient.Disconnect()
+
+	// 4. Tunggu sejenak agar status koneksi diperbarui
 	time.Sleep(300 * time.Millisecond)
 
-	// 4. Hapus sesi
-	err := h.WhatsApp.SessionManager.ClearSessions()
+	// 5. Hapus sesi
+	err = whatsClient.SessionManager.ClearSessions()
 	if err != nil {
 		return h.SendError(c, constants.MsgFailedSessionDelete, err, fiber.StatusInternalServerError)
 	}
 
-	// 5. Verifikasi status koneksi
-	state := h.WhatsApp.GetConnectionState()
+	// 6. Verifikasi status koneksi
+	state := whatsClient.GetConnectionState()
 	if state.IsConnected {
-		h.Logger.Warn("Status koneksi masih terdeteksi sebagai terhubung setelah disconnect")
+		h.Logger.Warn("Status koneksi masih terdeteksi sebagai terhubung setelah disconnect", utils.Fields{
+			"userID": userID,
+		})
 	}
 
-	// 6. Log dan kirim respons sukses
+	// 7. Log dan kirim respons sukses
 	h.LogSuccessResponse("WhatsApp berhasil diputuskan melalui API", utils.Fields{
+		"userID": userID,
 		"status": string(state.Status),
 	})
 

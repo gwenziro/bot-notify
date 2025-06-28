@@ -6,7 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/session"
 	"github.com/gwenziro/bot-notify/internal/api/handler"
 	"github.com/gwenziro/bot-notify/internal/config"
-	"github.com/gwenziro/bot-notify/internal/service/client"
+	"github.com/gwenziro/bot-notify/internal/manager"
 	"github.com/gwenziro/bot-notify/internal/service/website"
 	"github.com/gwenziro/bot-notify/internal/utils"
 	"github.com/gwenziro/bot-notify/internal/web/controller"
@@ -20,10 +20,10 @@ type APIHandler struct {
 	messageHandler *handler.MessageHandler
 }
 
-// WebHandler menangani endpoint dan tampilan web
+// WebHandler menangani endpoint dan tampilan web dengan dukungan multi-user
 type WebHandler struct {
 	config       *config.Config
-	whatsApp     *client.Client
+	userManager  *manager.UserManager
 	logger       utils.LogrusEntry
 	viewsPath    string
 	staticPath   string
@@ -39,19 +39,19 @@ type WebHandler struct {
 	apiHandler *APIHandler
 }
 
-// NewWebHandler membuat instance baru WebHandler
-func NewWebHandler(cfg *config.Config, whatsClient *client.Client, sessionStore *session.Store) *WebHandler {
+// NewWebHandler membuat instance baru WebHandler dengan dukungan multi-user
+func NewWebHandler(cfg *config.Config, userManager *manager.UserManager, sessionStore *session.Store) *WebHandler {
 	// Sesuaikan path dengan struktur direktori baru
 	viewsPath := filepath.Join(utils.ProjectRoot, "internal", "web", "view")
 	staticPath := filepath.Join(utils.ProjectRoot, "static")
 
 	logger := utils.ForModule("web")
 
-	// Buat service layer terlebih dahulu
+	// Buat service layer terlebih dahulu dengan UserManager
 	homeService := website.NewHomeService(cfg, logger)
-	dashboardService := website.NewDashboardService(cfg, whatsClient, logger)
+	dashboardService := website.NewDashboardService(cfg, userManager, logger)
 	authService := website.NewAuthService(cfg, sessionStore, logger)
-	docService := website.NewDocService(cfg, whatsClient, logger)
+	docService := website.NewDocService(cfg, userManager, logger)
 
 	// Inisialisasi controller dengan service yang sesuai
 	homeController := controller.NewHomeController(homeService, logger)
@@ -59,17 +59,17 @@ func NewWebHandler(cfg *config.Config, whatsClient *client.Client, sessionStore 
 	authController := controller.NewAuthController(authService, logger)
 	docController := controller.NewDocController(docService, logger)
 
-	// Inisialisasi API handler
+	// Inisialisasi API handler dengan UserManager
 	apiHandler := &APIHandler{
-		statusHandler:  handler.NewStatusHandler(whatsClient),
-		qrCodeHandler:  handler.NewQRCodeHandler(whatsClient),
-		groupHandler:   handler.NewGroupHandler(whatsClient),
-		messageHandler: handler.NewMessageHandler(whatsClient),
+		statusHandler:  handler.NewStatusHandler(userManager),
+		qrCodeHandler:  handler.NewQRCodeHandler(userManager),
+		groupHandler:   handler.NewGroupHandler(userManager),
+		messageHandler: handler.NewMessageHandler(userManager),
 	}
 
 	return &WebHandler{
 		config:              cfg,
-		whatsApp:            whatsClient,
+		userManager:         userManager,
 		logger:              logger,
 		viewsPath:           viewsPath,
 		staticPath:          staticPath,

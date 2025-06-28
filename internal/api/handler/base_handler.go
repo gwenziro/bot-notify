@@ -4,23 +4,25 @@ import (
 	"fmt"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gwenziro/bot-notify/internal/api/middleware"
 	"github.com/gwenziro/bot-notify/internal/api/model"
 	"github.com/gwenziro/bot-notify/internal/constants"
+	"github.com/gwenziro/bot-notify/internal/manager"
 	"github.com/gwenziro/bot-notify/internal/service/client"
 	"github.com/gwenziro/bot-notify/internal/utils"
 )
 
-// BaseHandler berisi fungsionalitas umum untuk semua handler API
+// BaseHandler berisi fungsionalitas umum untuk semua handler API dengan dukungan multi-user
 type BaseHandler struct {
-	WhatsApp *client.Client    // Klien WhatsApp untuk operasi pesan
-	Logger   utils.LogrusEntry // Logger untuk mencatat aktivitas
+	UserManager *manager.UserManager // Manager untuk mengelola instance client per user
+	Logger      utils.LogrusEntry    // Logger untuk mencatat aktivitas
 }
 
 // NewBaseHandler membuat instance baru BaseHandler
-func NewBaseHandler(whatsClient *client.Client, module string) BaseHandler {
+func NewBaseHandler(userManager *manager.UserManager, module string) BaseHandler {
 	return BaseHandler{
-		WhatsApp: whatsClient,
-		Logger:   utils.ForModule(module),
+		UserManager: userManager,
+		Logger:      utils.ForModule(module),
 	}
 }
 
@@ -51,26 +53,75 @@ func (h *BaseHandler) SendDisconnectedResponse(c *fiber.Ctx, customMessage strin
 	return false
 }
 
-// CheckWhatsAppConnection memeriksa koneksi WhatsApp dan mengirimkan respons jika tidak terhubung
-func (h *BaseHandler) CheckWhatsAppConnection(c *fiber.Ctx, customMessage string) bool {
-	// Validasi client tidak nil
-	if h.WhatsApp == nil {
-		h.SendError(c, constants.MsgClientNotAvailable, nil, fiber.StatusInternalServerError)
-		return false
+// GetUserClient mendapatkan client WhatsApp untuk pengguna dari context
+func (h *BaseHandler) GetUserClient(c *fiber.Ctx) (*client.Client, string, error) {
+	// Ambil userID dari context
+	userID, ok := middleware.GetUserIDFromContext(c)
+	if !ok {
+		return nil, "", fmt.Errorf("userID tidak ditemukan dalam context")
 	}
 
-	state, err := h.WhatsApp.GetConnectionStateSafe()
+	// Cek apakah ini adalah admin
+	isAdmin := middleware.IsAdminFromContext(c)
+	
+	// Jika admin, gunakan userID "admin" atau buat client admin jika belum ada
+	if isAdmin {
+		adminClient, exists := h.UserManager.GetUserClient("admin")
+		if !exists {
+			// Buat client admin baru
+			newAdminClient, err := h.UserManager.NewUserClient("admin")
+			if err != nil {
+				return nil, userID, fmt.Errorf("gagal membuat client admin: %w", err)
+			}
+			adminClient = newAdminClient
+		}
+		return adminClient, "admin", nil
+	}
+
+	// Untuk user biasa, ambil atau buat client
+	userClient, exists := h.UserManager.GetUserClient(userID)
+	if !exists {
+		// Buat client baru untuk user ini
+		newUserClient, err := h.UserManager.NewUserClient(userID)
+		if err != nil {
+			return nil, userID, fmt.Errorf("gagal membuat client untuk user %s: %w", userID, err)
+		}
+		userClient = newUserClient
+	}
+
+	return userClient, userID, nil
+}
+
+// CheckWhatsAppConnection memeriksa koneksi WhatsApp dan mengirimkan respons jika tidak terhubung
+func (h *BaseHandler) CheckWhatsAppConnection(c *fiber.Ctx, customMessage string) (*client.Client, bool) {
+	// Dapatkan client untuk user ini
+	whatsClient, userID, err := h.GetUserClient(c)
+	if err != nil {
+		h.SendError(c, constants.MsgClientNotAvailable, err, fiber.StatusInternalServerError)
+		return nil, false
+	}
+
+	// Validasi client tidak nil
+	if whatsClient == nil {
+		h.SendError(c, constants.MsgClientNotAvailable, nil, fiber.StatusInternalServerError)
+		return nil, false
+	}
+
+	state, err := whatsClient.GetConnectionStateSafe()
 	if err != nil {
 		h.SendError(c, fmt.Sprintf(constants.MsgStatusFailed, err), nil, fiber.StatusInternalServerError)
-		return false
+		return nil, false
 	}
 
 	if !state.IsConnected {
-		h.Logger.Info(fmt.Sprintf("Permintaan endpoint %s saat WhatsApp tidak terhubung", c.Path()))
-		return h.SendDisconnectedResponse(c, customMessage)
+		h.Logger.Info(fmt.Sprintf("Permintaan endpoint %s saat WhatsApp tidak terhubung", c.Path()), utils.Fields{
+			"userID": userID,
+		})
+		h.SendDisconnectedResponse(c, customMessage)
+		return whatsClient, false
 	}
 
-	return true
+	return whatsClient, true
 }
 
 // ValidateRequest memvalidasi request body dan field yang diperlukan
@@ -110,7 +161,10 @@ func (h *BaseHandler) ValidateRequiredField(c *fiber.Ctx, fieldName string, fiel
 
 // LogDebugRequest mencatat informasi debug tentang request
 func (h *BaseHandler) LogDebugRequest(c *fiber.Ctx, handlerName string) {
+	userID, _ := middleware.GetUserIDFromContext(c)
+	
 	h.Logger.Debug(fmt.Sprintf("%s dipanggil", handlerName), utils.Fields{
+		"userID": userID,
 		"path":   c.Path(),
 		"method": c.Method(),
 		"ip":     c.IP(),

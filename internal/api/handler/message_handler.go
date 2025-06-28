@@ -7,19 +7,19 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gwenziro/bot-notify/internal/api/model"
 	"github.com/gwenziro/bot-notify/internal/constants"
-	"github.com/gwenziro/bot-notify/internal/service/client"
+	"github.com/gwenziro/bot-notify/internal/manager"
 	"github.com/gwenziro/bot-notify/internal/utils"
 )
 
-// MessageHandler menangani endpoint API pesan WhatsApp
+// MessageHandler menangani endpoint API pesan WhatsApp dengan dukungan multi-user
 type MessageHandler struct {
 	BaseHandler
 }
 
 // NewMessageHandler membuat instance baru MessageHandler
-func NewMessageHandler(whatsClient *client.Client) *MessageHandler {
+func NewMessageHandler(userManager *manager.UserManager) *MessageHandler {
 	return &MessageHandler{
-		BaseHandler: NewBaseHandler(whatsClient, "handler-message"),
+		BaseHandler: NewBaseHandler(userManager, "handler-message"),
 	}
 }
 
@@ -29,8 +29,9 @@ func (h *MessageHandler) SendGroup(c *fiber.Ctx) error {
 	// 1. Log informasi debug request
 	h.LogDebugRequest(c, "SendGroup")
 
-	// 2. Gunakan metode standar untuk memeriksa koneksi
-	if !h.CheckWhatsAppConnection(c, constants.MsgNotConnected) {
+	// 2. Gunakan metode standar untuk memeriksa koneksi dan mendapatkan client
+	whatsClient, connected := h.CheckWhatsAppConnection(c, constants.MsgNotConnected)
+	if !connected {
 		return nil
 	}
 
@@ -62,7 +63,7 @@ func (h *MessageHandler) SendGroup(c *fiber.Ctx) error {
 		"length":   len(req.Message),
 	})
 
-	sentTime, err := h.WhatsApp.SendMessage(jid, req.Message)
+	sentTime, err := whatsClient.SendMessage(jid, req.Message)
 	if err != nil {
 		return h.SendError(c, fmt.Sprintf("%s: %v", constants.MsgSendFailure, err), err, fiber.StatusInternalServerError)
 	}
@@ -88,8 +89,9 @@ func (h *MessageHandler) SendPersonal(c *fiber.Ctx) error {
 	// 1. Log informasi debug request
 	h.LogDebugRequest(c, "SendPersonal")
 
-	// 2. Gunakan metode standar untuk memeriksa koneksi
-	if !h.CheckWhatsAppConnection(c, constants.MsgNotConnected) {
+	// 2. Gunakan metode standar untuk memeriksa koneksi dan mendapatkan client
+	whatsClient, connected := h.CheckWhatsAppConnection(c, constants.MsgNotConnected)
+	if !connected {
 		return nil
 	}
 
@@ -121,7 +123,7 @@ func (h *MessageHandler) SendPersonal(c *fiber.Ctx) error {
 		"length": len(req.Message),
 	})
 
-	sentTime, err := h.WhatsApp.SendMessage(jid, req.Message)
+	sentTime, err := whatsClient.SendMessage(jid, req.Message)
 	if err != nil {
 		return h.SendError(c, fmt.Sprintf("%s: %v", constants.MsgSendFailure, err), err, fiber.StatusInternalServerError)
 	}

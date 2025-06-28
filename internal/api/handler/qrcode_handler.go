@@ -4,7 +4,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gwenziro/bot-notify/internal/api/model"
 	"github.com/gwenziro/bot-notify/internal/constants"
-	"github.com/gwenziro/bot-notify/internal/service/client"
+	"github.com/gwenziro/bot-notify/internal/manager"
 	"github.com/gwenziro/bot-notify/internal/service/session"
 	"github.com/gwenziro/bot-notify/internal/utils"
 )
@@ -12,30 +12,34 @@ import (
 // QR code expiration time constant
 const QrCodeExpirationMinutes = 25.0 / 60.0 // 25 detik dinyatakan dalam menit
 
-// QRCodeHandler menangani endpoint QR code untuk koneksi WhatsApp
+// QRCodeHandler menangani endpoint QR code untuk koneksi WhatsApp dengan dukungan multi-user
 type QRCodeHandler struct {
 	BaseHandler
-	sessionMgr *session.Manager // Manager untuk sesi WhatsApp
-	maxAgeMins float64          // Masa berlaku maksimum QR code dalam menit
+	maxAgeMins float64 // Masa berlaku maksimum QR code dalam menit
 }
 
 // NewQRCodeHandler membuat instance baru QRCodeHandler
-func NewQRCodeHandler(whatsClient *client.Client) *QRCodeHandler {
+func NewQRCodeHandler(userManager *manager.UserManager) *QRCodeHandler {
 	return &QRCodeHandler{
-		BaseHandler: NewBaseHandler(whatsClient, "handler-qrcode"),
-		sessionMgr:  whatsClient.SessionManager,
+		BaseHandler: NewBaseHandler(userManager, "handler-qrcode"),
 		maxAgeMins:  QrCodeExpirationMinutes,
 	}
 }
 
-// GetStatus mengembalikan status QR code saat ini
+// GetStatus mengembalikan status QR code saat ini untuk pengguna tertentu
 // Endpoint: GET /api/qr/status
 func (h *QRCodeHandler) GetStatus(c *fiber.Ctx) error {
 	// Log debug request
 	h.LogDebugRequest(c, "GetStatus")
 
+	// Dapatkan client untuk user ini
+	whatsClient, userID, err := h.GetUserClient(c)
+	if err != nil {
+		return h.SendError(c, "Gagal mendapatkan client pengguna", err, fiber.StatusInternalServerError)
+	}
+
 	// Periksa status koneksi WhatsApp terlebih dahulu
-	state, err := h.WhatsApp.GetConnectionStateSafe()
+	state, err := whatsClient.GetConnectionStateSafe()
 	if err != nil {
 		return h.SendError(c, "Gagal mendapatkan status koneksi", err, fiber.StatusInternalServerError)
 	}
@@ -47,6 +51,7 @@ func (h *QRCodeHandler) GetStatus(c *fiber.Ctx) error {
 		response.ConnectedStatus = true
 
 		h.LogSuccessResponse("QR code tidak tersedia karena sudah terhubung", utils.Fields{
+			"userID":    userID,
 			"connected": true,
 		})
 
@@ -54,7 +59,7 @@ func (h *QRCodeHandler) GetStatus(c *fiber.Ctx) error {
 	}
 
 	// Jika WhatsApp tidak terhubung, periksa status QR code
-	qrHandler := h.WhatsApp.SessionManager.GetQRHandler()
+	qrHandler := whatsClient.SessionManager.GetQRHandler()
 	if qrHandler == nil {
 		return h.SendError(c, "QR handler tidak tersedia", nil, fiber.StatusInternalServerError)
 	}
@@ -84,6 +89,7 @@ func (h *QRCodeHandler) GetStatus(c *fiber.Ctx) error {
 	statusCode := fiber.StatusOK
 
 	h.LogSuccessResponse("Status QR code berhasil diambil", utils.Fields{
+		"userID":    userID,
 		"available": available,
 		"expired":   expired,
 		"status":    statusCode,
@@ -92,7 +98,7 @@ func (h *QRCodeHandler) GetStatus(c *fiber.Ctx) error {
 	return c.Status(statusCode).JSON(response)
 }
 
-// GetImage mengembalikan gambar QR code
+// GetImage mengembalikan gambar QR code untuk pengguna tertentu
 // Endpoint: GET /api/qr/image
 func (h *QRCodeHandler) GetImage(c *fiber.Ctx) error {
 	// Log debug request
@@ -107,17 +113,25 @@ func (h *QRCodeHandler) GetImage(c *fiber.Ctx) error {
 		}
 
 		// Untuk browser atau permintaan non-JSON, kirim respons 404 yang sederhana
+		userID, _ := h.GetUserClient(c)
 		h.Logger.Warn("QR code tidak tersedia", utils.Fields{
-			"path": c.Path(),
+			"userID": userID,
+			"path":   c.Path(),
 		})
 
 		return c.Status(fiber.StatusNotFound).SendString("QR code tidak tersedia")
 	}
 
+	// Dapatkan client untuk user ini
+	whatsClient, userID, err := h.GetUserClient(c)
+	if err != nil {
+		return h.SendError(c, "Gagal mendapatkan client pengguna", err, fiber.StatusInternalServerError)
+	}
+
 	// Dapatkan QR handler dari session manager
-	qrHandler := h.sessionMgr.GetQRHandler()
+	qrHandler := whatsClient.SessionManager.GetQRHandler()
 	if qrHandler == nil {
-		h.Logger.Error("QR handler tidak tersedia")
+		h.Logger.Error("QR handler tidak tersedia", utils.Fields{"userID": userID})
 		return c.Status(fiber.StatusInternalServerError).SendString("QR handler tidak tersedia")
 	}
 
@@ -127,6 +141,7 @@ func (h *QRCodeHandler) GetImage(c *fiber.Ctx) error {
 	// Jika QR code kedaluwarsa atau tidak ada, return 404
 	if qrHandler.IsQRCodeExpired(h.maxAgeMins) {
 		h.Logger.Warn("QR code kedaluwarsa", utils.Fields{
+			"userID":   userID,
 			"age_mins": h.maxAgeMins,
 		})
 
@@ -138,7 +153,8 @@ func (h *QRCodeHandler) GetImage(c *fiber.Ctx) error {
 	}
 
 	h.LogSuccessResponse("QR code image berhasil diambil", utils.Fields{
-		"path": qrPath,
+		"userID": userID,
+		"path":   qrPath,
 	})
 
 	// Send QR code sebagai file
@@ -147,14 +163,20 @@ func (h *QRCodeHandler) GetImage(c *fiber.Ctx) error {
 
 // checkQRAvailability memeriksa apakah QR code tersedia berdasarkan status koneksi
 func (h *QRCodeHandler) checkQRAvailability(c *fiber.Ctx) (canContinue bool, err error) {
+	// Dapatkan client untuk user ini
+	whatsClient, userID, err := h.GetUserClient(c)
+	if err != nil {
+		return false, h.SendError(c, "Gagal mendapatkan client pengguna", err, fiber.StatusInternalServerError)
+	}
+
 	// Dapatkan status koneksi
-	state, err := h.WhatsApp.GetConnectionStateSafe()
+	state, err := whatsClient.GetConnectionStateSafe()
 	if err != nil {
 		return false, h.SendError(c, "Gagal mendapatkan status koneksi", err, fiber.StatusInternalServerError)
 	}
 
 	// Jika sudah terhubung, QR code tidak relevan
-	if state.IsConnected || h.WhatsApp.IsLoggedIn() {
+	if state.IsConnected || whatsClient.IsLoggedIn() {
 		return false, h.SendSuccess(c, model.NewQRCodeStatusResponse(false, false, constants.MsgQrConnected))
 	}
 

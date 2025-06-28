@@ -6,28 +6,30 @@ import (
 	"time"
 
 	"github.com/gwenziro/bot-notify/internal/config"
+	"github.com/gwenziro/bot-notify/internal/manager"
 	"github.com/gwenziro/bot-notify/internal/service/client"
 	"github.com/gwenziro/bot-notify/internal/utils"
 	"github.com/gwenziro/bot-notify/internal/web/entity"
 )
 
-// DashboardService menyediakan fungsionalitas untuk halaman dashboard
+// DashboardService menyediakan fungsionalitas untuk halaman dashboard dengan dukungan multi-user
 type DashboardService struct {
-	config   *config.Config
-	whatsApp *client.Client
-	logger   utils.LogrusEntry
+	config      *config.Config
+	userManager *manager.UserManager
+	logger      utils.LogrusEntry
 }
 
-// NewDashboardService membuat instance service dashboard baru
-func NewDashboardService(cfg *config.Config, whatsClient *client.Client, logger utils.LogrusEntry) *DashboardService {
+// NewDashboardService membuat instance service dashboard baru dengan dukungan multi-user
+func NewDashboardService(cfg *config.Config, userManager *manager.UserManager, logger utils.LogrusEntry) *DashboardService {
 	return &DashboardService{
-		config:   cfg,
-		whatsApp: whatsClient,
-		logger:   logger.WithField("component", "dashboard-service"),
+		config:      cfg,
+		userManager: userManager,
+		logger:      logger.WithField("component", "dashboard-service"),
 	}
 }
 
 // GetDashboardData menyiapkan semua data yang diperlukan untuk dashboard
+// Untuk sementara, dashboard akan menampilkan data admin client
 func (s *DashboardService) GetDashboardData() entity.DashboardData {
 	// Buat data dasar
 	baseURL := utils.CleanBaseURL(s.config.Server.BaseURL)
@@ -38,8 +40,23 @@ func (s *DashboardService) GetDashboardData() entity.DashboardData {
 	// Tetapkan token asli tanpa masking
 	data.Token = s.config.Auth.AccessToken
 
+	// Dapatkan admin client untuk dashboard
+	adminClient, exists := s.userManager.GetUserClient("admin")
+	if !exists {
+		// Jika admin client belum ada, buat baru
+		newAdminClient, err := s.userManager.NewUserClient("admin")
+		if err != nil {
+			s.logger.WithError(err).Error("Gagal membuat admin client untuk dashboard")
+			// Return data dengan status disconnected
+			data.IsConnected = false
+			data.ConnectionStatus = string(client.StatusDisconnected)
+			return data
+		}
+		adminClient = newAdminClient
+	}
+
 	// Dapatkan status koneksi WhatsApp
-	connectionState, _ := s.whatsApp.GetConnectionStateSafe()
+	connectionState, _ := adminClient.GetConnectionStateSafe()
 	data.IsConnected = connectionState.IsConnected
 	data.ConnectionStatus = string(connectionState.Status)
 	data.LastActivity = connectionState.LastActivity
@@ -47,7 +64,7 @@ func (s *DashboardService) GetDashboardData() entity.DashboardData {
 
 	// Jika terhubung, tambahkan informasi koneksi
 	if data.IsConnected {
-		s.enrichConnectedData(&data, connectionState)
+		s.enrichConnectedData(&data, connectionState, adminClient)
 	} else {
 		// Jika tidak terhubung, dapatkan informasi QR code
 		qrStatus := s.GetQRCodeStatus()
@@ -61,9 +78,9 @@ func (s *DashboardService) GetDashboardData() entity.DashboardData {
 }
 
 // enrichConnectedData memperkaya data dashboard dengan informasi koneksi
-func (s *DashboardService) enrichConnectedData(data *entity.DashboardData, connectionState client.ConnectionState) {
+func (s *DashboardService) enrichConnectedData(data *entity.DashboardData, connectionState client.ConnectionState, whatsClient *client.Client) {
 	// Dapatkan informasi koneksi hanya sekali untuk efisiensi
-	connectionInfo := s.whatsApp.GetConnectionInfo()
+	connectionInfo := whatsClient.GetConnectionInfo()
 
 	// Ekstrak device_info dari connectionInfo
 	deviceInfo, ok := connectionInfo["device_info"].(map[string]interface{})
@@ -79,7 +96,7 @@ func (s *DashboardService) enrichConnectedData(data *entity.DashboardData, conne
 	s.setProfileInfo(data, deviceInfo)
 
 	// Dapatkan jumlah pesan terkirim
-	messagesSent := s.whatsApp.GetMessagesSent()
+	messagesSent := whatsClient.GetMessagesSent()
 	data.MessagesSent = int(messagesSent)
 
 	s.logger.Debug("Retrieved profile and message statistics", utils.Fields{
@@ -177,10 +194,21 @@ type QRStatus struct {
 	Message   string
 }
 
-// GetQRCodeStatus mendapatkan status QR code
+// GetQRCodeStatus mendapatkan status QR code untuk admin client
 func (s *DashboardService) GetQRCodeStatus() QRStatus {
+	// Dapatkan admin client
+	adminClient, exists := s.userManager.GetUserClient("admin")
+	if !exists {
+		return QRStatus{
+			Available: false,
+			Expired:   false,
+			URL:       "",
+			Message:   "Admin client tidak tersedia. Silakan coba refresh.",
+		}
+	}
+
 	// Periksa apakah QR handler tersedia
-	qrHandler := s.whatsApp.SessionManager.GetQRHandler()
+	qrHandler := adminClient.SessionManager.GetQRHandler()
 	if qrHandler == nil {
 		return QRStatus{
 			Available: false,
@@ -222,24 +250,40 @@ func (s *DashboardService) GetQRCodeStatus() QRStatus {
 	}
 }
 
-// RefreshQRCode meminta refresh QR code
+// RefreshQRCode meminta refresh QR code untuk admin client
 func (s *DashboardService) RefreshQRCode() error {
-	s.logger.Info("Mencoba mendapatkan QR code baru")
+	s.logger.Info("Mencoba mendapatkan QR code baru untuk admin")
+
+	// Dapatkan atau buat admin client
+	adminClient, exists := s.userManager.GetUserClient("admin")
+	if !exists {
+		newAdminClient, err := s.userManager.NewUserClient("admin")
+		if err != nil {
+			return fmt.Errorf("gagal membuat admin client: %w", err)
+		}
+		adminClient = newAdminClient
+	}
 
 	// Hubungkan ulang WhatsApp untuk mendapatkan QR code baru
-	return s.whatsApp.Connect()
+	return adminClient.Connect()
 }
 
-// DisconnectWhatsApp memutuskan koneksi WhatsApp
+// DisconnectWhatsApp memutuskan koneksi WhatsApp untuk admin client
 func (s *DashboardService) DisconnectWhatsApp() error {
-	s.logger.Info("Memutuskan koneksi WhatsApp")
+	s.logger.Info("Memutuskan koneksi WhatsApp admin")
+
+	// Dapatkan admin client
+	adminClient, exists := s.userManager.GetUserClient("admin")
+	if !exists {
+		return fmt.Errorf("admin client tidak ditemukan")
+	}
 
 	// Putuskan koneksi WhatsApp
-	s.whatsApp.Disconnect()
+	adminClient.Disconnect()
 
 	// Tunggu sejenak agar status koneksi diperbarui
 	time.Sleep(300 * time.Millisecond)
 
 	// Hapus sesi
-	return s.whatsApp.SessionManager.ClearSessions()
+	return adminClient.SessionManager.ClearSessions()
 }

@@ -4,30 +4,31 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gwenziro/bot-notify/internal/api/model"
 	"github.com/gwenziro/bot-notify/internal/constants"
-	"github.com/gwenziro/bot-notify/internal/service/client"
+	"github.com/gwenziro/bot-notify/internal/manager"
 	"github.com/gwenziro/bot-notify/internal/utils"
 )
 
-// ProfileHandler menangani endpoint informasi profil WhatsApp
+// ProfileHandler menangani endpoint informasi profil WhatsApp dengan dukungan multi-user
 type ProfileHandler struct {
 	BaseHandler
 }
 
 // NewProfileHandler membuat instance baru ProfileHandler
-func NewProfileHandler(whatsClient *client.Client) *ProfileHandler {
+func NewProfileHandler(userManager *manager.UserManager) *ProfileHandler {
 	return &ProfileHandler{
-		BaseHandler: NewBaseHandler(whatsClient, "handler-profile"),
+		BaseHandler: NewBaseHandler(userManager, "handler-profile"),
 	}
 }
 
-// GetProfile mengembalikan informasi profil WhatsApp
+// GetProfile mengembalikan informasi profil WhatsApp untuk pengguna tertentu
 // Endpoint: GET /api/profile
 func (h *ProfileHandler) GetProfile(c *fiber.Ctx) error {
 	// 1. Log informasi debug request
 	h.LogDebugRequest(c, "GetProfile")
 
-	// 2. Validasi koneksi WhatsApp
-	if !h.CheckWhatsAppConnection(c, "Gagal mendapatkan profil: "+constants.MsgNotConnected) {
+	// 2. Dapatkan client untuk user ini
+	whatsClient, userID, err := h.GetUserClient(c)
+	if err != nil {
 		// Buat profile kosong dengan informasi minimal
 		emptyProfile := model.ProfileInfo{
 			IsConnected: false,
@@ -42,14 +43,30 @@ func (h *ProfileHandler) GetProfile(c *fiber.Ctx) error {
 		))
 	}
 
-	// 3. Dapatkan informasi perangkat dan status koneksi
-	deviceInfo := h.WhatsApp.GetConnectionInfo()
-	state := h.WhatsApp.GetConnectionState()
+	// 3. Validasi koneksi WhatsApp
+	state, err := whatsClient.GetConnectionStateSafe()
+	if err != nil || !state.IsConnected {
+		// Buat profile kosong dengan informasi minimal
+		emptyProfile := model.ProfileInfo{
+			IsConnected: false,
+			IsLoggedIn:  false,
+		}
 
-	// 4. Persiapkan data profil
+		// Kembalikan respons dengan format yang konsisten
+		return c.Status(fiber.StatusServiceUnavailable).JSON(model.NewProfileResponse(
+			false,                     // Set success ke false
+			constants.MsgNotConnected, // Pesan yang lebih sesuai
+			emptyProfile,
+		))
+	}
+
+	// 4. Dapatkan informasi perangkat dan status koneksi
+	deviceInfo := whatsClient.GetConnectionInfo()
+
+	// 5. Persiapkan data profil
 	profile := model.ProfileInfo{
 		IsConnected:    state.IsConnected,
-		IsLoggedIn:     h.WhatsApp.IsLoggedIn(),
+		IsLoggedIn:     whatsClient.IsLoggedIn(),
 		ConnectedSince: h.FormatConnectedSince(state),
 	}
 
@@ -64,8 +81,8 @@ func (h *ProfileHandler) GetProfile(c *fiber.Ctx) error {
 	}
 
 	// 6. Tambahkan URL foto profil jika tersedia
-	if h.WhatsApp.IsLoggedIn() && h.WhatsApp.GetSelfID() != nil {
-		if pictureURL, err := h.WhatsApp.GetProfilePictureURL(); err == nil && pictureURL != "" {
+	if whatsClient.IsLoggedIn() && whatsClient.GetSelfID() != nil {
+		if pictureURL, err := whatsClient.GetProfilePictureURL(); err == nil && pictureURL != "" {
 			profile.PictureURL = pictureURL
 		}
 	}
@@ -75,6 +92,7 @@ func (h *ProfileHandler) GetProfile(c *fiber.Ctx) error {
 
 	// 7. Log dan kirim respons sukses
 	h.LogSuccessResponse("Informasi profil WhatsApp berhasil diambil", utils.Fields{
+		"userID":      userID,
 		"phone":       formattedNumber,
 		"name":        profile.Name,
 		"connected":   profile.IsConnected,

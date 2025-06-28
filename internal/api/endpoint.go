@@ -26,6 +26,7 @@ func (h *APIHandler) RegisterEndpoints(app *fiber.App) {
 	h.registerGroupEndpoints(api)
 	h.registerQRCodeEndpoints(api)
 	h.registerProfileEndpoints(api)
+	h.registerAdminEndpoints(api)
 }
 
 // registerStatusEndpoints mendaftarkan endpoint status
@@ -64,4 +65,12 @@ func (h *APIHandler) registerQRCodeEndpoints(api fiber.Router) {
 // registerProfileEndpoints mendaftarkan endpoint profil
 func (h *APIHandler) registerProfileEndpoints(api fiber.Router) {
 	api.Get("/profile", h.profileHandler.GetProfile)
+}
+
+// registerAdminEndpoints mendaftarkan endpoint khusus admin
+func (h *APIHandler) registerAdminEndpoints(api fiber.Router) {
+	admin := api.Group("/admin")
+	
+	// Endpoint untuk melihat status semua pengguna (hanya admin)
+	admin.Get("/users/status", h.statusHandler.GetAllUsersStatus)
 }

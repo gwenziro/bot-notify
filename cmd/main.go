@@ -10,8 +10,8 @@ import (
 
 	"github.com/gwenziro/bot-notify/internal/api"
 	"github.com/gwenziro/bot-notify/internal/config"
+	"github.com/gwenziro/bot-notify/internal/manager"
 	"github.com/gwenziro/bot-notify/internal/server"
-	"github.com/gwenziro/bot-notify/internal/service/client"
 	"github.com/gwenziro/bot-notify/internal/storage"
 	"github.com/gwenziro/bot-notify/internal/utils"
 	"github.com/gwenziro/bot-notify/internal/web"
@@ -48,25 +48,13 @@ func main() {
 	}
 	defer store.Close()
 
-	// Inisialisasi WhatsApp client
-	whatsClient, err := client.NewClient(cfg)
-	if err != nil {
-		utils.Fatal("Gagal inisialisasi WhatsApp client", utils.Fields{"error": err.Error()})
-	}
-	defer whatsClient.Close()
-
-	// Pastikan whatsApp client telah diinisialisasi sebelum membuat handler
-	if whatsClient == nil {
-		utils.Fatal("WhatsApp client nil setelah inisialisasi", utils.Fields{})
-	}
-
-	// Konfigurasi QR code listener
-	whatsClient.SessionManager.SetClient(whatsClient)
-	whatsClient.SessionManager.SetupQRCodeListener()
+	// Inisialisasi UserManager untuk mengelola instance bot multi-user
+	userManager := manager.NewUserManager(cfg)
+	defer userManager.ShutdownAll()
 
 	// Setup handlers
-	webHandler := web.NewWebHandler(cfg, whatsClient, nil)
-	apiHandler := api.NewAPIHandler(cfg, whatsClient, nil)
+	webHandler := web.NewWebHandler(cfg, userManager, nil)
+	apiHandler := api.NewAPIHandler(cfg, userManager, nil)
 
 	// Buat server dengan template engine yang diaktifkan
 	viewsPath := filepath.Join(utils.ProjectRoot, "internal", "web", "view")
@@ -97,21 +85,13 @@ func main() {
 	// Jalankan server di background
 	listenAddr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 	go func() {
-		utils.Info("Server berjalan", utils.Fields{
+		utils.Info("Server berjalan dengan sistem multi-user", utils.Fields{
 			"address": listenAddr,
 			"port":    cfg.Server.Port,
 			"pid":     os.Getpid(),
 		})
 		if err := srv.App.Listen(listenAddr); err != nil {
 			utils.Error("Error saat menjalankan server", utils.Fields{"error": err.Error()})
-		}
-	}()
-
-	// Connect WhatsApp dengan sedikit delay untuk memastikan server siap
-	go func() {
-		time.Sleep(3 * time.Second)
-		if err := whatsClient.Connect(); err != nil {
-			utils.Error("Gagal terhubung ke WhatsApp", utils.Fields{"error": err.Error()})
 		}
 	}()
 
@@ -123,8 +103,8 @@ func main() {
 
 	utils.Info("Memulai graceful shutdown...")
 
-	// Tutup koneksi WhatsApp dengan bersih
-	whatsClient.Disconnect()
+	// Shutdown semua instance bot pengguna
+	userManager.ShutdownAll()
 
 	// Shutdown HTTP server
 	shutdownTimeout := cfg.Server.ShutdownTimeout

@@ -5,31 +5,42 @@ import (
 	"time"
 
 	"github.com/gwenziro/bot-notify/internal/config"
+	"github.com/gwenziro/bot-notify/internal/manager"
 	"github.com/gwenziro/bot-notify/internal/service/client"
 	"github.com/gwenziro/bot-notify/internal/utils"
 	"github.com/gwenziro/bot-notify/internal/web/entity"
 )
 
-// DocService menyediakan fungsionalitas untuk halaman dokumentasi
+// DocService menyediakan fungsionalitas untuk halaman dokumentasi dengan dukungan multi-user
 type DocService struct {
-	config   *config.Config
-	whatsApp *client.Client
-	logger   utils.LogrusEntry
+	config      *config.Config
+	userManager *manager.UserManager
+	logger      utils.LogrusEntry
 }
 
-// NewDocService membuat instance service dokumentasi baru
-func NewDocService(cfg *config.Config, whatsClient *client.Client, logger utils.LogrusEntry) *DocService {
+// NewDocService membuat instance service dokumentasi baru dengan dukungan multi-user
+func NewDocService(cfg *config.Config, userManager *manager.UserManager, logger utils.LogrusEntry) *DocService {
 	return &DocService{
-		config:   cfg,
-		whatsApp: whatsClient,
-		logger:   logger.WithField("component", "docs-service"),
+		config:      cfg,
+		userManager: userManager,
+		logger:      logger.WithField("component", "docs-service"),
 	}
 }
 
 // GetDocumentationData menyiapkan data untuk halaman dokumentasi
 func (s *DocService) GetDocumentationData() entity.DocumentationData {
-	// Dapatkan status koneksi WhatsApp untuk sidebar
-	connectionState, _ := s.whatsApp.GetConnectionStateSafe()
+	// Dapatkan status koneksi WhatsApp untuk sidebar (menggunakan admin client)
+	var connectionState client.ConnectionState
+	adminClient, exists := s.userManager.GetUserClient("admin")
+	if exists {
+		connectionState, _ = adminClient.GetConnectionStateSafe()
+	} else {
+		// Default state jika admin client tidak ada
+		connectionState = client.ConnectionState{
+			IsConnected: false,
+			Status:      client.StatusDisconnected,
+		}
+	}
 
 	// Persiapkan token asli
 	token := s.config.Auth.AccessToken
@@ -67,7 +78,7 @@ func (s *DocService) GetDocumentationData() entity.DocumentationData {
 	}
 }
 
-// GetApiEndpoints mengembalikan daftar endpoint API untuk dokumentasi
+// GetApiEndpoints mengembalikan daftar endpoint API untuk dokumentasi dengan informasi multi-user
 func (s *DocService) GetApiEndpoints() []entity.ApiEndpoint {
 	return []entity.ApiEndpoint{
 		// STATUS ENDPOINTS
@@ -76,15 +87,43 @@ func (s *DocService) GetApiEndpoints() []entity.ApiEndpoint {
 			Endpoint:    "/api/status",
 			Method:      "GET",
 			MethodLower: "get",
-			Description: "Mendapatkan status koneksi WhatsApp saat ini beserta informasi aktivitas terakhir.",
+			Description: "Mendapatkan status koneksi WhatsApp untuk pengguna tertentu. Setiap pengguna memiliki instance bot yang terpisah.",
 			Example: `curl -X GET "{{.BaseURL}}/api/status" \\
-  -H "X-Access-Token: {{.Token}}"`,
+  -H "X-Access-Token: user123"`,
 			Response: `{
   "success": true,
   "message": "WhatsApp terhubung",
   "status": "connected",
   "isConnected": true,
   "lastActivity": "15 Jun 2023 14:30:25"
+}`,
+		},
+		{
+			Name:        "Status Semua Pengguna (Admin)",
+			Endpoint:    "/api/admin/users/status",
+			Method:      "GET",
+			MethodLower: "get",
+			Description: "Mendapatkan status koneksi semua pengguna. Hanya tersedia untuk admin dengan token khusus.",
+			Example: `curl -X GET "{{.BaseURL}}/api/admin/users/status" \\
+  -H "X-Access-Token: {{.Token}}"`,
+			Response: `{
+  "success": true,
+  "message": "Status semua pengguna berhasil diambil",
+  "totalUsers": 3,
+  "users": [
+    {
+      "userId": "user123",
+      "isConnected": true,
+      "createdAt": "2023-06-15T10:30:00Z",
+      "lastActive": "2023-06-15T14:30:25Z"
+    },
+    {
+      "userId": "user456",
+      "isConnected": false,
+      "createdAt": "2023-06-15T11:00:00Z",
+      "lastActive": "2023-06-15T13:45:10Z"
+    }
+  ]
 }`,
 		},
 		{
@@ -107,9 +146,9 @@ func (s *DocService) GetApiEndpoints() []entity.ApiEndpoint {
 			Endpoint:    "/api/reconnect",
 			Method:      "POST",
 			MethodLower: "post",
-			Description: "Memulai ulang koneksi WhatsApp jika terputus. Jika belum ada sesi, akan memunculkan QR code baru.",
+			Description: "Memulai ulang koneksi WhatsApp untuk pengguna tertentu. Jika belum ada sesi, akan memunculkan QR code baru. Setiap pengguna memiliki instance bot yang terpisah.",
 			Example: `curl -X POST "{{.BaseURL}}/api/reconnect" \\
-  -H "X-Access-Token: {{.Token}}" \\
+  -H "X-Access-Token: user123" \\
   -H "Content-Type: application/json"`,
 			Response: `{
   "success": true,
@@ -123,9 +162,9 @@ func (s *DocService) GetApiEndpoints() []entity.ApiEndpoint {
 			Endpoint:    "/api/disconnect",
 			Method:      "POST",
 			MethodLower: "post",
-			Description: "Memutuskan koneksi WhatsApp yang sedang aktif dan menghapus sesi. Memerlukan pindai QR ulang untuk koneksi berikutnya.",
+			Description: "Memutuskan koneksi WhatsApp untuk pengguna tertentu dan menghapus sesi. Memerlukan pindai QR ulang untuk koneksi berikutnya.",
 			Example: `curl -X POST "{{.BaseURL}}/api/disconnect" \\
-  -H "X-Access-Token: {{.Token}}" \\
+  -H "X-Access-Token: user123" \\
   -H "Content-Type: application/json"`,
 			Response: `{
   "success": true,
@@ -141,9 +180,9 @@ func (s *DocService) GetApiEndpoints() []entity.ApiEndpoint {
 			Endpoint:    "/api/send/personal",
 			Method:      "POST",
 			MethodLower: "post",
-			Description: "Mengirim pesan ke nomor WhatsApp personal. Mendukung format nomor internasional maupun lokal.",
+			Description: "Mengirim pesan ke nomor WhatsApp personal menggunakan instance bot pengguna tertentu. Mendukung format nomor internasional maupun lokal.",
 			Example: `curl -X POST "{{.BaseURL}}/api/send/personal" \\
-  -H "X-Access-Token: {{.Token}}" \\
+  -H "X-Access-Token: user123" \\
   -H "Content-Type: application/json" \\
   -d '{
     "phoneNumber": "628123456789",
@@ -162,9 +201,9 @@ func (s *DocService) GetApiEndpoints() []entity.ApiEndpoint {
 			Endpoint:    "/api/send/group",
 			Method:      "POST",
 			MethodLower: "post",
-			Description: "Mengirim pesan ke grup WhatsApp menggunakan ID grup. ID grup bisa didapatkan dari endpoint /api/groups.",
+			Description: "Mengirim pesan ke grup WhatsApp menggunakan instance bot pengguna tertentu. ID grup bisa didapatkan dari endpoint /api/groups.",
 			Example: `curl -X POST "{{.BaseURL}}/api/send/group" \\
-  -H "X-Access-Token: {{.Token}}" \\
+  -H "X-Access-Token: user123" \\
   -H "Content-Type: application/json" \\
   -d '{
     "groupID": "120363123456789@g.us",
@@ -183,9 +222,9 @@ func (s *DocService) GetApiEndpoints() []entity.ApiEndpoint {
 			Endpoint:    "/api/send/broadcast",
 			Method:      "POST",
 			MethodLower: "post",
-			Description: "Mengirim pesan ke banyak penerima sekaligus (grup dan personal). Parameter delayMs mengatur jeda antar pengiriman dalam milidetik untuk mencegah throttling.",
+			Description: "Mengirim pesan ke banyak penerima sekaligus (grup dan personal) menggunakan instance bot pengguna tertentu. Parameter delayMs mengatur jeda antar pengiriman dalam milidetik untuk mencegah throttling.",
 			Example: `curl -X POST "{{.BaseURL}}/api/send/broadcast" \\
-  -H "X-Access-Token: {{.Token}}" \\
+  -H "X-Access-Token: user123" \\
   -H "Content-Type: application/json" \\
   -d '{
     "personalNumbers": ["628123456789", "628987654321"],
@@ -230,9 +269,9 @@ func (s *DocService) GetApiEndpoints() []entity.ApiEndpoint {
 			Endpoint:    "/api/groups",
 			Method:      "GET",
 			MethodLower: "get",
-			Description: "Mendapatkan daftar grup WhatsApp yang diikuti oleh akun terhubung, termasuk informasi jumlah peserta dan status admin.",
+			Description: "Mendapatkan daftar grup WhatsApp yang diikuti oleh instance bot pengguna tertentu, termasuk informasi jumlah peserta dan status admin.",
 			Example: `curl -X GET "{{.BaseURL}}/api/groups" \\
-  -H "X-Access-Token: {{.Token}}"`,
+  -H "X-Access-Token: user123"`,
 			Response: `{
   "success": true,
   "message": "Berhasil mendapatkan daftar grup",
@@ -260,9 +299,9 @@ func (s *DocService) GetApiEndpoints() []entity.ApiEndpoint {
 			Endpoint:    "/api/groups/{id}/participants",
 			Method:      "GET",
 			MethodLower: "get",
-			Description: "Mendapatkan daftar anggota dari grup WhatsApp tertentu beserta informasi status admin mereka. Ganti {id} dengan ID grup.",
+			Description: "Mendapatkan daftar anggota dari grup WhatsApp tertentu menggunakan instance bot pengguna tertentu beserta informasi status admin mereka. Ganti {id} dengan ID grup.",
 			Example: `curl -X GET "{{.BaseURL}}/api/groups/120363123456789@g.us/participants" \\
-  -H "X-Access-Token: {{.Token}}"`,
+  -H "X-Access-Token: user123"`,
 			Response: `{
   "success": true,
   "message": "Berhasil mendapatkan daftar peserta grup",
@@ -291,9 +330,9 @@ func (s *DocService) GetApiEndpoints() []entity.ApiEndpoint {
 			Endpoint:    "/api/qr/status",
 			Method:      "GET",
 			MethodLower: "get",
-			Description: "Mendapatkan status QR code untuk proses koneksi WhatsApp. Endpoint ini membantu menentukan apakah QR code tersedia, kedaluwarsa, atau perlu diperbarui.",
+			Description: "Mendapatkan status QR code untuk proses koneksi WhatsApp pengguna tertentu. Endpoint ini membantu menentukan apakah QR code tersedia, kedaluwarsa, atau perlu diperbarui.",
 			Example: `curl -X GET "{{.BaseURL}}/api/qr/status" \\
-  -H "X-Access-Token: {{.Token}}"`,
+  -H "X-Access-Token: user123"`,
 			Response: `{
   "success": true,
   "message": "QR code tersedia",
@@ -308,9 +347,9 @@ func (s *DocService) GetApiEndpoints() []entity.ApiEndpoint {
 			Endpoint:    "/api/qr/image",
 			Method:      "GET",
 			MethodLower: "get",
-			Description: "Mendapatkan gambar QR code untuk proses koneksi WhatsApp. Parameter t (timestamp) dapat ditambahkan untuk mencegah caching. Mengembalikan gambar PNG.",
+			Description: "Mendapatkan gambar QR code untuk proses koneksi WhatsApp pengguna tertentu. Parameter t (timestamp) dapat ditambahkan untuk mencegah caching. Mengembalikan gambar PNG.",
 			Example: `curl -X GET "{{.BaseURL}}/api/qr/image?t=1686841820" \\
-  -H "X-Access-Token: {{.Token}}" \\
+  -H "X-Access-Token: user123" \\
   -o qrcode.png`,
 			Response: `[Binary Image Data - PNG Format]`,
 		},
@@ -321,9 +360,9 @@ func (s *DocService) GetApiEndpoints() []entity.ApiEndpoint {
 			Endpoint:    "/api/profile",
 			Method:      "GET",
 			MethodLower: "get",
-			Description: "Mendapatkan informasi profil akun WhatsApp yang terhubung, termasuk nama, nomor telepon, dan foto profil jika tersedia.",
+			Description: "Mendapatkan informasi profil akun WhatsApp yang terhubung untuk pengguna tertentu, termasuk nama, nomor telepon, dan foto profil jika tersedia.",
 			Example: `curl -X GET "{{.BaseURL}}/api/profile" \\
-  -H "X-Access-Token: {{.Token}}"`,
+  -H "X-Access-Token: user123"`,
 			Response: `{
   "success": true,
   "message": "Berhasil mendapatkan profil",

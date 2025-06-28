@@ -6,30 +6,31 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gwenziro/bot-notify/internal/api/model"
 	"github.com/gwenziro/bot-notify/internal/constants"
-	"github.com/gwenziro/bot-notify/internal/service/client"
+	"github.com/gwenziro/bot-notify/internal/manager"
 	"github.com/gwenziro/bot-notify/internal/utils"
 )
 
-// BroadcastHandler menangani endpoint broadcast pesan API
+// BroadcastHandler menangani endpoint broadcast pesan API dengan dukungan multi-user
 type BroadcastHandler struct {
 	BaseHandler
 }
 
 // NewBroadcastHandler membuat instance baru BroadcastHandler
-func NewBroadcastHandler(whatsClient *client.Client) *BroadcastHandler {
+func NewBroadcastHandler(userManager *manager.UserManager) *BroadcastHandler {
 	return &BroadcastHandler{
-		BaseHandler: NewBaseHandler(whatsClient, "handler-broadcast"),
+		BaseHandler: NewBaseHandler(userManager, "handler-broadcast"),
 	}
 }
 
-// SendBroadcast mengirim pesan ke banyak nomor/grup sekaligus
+// SendBroadcast mengirim pesan ke banyak nomor/grup sekaligus untuk pengguna tertentu
 // Endpoint: POST /api/send/broadcast
 func (h *BroadcastHandler) SendBroadcast(c *fiber.Ctx) error {
 	// 1. Log informasi debug request
 	h.LogDebugRequest(c, "SendBroadcast")
 
-	// 2. Validasi koneksi WhatsApp
-	if !h.CheckWhatsAppConnection(c, constants.MsgBroadcastConnectionError) {
+	// 2. Validasi koneksi WhatsApp dan dapatkan client
+	whatsClient, connected := h.CheckWhatsAppConnection(c, constants.MsgBroadcastConnectionError)
+	if !connected {
 		return nil
 	}
 
@@ -46,7 +47,7 @@ func (h *BroadcastHandler) SendBroadcast(c *fiber.Ctx) error {
 	}
 
 	// 5. Kirim broadcast dan buat respons
-	return h.executeBroadcast(c, cleanedReq)
+	return h.executeBroadcast(c, cleanedReq, whatsClient)
 }
 
 // parseBroadcastRequest mem-parsing dan memvalidasi request broadcast
@@ -123,7 +124,7 @@ func (h *BroadcastHandler) processBroadcastTargets(c *fiber.Ctx, req model.Broad
 }
 
 // executeBroadcast menjalankan operasi broadcast dan mengirim respons
-func (h *BroadcastHandler) executeBroadcast(c *fiber.Ctx, req model.BroadcastRequest) error {
+func (h *BroadcastHandler) executeBroadcast(c *fiber.Ctx, req model.BroadcastRequest, whatsClient interface{}) error {
 	// Catat waktu mulai untuk menghitung durasi proses
 	startTime := time.Now()
 
@@ -135,7 +136,15 @@ func (h *BroadcastHandler) executeBroadcast(c *fiber.Ctx, req model.BroadcastReq
 	}).Info("Memulai pengiriman broadcast")
 
 	// Lakukan broadcast dengan data yang sudah bersih dan dapatkan waktu pengiriman terakhir
-	results, lastSentTime := h.WhatsApp.BroadcastMessage(
+	// Cast whatsClient ke tipe yang benar
+	client, ok := whatsClient.(interface {
+		BroadcastMessage([]string, []string, string, int) ([]model.BroadcastResult, time.Time)
+	})
+	if !ok {
+		return h.SendError(c, "Client tidak mendukung broadcast", nil, fiber.StatusInternalServerError)
+	}
+
+	results, lastSentTime := client.BroadcastMessage(
 		req.PersonalNumbers,
 		req.GroupIDs,
 		req.Message,
