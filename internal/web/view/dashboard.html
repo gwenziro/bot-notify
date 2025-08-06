@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="no">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Dashboard - Bot Notify</title>
+    <link rel="stylesheet" href="/static/css/base.css">
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+    <link rel="stylesheet" href="/static/css/dialog.css">
+    <link rel="stylesheet" href="/static/css/notification.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="icon" type="image/png" href="https://img.icons8.com/fluency/48/message-bot.png">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <!-- Gradient background & grid overlay -->
+    <div class="gradient-bg"></div>
+    <div class="grid-overlay"></div>
+
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="logo-area">
+                <a href="/" class="brand-link">
+                    <img src="https://img.icons8.com/3d-fluency/94/bot.png" alt="Bot Notify" class="logo">
+                    <h1 class="app-title">Bot Notify</h1>
+                </a>
+            </div>
+
+            <div class="header-actions">
+                <div class="status-badge {{if .IsConnected}}connected{{else}}disconnected{{end}}" id="connection-badge">
+                    {{if .IsConnected}}Terhubung{{else}}Terputus{{end}}
+                </div>
+
+                <div class="actions-area">
+                    <button id="refresh-btn" class="btn-icon" title="Segarkan data">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                    <a href="/logout" class="btn-icon" title="Keluar">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main content dengan layout baru -->
+        <main class="dashboard-content">
+            <!-- Baris 1: Informasi Kontak dan Tentang Bot Notify -->
+            <div class="content-row">
+                <!-- Section Informasi Kontak (sebelumnya Status WhatsApp) -->
+                <section class="content-section contact-info-section">
+                    <div class="glass-card">
+                        <div class="card-header">
+                            <h2 class="section-title">
+                                {{if .IsConnected}}
+                                <i class="fas fa-address-card"></i>
+                                Informasi Kontak
+                                {{else}}
+                                <i class="fas fa-qrcode"></i>
+                                Informasi QR
+                                {{end}}
+                            </h2>
+
+                            {{if .IsConnected}}
+                            <button id="disconnect-btn" class="btn btn-danger">
+                                <i class="fas fa-power-off"></i>
+                                <span>Putuskan</span>
+                            </button>
+                            {{end}}
+                        </div>
+
+                        <div class="card-body">
+                            {{if .IsConnected}}
+                            <!-- Connected state - informasi profil disederhanakan dengan token di samping -->
+                            <div class="connected-info" id="connected-view">
+                                <!-- Informasi profil di kiri -->
+                                <div class="connected-profile">
+                                    {{if .ProfilePictureURL}}
+                                    <img src="{{.ProfilePictureURL}}" alt="Profile Picture" class="profile-pic">
+                                    {{else}}
+                                    <div class="profile-pic-placeholder">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                    {{end}}
+                                    <div class="profile-info">
+                                        <h3 class="profile-name">{{.ContactName}}</h3>
+                                        <p class="profile-number">{{.PhoneNumber}}</p>
+                                    </div>
+                                </div>
+
+                                <!-- API token section di kanan - dengan tombol salin di dalam kolom token -->
+                                <div class="api-token-wrapper">
+                                    <div class="api-token-header">
+                                        <h4 class="api-token-title"><i class="fas fa-key"></i> Token API</h4>
+                                    </div>
+                                    <div class="api-token-display">
+                                        <code id="api-token-code">{{.Token}}</code>
+                                        <button class="btn-icon copy-btn" title="Salin token" data-code="api-token">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            {{else}}
+                            <!-- Disconnected state - QR code view yang diperbaiki -->
+                            <div class="qr-connection" id="qr-view">
+                                <div class="qr-section">
+                                    <p class="qr-instructions">
+                                        {{if .QRCodeMessage}}
+                                        {{.QRCodeMessage}}
+                                        {{else}}
+                                        Silakan pindai kode QR berikut dengan WhatsApp di ponsel Anda untuk
+                                        menghubungkan Bot:
+                                        {{end}}
+                                    </p>
+                                    <div class="qr-container" id="qr-container">
+                                        {{if .QRCodeAvailable}}
+                                        <img id="qr-code" class="qr-image" src="{{.QRCodeURL}}" alt="QR Code WhatsApp">
+                                        {{else}}
+                                        <div class="qr-loading" id="qr-loading">
+                                            {{if .QRCodeExpired}}
+                                            <i class="fas fa-exclamation-circle"></i>
+                                            <span>QR Code kedaluwarsa</span>
+                                            {{else}}
+                                            <i class="fas fa-spinner fa-spin"></i>
+                                            <span>Memuat Kode QR...</span>
+                                            {{end}}
+                                        </div>
+                                        {{end}}
+                                    </div>
+                                    <div class="qr-actions">
+                                        <button id="refresh-qr-btn" class="btn btn-primary">
+                                            <i class="fas fa-sync"></i>
+                                            <span>Segarkan QR</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Konten tambahan di bawah QR code -->
+                                <div class="qr-additional-info">
+                                    <div class="qr-notes">
+                                        <p class="status-text"><i class="fas fa-clock"></i> QR code akan otomatis
+                                            diperbarui setiap <span class="highlight">60 detik</span> jika tidak
+                                            dipindai</p>
+                                        <p class="status-text"><i class="fas fa-sync-alt"></i> Jika mengalami masalah,
+                                            klik tombol <span class="highlight">Segarkan QR</span></p>
+                                    </div>
+                                </div>
+                            </div>
+                            {{end}}
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Section Tentang Bot Notify -->
+                <section class="content-section about-section">
+                    <div class="glass-card">
+                        <div class="card-header">
+                            <h2 class="section-title">
+                                <i class="fas fa-{{if .IsConnected}}info-circle{{else}}book-reader{{end}}"></i>
+                                {{if .IsConnected}}Tentang Bot Notify{{else}}Tutorial Menghubungkan WhatsApp{{end}}
+                            </h2>
+                        </div>
+                        <div class="card-body">
+                            {{if .IsConnected}}
+                            <!-- Konten About Bot Notify saat terhubung -->
+                            <p class="info-description">
+                                Bot Notify adalah layanan untuk mengirimkan pesan notifikasi WhatsApp secara otomatis
+                                ketika form disubmit atau event tertentu terjadi di sistem Anda.
+                            </p>
+                            <div class="info-details">
+                                <div class="info-item">
+                                    <div class="info-icon">
+                                        <i class="fas fa-code-branch"></i>
+                                    </div>
+                                    <div class="info-content">
+                                        <span class="info-label">Versi</span>
+                                        <span class="info-value">1.0.0</span>
+                                    </div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-icon">
+                                        <i class="fas fa-server"></i>
+                                    </div>
+                                    <div class="info-content">
+                                        <span class="info-label">Status Server</span>
+                                        <span class="info-value status-active">Aktif</span>
+                                    </div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-icon">
+                                        <i class="fas fa-book"></i>
+                                    </div>
+                                    <div class="info-content">
+                                        <span class="info-label">Dokumentasi</span>
+                                        <a href="/docs" class="info-link">Selengkapnya</a>
+                                    </div>
+                                </div>
+                            </div>
+                            {{else}}
+                            <!-- Tutorial Menghubungkan WhatsApp saat tidak terhubung -->
+                            <div class="tutorial-content">
+                                <p class="info-description">
+                                    Ikuti langkah-langkah berikut untuk menghubungkan WhatsApp dengan Bot Notify:
+                                </p>
+
+                                <div class="tutorial-steps">
+                                    <div class="tutorial-step">
+                                        <div class="step-icon-container">
+                                            <div class="step-number">1</div>
+                                            <div class="step-connector"></div>
+                                        </div>
+                                        <div class="step-content">
+                                            <h3 class="step-title"><i class="fas fa-mobile-alt"></i> Siapkan WhatsApp
+                                            </h3>
+                                            <p class="step-description">
+                                                Pastikan aplikasi WhatsApp sudah terpasang dan aktif di ponsel Anda
+                                                dengan koneksi internet yang stabil.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div class="tutorial-step">
+                                        <div class="step-icon-container">
+                                            <div class="step-number">2</div>
+                                            <div class="step-connector"></div>
+                                        </div>
+                                        <div class="step-content">
+                                            <h3 class="step-title"><i class="fas fa-qrcode"></i> Pindai Kode QR</h3>
+                                            <p class="step-description">
+                                                Buka WhatsApp &rarr; <strong>Menu</strong> <i
+                                                    class="fas fa-ellipsis-v fa-sm"></i> &rarr; <strong>Perangkat
+                                                    Tertaut</strong> &rarr; <strong>Tautkan Perangkat</strong> dan
+                                                pindai kode QR.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div class="tutorial-step">
+                                        <div class="step-icon-container">
+                                            <div class="step-number">3</div>
+                                            <div class="step-connector"></div>
+                                        </div>
+                                        <div class="step-content">
+                                            <h3 class="step-title"><i class="fas fa-sync"></i> Tunggu Proses</h3>
+                                            <p class="step-description">
+                                                Tunggu beberapa saat hingga proses menghubungkan selesai. Halaman akan
+                                                otomatis diperbarui setelah koneksi berhasil.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div class="tutorial-step">
+                                        <div class="step-icon-container">
+                                            <div class="step-number">4</div>
+                                        </div>
+                                        <div class="step-content">
+                                            <h3 class="step-title"><i class="fas fa-check-circle"></i> Mulai Gunakan
+                                            </h3>
+                                            <p class="step-description">
+                                                Setelah terhubung, Anda dapat mulai mengirim pesan WhatsApp melalui API
+                                                sesuai contoh di bawah.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {{end}}
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            {{if .IsConnected}}
+            <!-- Baris 2: Statistik -->
+            <div class="content-row">
+                <section class="content-section stats-section">
+                    <div class="glass-card">
+                        <div class="card-header">
+                            <h2 class="section-title">
+                                <i class="fas fa-chart-line"></i>
+                                Statistik Koneksi
+                            </h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="stats-grid">
+                                <!-- Terhubung Selama -->
+                                <div class="stat-item">
+                                    <div class="stat-icon">
+                                        <i class="fas fa-clock"></i>
+                                    </div>
+                                    <div class="stat-content">
+                                        <h3 class="stat-label">Terhubung Selama</h3>
+                                        <p class="stat-value" id="connection-duration">
+                                            {{if .ConnectionDuration}}
+                                            {{.ConnectionDuration}}
+                                            {{else}}
+                                            Baru saja
+                                            {{end}}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- Terhubung Sejak -->
+                                <div class="stat-item">
+                                    <div class="stat-icon">
+                                        <i class="fas fa-calendar-check"></i>
+                                    </div>
+                                    <div class="stat-content">
+                                        <h3 class="stat-label">Terhubung Sejak</h3>
+                                        <p class="stat-value" id="connected-since">
+                                            {{if .ConnectedSinceFormatted}}
+                                            {{.ConnectedSinceFormatted | safeHTML}}
+                                            {{else}}
+                                            Baru saja
+                                            {{end}}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- Aktivitas Terakhir -->
+                                <div class="stat-item">
+                                    <div class="stat-icon">
+                                        <i class="fas fa-history"></i>
+                                    </div>
+                                    <div class="stat-content">
+                                        <h3 class="stat-label">Aktivitas Terakhir</h3>
+                                        <p class="stat-value" id="last-activity">
+                                            {{if .LastActivityFormatted}}
+                                            {{.LastActivityFormatted | safeHTML}}
+                                            {{else}}
+                                            -
+                                            {{end}}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- Messages sent -->
+                                <div class="stat-item">
+                                    <div class="stat-icon">
+                                        <i class="fas fa-paper-plane"></i>
+                                    </div>
+                                    <div class="stat-content">
+                                        <h3 class="stat-label">Pesan Terkirim</h3>
+                                        <p class="stat-value" id="messages-sent">{{.MessagesSent}}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+            {{end}}
+
+            <!-- Baris 3: Contoh Penggunaan API -->
+            <div class="content-row">
+                <section class="content-section api-usage-section">
+                    <div class="glass-card">
+                        <div class="card-header">
+                            <h2 class="section-title">
+                                <i class="fas fa-code"></i>
+                                Contoh Penggunaan API
+                            </h2>
+                            <div class="card-header-actions">
+                                <a href="/docs" class="btn btn-primary">
+                                    <i class="fas fa-book"></i>
+                                    <span>Dokumentasi Lengkap</span>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="api-examples">
+                                <div class="api-example-group">
+                                    <h3 class="example-title">Kirim Pesan Personal</h3>
+                                    <div class="code-example">
+                                        <div class="code-header">
+                                            <span>Contoh Request API</span>
+                                            <button class="btn-icon copy-btn" title="Salin kode" data-code="personal">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                        </div>
+                                        <pre class="code-block" id="personal-code"><code>curl -X POST "{{.BaseURL}}/api/send/personal" \
+  -H "X-Access-Token: {{.MaskedToken}}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phoneNumber": "6281234567890",
+    "message": "Ini adalah pesan notifikasi"
+  }'</code></pre>
+                                    </div>
+                                </div>
+
+                                <div class="api-example-group">
+                                    <h3 class="example-title">Kirim Pesan Grup</h3>
+                                    <div class="code-example">
+                                        <div class="code-header">
+                                            <span>Contoh Request API</span>
+                                            <button class="btn-icon copy-btn" title="Salin kode" data-code="group">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                        </div>
+                                        <pre class="code-block" id="group-code"><code>curl -X POST "{{.BaseURL}}/api/send/group" \
+  -H "X-Access-Token: {{.MaskedToken}}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "groupId": "120363144182570365@g.us",
+    "message": "Ini adalah pesan grup"
+  }'</code></pre>
+                                    </div>
+                                </div>
+
+                                <div class="api-example-group">
+                                    <h3 class="example-title">Broadcast Pesan</h3>
+                                    <div class="code-example">
+                                        <div class="code-header">
+                                            <span>Contoh Request API</span>
+                                            <button class="btn-icon copy-btn" title="Salin kode" data-code="broadcast">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                        </div>
+                                        <pre class="code-block" id="broadcast-code"><code>curl -X POST "{{.BaseURL}}/api/send/broadcast" \
+  -H "X-Access-Token: {{.MaskedToken}}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "personalNumbers": ["628123456789", "628987654321"],
+    "groupIds": ["120363144182570365@g.us"],
+    "message": "Ini adalah pesan broadcast",
+    "delayMs": 1000
+  }'</code></pre>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="dashboard-footer">
+            <div class="copyright">
+                &copy; {{.CurrentYear}} Bot Notify
+            </div>
+            <div class="footer-info">
+                <div class="server-time">
+                    <i class="far fa-clock"></i>
+                    <span id="server-time">00:00:00</span>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Dialog container -->
+    <div id="dialog-container"></div>
+
+    <!-- Notification container -->
+    <div id="notification-container" class="notification-container"></div>
+
+    <!-- Scripts -->
+    <script src="/static/js/notification.js"></script>
+    <script src="/static/js/dialog.js"></script>
+    <script src="/static/js/dashboard.js"></script>
+</body>
+
+</html>

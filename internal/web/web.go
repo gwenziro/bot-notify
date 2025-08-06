@@ -4,67 +4,81 @@ import (
 	"path/filepath"
 
 	"github.com/gofiber/fiber/v2/middleware/session"
+	"github.com/gwenziro/bot-notify/internal/api/handler"
 	"github.com/gwenziro/bot-notify/internal/config"
-	"github.com/gwenziro/bot-notify/internal/service/log"
-	"github.com/gwenziro/bot-notify/internal/service/whatsapp/client"
+	"github.com/gwenziro/bot-notify/internal/manager"
+	"github.com/gwenziro/bot-notify/internal/service/website"
 	"github.com/gwenziro/bot-notify/internal/utils"
 	"github.com/gwenziro/bot-notify/internal/web/controller"
 )
 
-// WebHandler menangani endpoint dan tampilan web
+// APIHandler berisi semua handler API
+type APIHandler struct {
+	statusHandler  *handler.StatusHandler
+	qrCodeHandler  *handler.QRCodeHandler
+	groupHandler   *handler.GroupHandler
+	messageHandler *handler.MessageHandler
+}
+
+// WebHandler menangani endpoint dan tampilan web dengan dukungan multi-user
 type WebHandler struct {
 	config       *config.Config
-	whatsApp     *client.Client
+	userManager  *manager.UserManager
 	logger       utils.LogrusEntry
 	viewsPath    string
 	staticPath   string
 	sessionStore *session.Store
 
 	// Controller untuk berbagai halaman
-	homeController         *controller.HomeController
-	statusController       *controller.StatusController
-	connectivityController *controller.ConnectivityController
-	dashboardController    *controller.DashboardController
-	settingsController     *controller.SettingsController
-	authController         *controller.AuthController
-	logsController         *controller.LogsController
+	homeController      *controller.HomeController
+	dashboardController *controller.DashboardController
+	authController      *controller.AuthController
+	docController       *controller.DocController
+
+	// API handlers
+	apiHandler *APIHandler
 }
 
-// NewWebHandler membuat instance baru WebHandler
-func NewWebHandler(cfg *config.Config, whatsClient *client.Client, sessionStore *session.Store) *WebHandler {
+// NewWebHandler membuat instance baru WebHandler dengan dukungan multi-user
+func NewWebHandler(cfg *config.Config, userManager *manager.UserManager, sessionStore *session.Store) *WebHandler {
 	// Sesuaikan path dengan struktur direktori baru
 	viewsPath := filepath.Join(utils.ProjectRoot, "internal", "web", "view")
 	staticPath := filepath.Join(utils.ProjectRoot, "static")
 
 	logger := utils.ForModule("web")
 
-	// Buat instance LogService
-	// Catatan: Dalam produksi, ini sebaiknya diinjeksi dari luar
-	logService := log.NewLogService(nil, utils.ForModule("log-service"))
+	// Buat service layer terlebih dahulu dengan UserManager
+	homeService := website.NewHomeService(cfg, logger)
+	dashboardService := website.NewDashboardService(cfg, userManager, logger)
+	authService := website.NewAuthService(cfg, sessionStore, logger)
+	docService := website.NewDocService(cfg, userManager, logger)
 
-	// Inisialisasi controller
-	homeController := controller.NewHomeController(cfg, whatsClient, logger)
-	statusController := controller.NewStatusController(cfg, whatsClient, logger)
-	connectivityController := controller.NewConnectivityController(cfg, whatsClient, logger)
-	dashboardController := controller.NewDashboardController(cfg, whatsClient, logger)
-	settingsController := controller.NewSettingsController(cfg, whatsClient, logger)
-	authController := controller.NewAuthController(cfg, whatsClient, sessionStore, logger)
-	logsController := controller.NewLogsController(cfg, whatsClient, logService, logger)
+	// Inisialisasi controller dengan service yang sesuai
+	homeController := controller.NewHomeController(homeService, logger)
+	dashboardController := controller.NewDashboardController(dashboardService, logger)
+	authController := controller.NewAuthController(authService, logger)
+	docController := controller.NewDocController(docService, logger)
+
+	// Inisialisasi API handler dengan UserManager
+	apiHandler := &APIHandler{
+		statusHandler:  handler.NewStatusHandler(userManager),
+		qrCodeHandler:  handler.NewQRCodeHandler(userManager),
+		groupHandler:   handler.NewGroupHandler(userManager),
+		messageHandler: handler.NewMessageHandler(userManager),
+	}
 
 	return &WebHandler{
-		config:                 cfg,
-		whatsApp:               whatsClient,
-		logger:                 logger,
-		viewsPath:              viewsPath,
-		staticPath:             staticPath,
-		sessionStore:           sessionStore,
-		homeController:         homeController,
-		statusController:       statusController,
-		connectivityController: connectivityController,
-		dashboardController:    dashboardController,
-		settingsController:     settingsController,
-		authController:         authController,
-		logsController:         logsController,
+		config:              cfg,
+		userManager:         userManager,
+		logger:              logger,
+		viewsPath:           viewsPath,
+		staticPath:          staticPath,
+		sessionStore:        sessionStore,
+		homeController:      homeController,
+		dashboardController: dashboardController,
+		authController:      authController,
+		docController:       docController,
+		apiHandler:          apiHandler,
 	}
 }
 
@@ -87,6 +101,9 @@ func (h *WebHandler) GetStaticPath() string {
 func (h *WebHandler) SetSessionStore(store *session.Store) {
 	h.sessionStore = store
 
-	// Re-initialize auth controller with the new session store
-	h.authController = controller.NewAuthController(h.config, h.whatsApp, store, h.logger)
+	// Create a new auth service with the updated session store
+	authService := website.NewAuthService(h.config, store, h.logger)
+
+	// Re-initialize auth controller with the new auth service
+	h.authController = controller.NewAuthController(authService, h.logger)
 }

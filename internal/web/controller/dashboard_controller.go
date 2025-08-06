@@ -2,47 +2,79 @@ package controller
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/gwenziro/bot-notify/internal/config"
-	"github.com/gwenziro/bot-notify/internal/service/whatsapp/client"
+	"github.com/gwenziro/bot-notify/internal/service/website"
 	"github.com/gwenziro/bot-notify/internal/utils"
 )
 
 // DashboardController menangani halaman dashboard
 type DashboardController struct {
-	config   *config.Config
-	whatsApp *client.Client
-	logger   utils.LogrusEntry
+	service *website.DashboardService
+	logger  utils.LogrusEntry
 }
 
 // NewDashboardController membuat instance baru DashboardController
-func NewDashboardController(cfg *config.Config, whatsClient *client.Client, logger utils.LogrusEntry) *DashboardController {
+func NewDashboardController(service *website.DashboardService, logger utils.LogrusEntry) *DashboardController {
 	return &DashboardController{
-		config:   cfg,
-		whatsApp: whatsClient,
-		logger:   logger.WithField("component", "dashboard-controller"),
+		service: service,
+		logger:  logger.WithField("component", "dashboard-controller"),
 	}
 }
 
 // DashboardPage menampilkan halaman dashboard utama
 func (c *DashboardController) DashboardPage(ctx *fiber.Ctx) error {
-	c.logger.Debug("Rendering dashboard page")
+	c.logger.Debug("Rendering halaman dashboard")
 
-	// Dapatkan status koneksi
-	connectionState := c.whatsApp.GetConnectionState()
+	// Dapatkan data dari service
+	dashData := c.service.GetDashboardData()
 
-	// Render dashboard dengan data
-	return ctx.Render("dashboard/index", fiber.Map{
-		"Title":       "Dashboard",
-		"Description": "Ringkasan sistem dan status WhatsApp Bot Notify.",
-		"Connection": fiber.Map{
-			"Status":      string(connectionState.Status),
-			"IsConnected": connectionState.IsConnected,
-			"LastActive":  connectionState.LastActivity,
-			"Retries":     connectionState.ConnectionRetries,
-		},
-		"SystemInfo": fiber.Map{
-			"Version": "1.0.0",
-			"Uptime":  "Loading...",
-		},
-	}, "layouts/dashboard")
+	// Render template dengan data
+	return ctx.Render("dashboard", dashData)
+}
+
+// RefreshQRCode memuat ulang QR code untuk koneksi WhatsApp
+func (c *DashboardController) RefreshQRCode(ctx *fiber.Ctx) error {
+	c.logger.Info("Menerima permintaan refresh QR code")
+
+	// Hubungkan ulang WhatsApp untuk mendapatkan QR code baru
+	err := c.service.RefreshQRCode()
+	if err != nil {
+		c.logger.WithError(err).Error("Gagal menyambungkan untuk QR code baru")
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"message": "Gagal memuat QR code baru: " + err.Error(),
+		})
+	}
+
+	// Dapatkan status QR code
+	qrStatus := c.service.GetQRCodeStatus()
+
+	return ctx.JSON(fiber.Map{
+		"success":     true,
+		"message":     "QR code sedang dimuat",
+		"qrAvailable": qrStatus.Available,
+		"qrExpired":   qrStatus.Expired,
+		"qrURL":       qrStatus.URL,
+		"qrMessage":   qrStatus.Message,
+	})
+}
+
+// DisconnectWhatsApp memutuskan koneksi WhatsApp
+func (c *DashboardController) DisconnectWhatsApp(ctx *fiber.Ctx) error {
+	c.logger.Info("Menerima permintaan disconnect WhatsApp")
+
+	// Putuskan koneksi WhatsApp melalui service
+	err := c.service.DisconnectWhatsApp()
+	if err != nil {
+		c.logger.WithError(err).Error("Gagal menghapus sesi WhatsApp")
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"message": "Gagal menghapus sesi: " + err.Error(),
+		})
+	}
+
+	return ctx.JSON(fiber.Map{
+		"success":   true,
+		"message":   "WhatsApp berhasil diputuskan",
+		"connected": false,
+	})
 }

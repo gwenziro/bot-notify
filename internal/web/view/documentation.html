@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}} - Bot Notify</title>
+    <link rel="stylesheet" href="/static/css/documentation.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link rel="icon" type="image/png" sizes="48x48" href="https://img.icons8.com/fluency/48/message-bot.png">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap"
+        rel="stylesheet">
+</head>
+
+<body class="dark-theme-container dashboard-body">
+    <!-- Gradient background & grid overlay -->
+    <div class="gradient-bg"></div>
+    <div class="grid-overlay"></div>
+
+    <div class="dashboard-container">
+        <main class="dashboard-main">
+            <div class="content-glass-wrapper">
+                <div class="docs-container">
+                    <div class="docs-sidebar">
+                        <div class="docs-nav">
+                            <h2 class="docs-nav-title">Konten</h2>
+                            <ul class="docs-nav-list">
+                                <li><a href="#introduction" class="docs-nav-link active">Pendahuluan</a></li>
+                                <li><a href="#authentication" class="docs-nav-link">Autentikasi</a></li>
+                                <li><a href="#rate-limits" class="docs-nav-link">Batasan Rate</a></li>
+                                <li><a href="#endpoints" class="docs-nav-link">Endpoints</a></li>
+                                {{range $index, $endpoint := .Endpoints}}
+                                <li><a href="#endpoint-{{$index}}"
+                                        class="docs-nav-link docs-nav-sublink">{{$endpoint.Name}}</a></li>
+                                {{end}}
+                                <li><a href="#errors" class="docs-nav-link">Kode Error</a></li>
+                                <li><a href="#webhooks" class="docs-nav-link">Webhooks</a></li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="docs-content">
+                        <section id="introduction" class="docs-section">
+                            <h1 class="docs-title">Dokumentasi API Bot Notify</h1>
+                            <p class="docs-description">
+                                Bot Notify API memungkinkan Anda mengirimkan pesan WhatsApp secara programatis. API
+                                ini
+                                RESTful dan menggunakan format JSON untuk permintaan dan respons.
+                            </p>
+
+                            <div class="api-info-card">
+                                <div class="api-info-item">
+                                    <div class="api-info-label">Base URL</div>
+                                    <div class="api-info-value">{{.BaseURL}}</div>
+                                </div>
+                                <div class="api-info-item">
+                                    <div class="api-info-label">Format</div>
+                                    <div class="api-info-value">JSON</div>
+                                </div>
+                                <div class="api-info-item">
+                                    <div class="api-info-label">Version</div>
+                                    <div class="api-info-value">v1.0.0</div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section id="authentication" class="docs-section">
+                            <h2 class="docs-subtitle">Autentikasi</h2>
+                            <p>
+                                Semua permintaan API memerlukan token akses yang valid. Token dikirim melalui header
+                                HTTP <code>X-Access-Token</code>.
+                            </p>
+
+                            <div class="code-example">
+                                <div class="code-header">
+                                    <span>Contoh Autentikasi</span>
+                                    <button class="copy-btn btn-icon" data-clipboard-target="#auth-example">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </div>
+                                <pre class="code-block"><code id="auth-example">curl -X GET "{{.BaseURL}}/api/status" \
+  -H "X-Access-Token: {{.MaskedToken}}"</code></pre>
+                            </div>
+                        </section>
+
+                        <section id="rate-limits" class="docs-section">
+                            <h2 class="docs-subtitle">Batasan Rate</h2>
+                            <p>
+                                API ini memiliki batasan rate untuk mencegah penyalahgunaan. Batas default adalah 60
+                                permintaan per menit.
+                                Jika Anda melebihi batas, permintaan Anda akan ditolak dengan kode status HTTP 429
+                                (Too Many Requests).
+                            </p>
+
+                            <div class="info-alert">
+                                <i class="fas fa-info-circle"></i>
+                                <div>
+                                    <strong>Info:</strong> Header respons menyertakan
+                                    <code>X-Rate-Limit-Remaining</code> yang menunjukkan berapa banyak permintaan
+                                    tersisa dalam jendela waktu saat ini.
+                                </div>
+                            </div>
+                        </section>
+
+                        <section id="endpoints" class="docs-section">
+                            <h2 class="docs-subtitle">Endpoints</h2>
+                            <p>
+                                Berikut adalah daftar endpoint yang tersedia dalam API Bot Notify.
+                            </p>
+
+                            {{range $index, $endpoint := .Endpoints}}
+                            <section id="endpoint-{{$index}}" class="endpoint-section">
+                                <h3 class="endpoint-title">{{$endpoint.Name}}</h3>
+
+                                <div class="endpoint-details">
+                                    <span class="endpoint-method {{$endpoint.MethodLower}}">{{$endpoint.Method}}</span>
+                                    <span class="endpoint-url">{{$endpoint.Endpoint}}</span>
+                                </div>
+
+                                <p class="endpoint-description">{{$endpoint.Description}}</p>
+
+                                <div class="endpoint-subsection">
+                                    <h4>Contoh Request</h4>
+                                    <div class="code-example">
+                                        <div class="code-header">
+                                            <span>cURL</span>
+                                            <button class="copy-btn btn-icon" data-clipboard-target="#example-{{$index}}">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                        </div>
+                                        <pre
+                                            class="code-block"><code id="example-{{$index}}">{{$endpoint.Example}}</code></pre>
+                                    </div>
+                                </div>
+
+                                <div class="endpoint-subsection">
+                                    <h4>Contoh Response</h4>
+                                    <div class="code-example">
+                                        <div class="code-header">
+                                            <span>JSON</span>
+                                            <button class="copy-btn btn-icon" data-clipboard-target="#response-{{$index}}">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                        </div>
+                                        <pre
+                                            class="code-block"><code id="response-{{$index}}">{{$endpoint.Response}}</code></pre>
+                                    </div>
+                                </div>
+                            </section>
+                            {{end}}
+                        </section>
+
+                        <section id="errors" class="docs-section">
+                            <h2 class="docs-subtitle">Kode Error</h2>
+                            <p>
+                                Berikut adalah daftar kode error yang mungkin Anda temui saat menggunakan API.
+                            </p>
+
+                            <table class="error-table">
+                                <thead>
+                                    <tr>
+                                        <th>Kode</th>
+                                        <th>Status</th>
+                                        <th>Deskripsi</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>400</td>
+                                        <td>Bad Request</td>
+                                        <td>Permintaan tidak valid atau parameter yang diperlukan hilang</td>
+                                    </tr>
+                                    <tr>
+                                        <td>401</td>
+                                        <td>Unauthorized</td>
+                                        <td>Token akses tidak valid atau kedaluwarsa</td>
+                                    </tr>
+                                    <tr>
+                                        <td>403</td>
+                                        <td>Forbidden</td>
+                                        <td>Token valid tetapi tidak memiliki izin yang cukup</td>
+                                    </tr>
+                                    <tr>
+                                        <td>404</td>
+                                        <td>Not Found</td>
+                                        <td>Endpoint atau sumber daya yang diminta tidak ditemukan</td>
+                                    </tr>
+                                    <tr>
+                                        <td>429</td>
+                                        <td>Too Many Requests</td>
+                                        <td>Melebihi batas rate API</td>
+                                    </tr>
+                                    <tr>
+                                        <td>500</td>
+                                        <td>Internal Server Error</td>
+                                        <td>Terjadi kesalahan pada server</td>
+                                    </tr>
+                                    <tr>
+                                        <td>503</td>
+                                        <td>Service Unavailable</td>
+                                        <td>Layanan WhatsApp tidak tersedia saat ini</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </section>
+
+                        <section id="webhooks" class="docs-section">
+                            <h2 class="docs-subtitle">Webhooks</h2>
+                            <p>
+                                Bot Notify dapat mengirimkan webhook ke URL yang Anda tentukan untuk berbagai
+                                peristiwa.
+                            </p>
+
+                            <div class="info-alert">
+                                <i class="fas fa-info-circle"></i>
+                                <div>
+                                    <strong>Coming Soon:</strong> Fitur webhook sedang dalam pengembangan dan akan
+                                    segera tersedia.
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <!-- Documentation specific scripts -->
+    <script src="/static/js/documentation.js"></script>
+</body>
+
+</html>

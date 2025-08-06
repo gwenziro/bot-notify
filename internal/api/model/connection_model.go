@@ -1,26 +1,20 @@
 package model
 
-import "time"
-
-// ReconnectRequest untuk request menghubungkan kembali WhatsApp
+// ReconnectRequest adalah model untuk request menghubungkan kembali WhatsApp
 type ReconnectRequest struct {
-	Force bool `json:"force"` // Opsional: force reconnect meskipun sudah terhubung
+	Force bool `json:"force"` // Flag untuk memaksa koneksi ulang meskipun sudah terhubung
 }
 
-// ConnectionResponse adalah respons dasar untuk operasi koneksi
+// ConnectionResponse adalah model untuk respons operasi koneksi
 type ConnectionResponse struct {
-	Success   bool      `json:"sukses"`
-	Message   string    `json:"pesan"`
-	Timestamp time.Time `json:"waktu"`
-	Status    string    `json:"status,omitempty"`
+	BaseResponse
+	Status string `json:"status,omitempty"` // Status koneksi saat ini
 }
 
-// NewConnectionResponse membuat respons koneksi baru
+// NewConnectionResponse membuat instance baru ConnectionResponse
 func NewConnectionResponse(success bool, message string, status string) ConnectionResponse {
 	return ConnectionResponse{
-		Success:   success,
-		Message:   message,
-		Timestamp: time.Now(),
-		Status:    status,
+		BaseResponse: NewBaseResponse(success, message),
+		Status:       status,
 	}
 }

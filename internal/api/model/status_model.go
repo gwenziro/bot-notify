@@ -1,28 +1,39 @@
 package model
 
-import "time"
-
-// ConnectionStatus berisi informasi status koneksi WhatsApp
+// ConnectionStatus adalah model untuk informasi status koneksi WhatsApp
 type ConnectionStatus struct {
-	Status            string    `json:"status"`
-	IsConnected       bool      `json:"isConnected"`
-	ConnectionRetries int       `json:"connectionRetries"`
-	LastActivity      time.Time `json:"lastActivity"`
-	Timestamp         time.Time `json:"timestamp"`
+	Status       string `json:"status"`                 // Status koneksi sebagai string
+	IsConnected  bool   `json:"isConnected"`            // Flag status koneksi
+	LastActivity string `json:"lastActivity,omitempty"` // Waktu aktivitas terakhir
 }
 
-// StatusResponse untuk hasil query status
+// StatusResponse adalah model untuk respons dari endpoint status
 type StatusResponse struct {
-	Success bool             `json:"sukses"`
-	Status  string           `json:"status"`
-	Details ConnectionStatus `json:"details"`
-	Time    time.Time        `json:"timestamp"`
+	BaseResponse
+	Status       string `json:"status"`                 // Status koneksi sebagai string
+	IsConnected  bool   `json:"isConnected"`            // Flag status koneksi
+	LastActivity string `json:"lastActivity,omitempty"` // Waktu aktivitas terakhir
 }
 
-// PingResponse untuk endpoint health check
+// NewStatusResponse membuat instance baru StatusResponse
+func NewStatusResponse(message string, status string, isConnected bool) StatusResponse {
+	return StatusResponse{
+		BaseResponse: NewBaseResponse(isConnected, message),
+		Status:       status,
+		IsConnected:  isConnected,
+	}
+}
+
+// PingResponse adalah model untuk respons dari endpoint ping
 type PingResponse struct {
-	Success bool      `json:"sukses"`
-	Message string    `json:"pesan"`
-	Time    time.Time `json:"waktu"`
-	Version string    `json:"versi,omitempty"`
+	BaseResponse
+	Version string `json:"version"` // Versi API
+}
+
+// NewPingResponse membuat instance baru PingResponse
+func NewPingResponse(message string, version string) PingResponse {
+	return PingResponse{
+		BaseResponse: NewBaseResponse(true, message),
+		Version:      version,
+	}
 }

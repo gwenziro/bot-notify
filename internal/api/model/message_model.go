@@ -1,60 +1,49 @@
 package model
 
-import "time"
+import (
+	"time"
 
-// PersonalMessageRequest untuk request API kirim pesan personal
+	"github.com/gwenziro/bot-notify/internal/utils"
+)
+
+// PersonalMessageRequest adalah model untuk request API kirim pesan personal
 type PersonalMessageRequest struct {
-	PhoneNumber string `json:"phoneNumber" validate:"required"`
-	Message     string `json:"message" validate:"required"`
+	PhoneNumber string `json:"phoneNumber" validate:"required"` // Nomor telepon penerima
+	Message     string `json:"message" validate:"required"`     // Pesan yang akan dikirim
 }
 
-// GroupMessageRequest untuk request API kirim pesan grup
+// GroupMessageRequest adalah model untuk request API kirim pesan grup
 type GroupMessageRequest struct {
-	GroupID string `json:"groupID" validate:"required"`
-	Message string `json:"message" validate:"required"`
+	GroupID string `json:"groupID" validate:"required"` // ID grup penerima
+	Message string `json:"message" validate:"required"` // Pesan yang akan dikirim
 }
 
-// MessageResponse untuk hasil operasi kirim pesan
+// MessageResponse adalah model untuk hasil operasi kirim pesan
 type MessageResponse struct {
-	Success   bool      `json:"sukses"`
-	Message   string    `json:"pesan"`
-	Recipient string    `json:"penerima"`
-	Type      string    `json:"tipe"`
-	Timestamp time.Time `json:"waktu"`
+	BaseResponse
+	Recipient string `json:"recipient"`          // ID/nomor penerima pesan
+	Type      string `json:"type"`               // Tipe penerima: "personal" atau "group"
+	SentTime  string `json:"sentTime,omitempty"` // Waktu pengiriman dalam format Indonesia
 }
 
-// NewMessageResponse membuat respons pesan baru
-func NewMessageResponse(message string, recipient string, messageType string) MessageResponse {
+// NewMessageResponse membuat instance baru MessageResponse
+func NewMessageResponse(message string, recipient string, messageType string, sentTime time.Time) MessageResponse {
 	return MessageResponse{
-		Success:   true,
-		Message:   message,
-		Recipient: recipient,
-		Type:      messageType,
-		Timestamp: time.Now(),
+		BaseResponse: NewBaseResponse(true, message),
+		Recipient:    recipient,
+		Type:         messageType,
+		SentTime:     utils.FormatTimeIndonesia(&sentTime),
 	}
 }
 
 // ErrorMessageResponse untuk respons error
 type ErrorMessageResponse struct {
-	Success   bool      `json:"sukses"`
-	Message   string    `json:"pesan"`
-	Error     string    `json:"error,omitempty"`
-	Timestamp time.Time `json:"waktu"`
-	Code      int       `json:"kode"`
+	BaseErrorResponse
 }
 
 // NewErrorMessageResponse membuat respons error
 func NewErrorMessageResponse(message string, err error, code int) ErrorMessageResponse {
-	errMsg := ""
-	if err != nil {
-		errMsg = err.Error()
-	}
-
 	return ErrorMessageResponse{
-		Success:   false,
-		Message:   message,
-		Error:     errMsg,
-		Timestamp: time.Now(),
-		Code:      code,
+		BaseErrorResponse: NewBaseErrorResponse(message, err, code),
 	}
 }

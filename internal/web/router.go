@@ -23,26 +23,23 @@ func (h *WebHandler) RegisterRoutes(app *fiber.App) {
 	dashboard := app.Group("/dashboard")
 	dashboard.Use(authMiddleware.RequireAuth())
 	dashboard.Get("/", h.dashboardController.DashboardPage)
+	dashboard.Post("/refresh-qr", h.dashboardController.RefreshQRCode)
+	dashboard.Post("/disconnect", h.dashboardController.DisconnectWhatsApp)
 
-	// Protected routes - Connectivity
+	// New Connectivity route
 	connectivity := app.Group("/connectivity")
 	connectivity.Use(authMiddleware.RequireAuth())
-	connectivity.Get("/", h.connectivityController.ConnectivityPage)
 
-	// Protected routes - Status
-	status := app.Group("/status")
-	status.Use(authMiddleware.RequireAuth())
-	status.Get("/", h.statusController.StatusPage)
+	// Documentation route - juga dilindungi auth
+	docs := app.Group("/docs")
+	docs.Use(authMiddleware.RequireAuth())
+	docs.Get("/", h.docController.DocumentationPage)
 
-	// Protected routes - Logs
-	logs := app.Group("/logs")
-	logs.Use(authMiddleware.RequireAuth())
-	logs.Get("/", h.logsController.LogsPage)
+	// API routes - tanpa middleware autentikasi khusus untuk sementara
+	api := app.Group("/api")
 
-	// Protected routes - Settings
-	settings := app.Group("/settings")
-	settings.Use(authMiddleware.RequireAuth())
-	settings.Get("/", h.settingsController.SettingsPage)
-	settings.Post("/update", h.settingsController.UpdateSettings)
-	settings.Post("/token/update", h.settingsController.UpdateToken)
+	// Endpoint yang dibutuhkan oleh JavaScript dashboard
+	api.Get("/status", h.apiHandler.statusHandler.GetStatus)
+	api.Get("/qr/status", h.apiHandler.qrCodeHandler.GetStatus)
+	api.Get("/qr/image", h.apiHandler.qrCodeHandler.GetImage)
 }

@@ -1,27 +1,59 @@
 package model
 
-// GroupInfo berisi informasi dasar tentang grup WhatsApp
+// GroupParticipantInfo adalah model untuk informasi anggota grup
+type GroupParticipantInfo struct {
+	JID          string `json:"jid"`                    // JID WhatsApp lengkap
+	PhoneNumber  string `json:"phoneNumber,omitempty"`  // Nomor telepon terformat
+	IsAdmin      bool   `json:"isAdmin"`                // Flag status admin
+	IsSuperAdmin bool   `json:"isSuperAdmin,omitempty"` // Flag status super admin
+	DisplayName  string `json:"displayName,omitempty"`  // Nama untuk ditampilkan
+	PushName     string `json:"pushName,omitempty"`     // Nama dari server WhatsApp
+	ContactName  string `json:"contactName,omitempty"`  // Nama dari kontak
+}
+
+// GroupInfo adalah model untuk informasi dasar grup WhatsApp
 type GroupInfo struct {
-	ID          string `json:"id"`
-	Name        string `json:"nama"`
-	MemberCount int    `json:"jumlahAnggota,omitempty"`
-	IsAdmin     bool   `json:"admin,omitempty"`
+	ID           string                 `json:"id"`           // ID grup WhatsApp
+	Name         string                 `json:"name"`         // Nama grup
+	MemberCount  int                    `json:"memberCount"`  // Jumlah anggota
+	IsAdmin      bool                   `json:"isAdmin"`      // Flag status admin kita
+	Participants []GroupParticipantInfo `json:"participants"` // Daftar anggota grup
 }
 
-// GroupListResponse untuk hasil query daftar grup
+// GroupListResponse adalah model untuk hasil query daftar grup
 type GroupListResponse struct {
-	Success bool        `json:"sukses"`
-	Message string      `json:"pesan"`
-	Count   int         `json:"jumlah"`
-	Groups  []GroupInfo `json:"grup"`
+	BaseResponse
+	Count  int         `json:"count"`  // Jumlah grup
+	Groups []GroupInfo `json:"groups"` // Daftar grup
 }
 
-// NewGroupListResponse membuat response daftar grup baru
-func NewGroupListResponse(message string, groups []GroupInfo) GroupListResponse {
+// NewGroupListResponse membuat instance baru GroupListResponse
+func NewGroupListResponse(success bool, message string, groups []GroupInfo) GroupListResponse {
 	return GroupListResponse{
-		Success: true,
-		Message: message,
-		Count:   len(groups),
-		Groups:  groups,
+		BaseResponse: NewBaseResponse(success, message),
+		Count:        len(groups),
+		Groups:       groups,
+	}
+}
+
+// GroupParticipantsResponse adalah model untuk hasil query daftar anggota grup
+type GroupParticipantsResponse struct {
+	BaseResponse
+	GroupID          string                 `json:"groupId"`          // ID grup WhatsApp
+	GroupName        string                 `json:"groupName"`        // Nama grup
+	ParticipantCount int                    `json:"participantCount"` // Jumlah anggota
+	IsAdmin          bool                   `json:"isAdmin"`          // Flag status admin kita
+	Participants     []GroupParticipantInfo `json:"participants"`     // Daftar anggota grup
+}
+
+// NewGroupParticipantsResponse membuat instance baru GroupParticipantsResponse
+func NewGroupParticipantsResponse(message string, groupID string, groupName string, isAdmin bool, participants []GroupParticipantInfo) GroupParticipantsResponse {
+	return GroupParticipantsResponse{
+		BaseResponse:     NewBaseResponse(true, message),
+		GroupID:          groupID,
+		GroupName:        groupName,
+		ParticipantCount: len(participants),
+		IsAdmin:          isAdmin,
+		Participants:     participants,
 	}
 }
